@@ -1,17 +1,18 @@
-#Intro 
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Component, OnInit } from '@angular/core';
+import { MatchStatusService } from '../match-status.service';
 
-@Injectable({
-  providedIn: 'root'
+@Component({
+  selector: 'app-match-status',
+  templateUrl: './match-status.component.html'
 })
-export class MatchStatusService {
-  private apiUrl = 'http://localhost:8080/api/match-status';
+export class MatchStatusComponent implements OnInit {
+  statusMessage = '';
 
-  constructor(private http: HttpClient) {}
+  constructor(private matchStatusService: MatchStatusService) {}
 
-  getStatus(): Observable<string> {
-    return this.http.get(this.apiUrl, { responseType: 'text' });
+  ngOnInit(): void {
+    this.matchStatusService.getStatus().subscribe(response => {
+      this.statusMessage = response;
+    });
   }
 }
