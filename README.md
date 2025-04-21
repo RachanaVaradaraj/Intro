@@ -1,26 +1,21 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { MatchStatusService } from '../match-status.service';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-match-status',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
-    <div class="status-box">
-      <h2>Match Status</h2>
-      <p>{{ statusMessage }}</p>
-    </div>
-  `
+  templateUrl: './match-status.component.html',
+  styleUrls: ['./match-status.component.css']
 })
 export class MatchStatusComponent implements OnInit {
-  statusMessage = '';
+  matchMessage: string = '';
 
-  constructor(private matchStatusService: MatchStatusService) {}
+  constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
-    this.matchStatusService.getStatus().subscribe(response => {
-      this.statusMessage = response;
-    });
+    this.http.get('http://localhost:8081/api/match-status', { responseType: 'text' })
+      .subscribe({
+        next: (data) => this.matchMessage = data,
+        error: (error) => console.error('Error fetching match status:', error)
+      });
   }
 }
