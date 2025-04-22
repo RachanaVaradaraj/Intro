@@ -1,21 +1,34 @@
-import { Component, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 
-@Component({
-  selector: 'app-match-status',
-  templateUrl: './match-status.component.html',
-  styleUrls: ['./match-status.component.css']
-})
-export class MatchStatusComponent implements OnInit {
-  matchMessage: string = '';
 
-  constructor(private http: HttpClient) {}
+    <dependencies>
+        <!-- Spring Boot Starters -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
 
-  ngOnInit(): void {
-    this.http.get('http://localhost:8081/api/match-status', { responseType: 'text' })
-      .subscribe({
-        next: (data) => this.matchMessage = data,
-        error: (error) => console.error('Error fetching match status:', error)
-      });
-  }
-}
+        <!-- Oracle JDBC -->
+        <dependency>
+            <groupId>com.oracle.database.jdbc</groupId>
+            <artifactId>ojdbc8</artifactId>
+            <version>19.8.0.0</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Spring Boot Maven Plugin -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring.boot.version}</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>
