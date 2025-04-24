@@ -1,47 +1,61 @@
-<div
-  class="upload-container mat-elevation-z8"
-  [class.drag-over]="isDragOver"
-  (dragover)="onDragOver($event)"
-  (dragleave)="onDragLeave($event)"
-  (drop)="onDrop($event)"
->
-  <h2>File Uploader</h2>
+.upload-container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 30px;
+  border-radius: 14px;
+  background: linear-gradient(to bottom right, #fafafa, #e3f2fd);
+  border: 2px dashed #90caf9;
+  text-align: center;
+  transition: 0.3s ease;
+}
 
-  <label class="file-label" for="fileInput">
-    <mat-icon class="upload-icon">cloud_upload</mat-icon>
-    <span>Click or Drag Files Here</span>
-    <input type="file" id="fileInput" (change)="onFileSelected($event)" multiple hidden />
-  </label>
+.upload-container.drag-over {
+  background-color: #bbdefb;
+  border-color: #1976d2;
+}
 
-  <div *ngIf="files.length > 0" class="section">
-    <h3>Selected Files</h3>
-    <mat-card class="file-card" *ngFor="let file of files; let i = index">
-      <div class="file-details">
-        <strong>#{{ i + 1 }}. {{ file.name }}</strong>
-        <span>{{ file.size | number }} bytes</span>
-      </div>
-      <button mat-icon-button color="warn" (click)="removeFile(i)">
-        <mat-icon>delete</mat-icon>
-      </button>
-    </mat-card>
+.file-label {
+  display: inline-block;
+  margin: 20px 0;
+  padding: 30px;
+  border: 2px dashed #64b5f6;
+  border-radius: 10px;
+  color: #1976d2;
+  background: #e3f2fd;
+  cursor: pointer;
+}
 
-    <button mat-raised-button color="primary" (click)="uploadFiles()" [disabled]="isUploading">
-      Upload All
-    </button>
+.file-label:hover {
+  background-color: #bbdefb;
+}
 
-    <mat-progress-bar *ngIf="isUploading" mode="indeterminate" color="accent"></mat-progress-bar>
-  </div>
+.upload-icon {
+  font-size: 40px;
+  margin-bottom: 8px;
+  display: block;
+}
 
-  <div *ngIf="uploaded.length > 0" class="section">
-    <h3>Uploaded Files</h3>
-    <mat-card class="uploaded-card" *ngFor="let file of uploaded; let i = index">
-      <div class="file-details">
-        <strong>#{{ i + 1 }}. {{ file.name }}</strong>
-        <span>{{ file.size | number }} bytes</span>
-      </div>
-      <button mat-icon-button color="warn" (click)="removeUploaded(i)">
-        <mat-icon>delete</mat-icon>
-      </button>
-    </mat-card>
-  </div>
-</div>
+.section {
+  margin-top: 30px;
+  text-align: left;
+}
+
+mat-card.file-card,
+mat-card.uploaded-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 12px 20px;
+  border-left: 5px solid #2196f3;
+  background: #ffffff;
+}
+
+.file-details {
+  display: flex;
+  flex-direction: column;
+}
+
+button[mat-icon-button] {
+  margin-left: 10px;
+}
