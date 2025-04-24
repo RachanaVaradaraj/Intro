@@ -21,3 +21,49 @@
   </div>
 </div>
 
+
+
+
+
+
+
+import { Component } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+
+@Component({
+  selector: 'app-file-upload',
+  templateUrl: './file-upload.component.html',
+  styleUrls: ['./file-upload.component.css']
+})
+export class FileUploadComponent {
+  files: File[] = [];
+
+  constructor(private http: HttpClient) {}
+
+  onFileSelected(event: any) {
+    const selectedFiles = Array.from(event.target.files) as File[];
+    this.files.push(...selectedFiles);
+  }
+
+  removeFile(index: number) {
+    this.files.splice(index, 1);
+  }
+
+  uploadFiles() {
+    if (this.files.length === 0) return;
+
+    const formData = new FormData();
+    this.files.forEach(file => formData.append('files', file));
+
+    this.http.post('http://localhost:8080/upload', formData).subscribe(
+      res => {
+        alert('Files uploaded successfully!');
+        this.files = [];
+      },
+      err => {
+        alert('Upload failed.');
+      }
+    );
+  }
+}
+
