@@ -1,57 +1,85 @@
-.upload-container {
-  max-width: 700px;
-  margin: 40px auto;
-  padding: 30px;
-  border-radius: 12px;
-  background: linear-gradient(to bottom, #ffffff, #f1f1f1);
-  border: 2px dashed #ccc;
-  transition: 0.3s;
-  text-align: center;
-}
+import { Component } from '@angular/core';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatListModule } from '@angular/material/list';
+import { MatCardModule } from '@angular/material/card';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
-.upload-container.drag-over {
-  background-color: #e0f7fa;
-  border: 2px dashed #00796b;
-}
+@Component({
+  selector: 'app-file-upload',
+  standalone: true,
+  imports: [
+    CommonModule,
+    HttpClientModule,
+    MatButtonModule,
+    MatIconModule,
+    MatListModule,
+    MatCardModule,
+    MatProgressBarModule
+  ],
+  templateUrl: './file-upload.component.html',
+  styleUrls: ['./file-upload.component.css']
+})
+export class FileUploadComponent {
+  files: File[] = [];
+  uploaded: { name: string, size: number }[] = [];
+  isDragOver = false;
+  isUploading = false;
 
-.file-label {
-  display: inline-block;
-  margin-top: 15px;
-  padding: 30px;
-  border: 2px dashed #3f51b5;
-  border-radius: 10px;
-  color: #3f51b5;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
+  constructor(private http: HttpClient) {}
 
-.file-label:hover {
-  background-color: #e8f0fe;
-}
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files) {
+      this.files.push(...Array.from(input.files));
+    }
+  }
 
-.upload-icon {
-  font-size: 48px;
-  margin-bottom: 8px;
-  display: block;
-}
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    this.isDragOver = true;
+  }
 
-.file-list,
-.uploaded-section {
-  margin-top: 25px;
-  text-align: left;
-}
+  onDragLeave(event: DragEvent) {
+    event.preventDefault();
+    this.isDragOver = false;
+  }
 
-mat-list-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    this.isDragOver = false;
+    if (event.dataTransfer?.files.length) {
+      this.files.push(...Array.from(event.dataTransfer.files));
+    }
+  }
 
-mat-list-item mat-icon {
-  margin-right: 12px;
-}
+  removeFile(index: number) {
+    this.files.splice(index, 1);
+  }
 
-.secondary {
-  font-size: 12px;
-  color: gray;
+  removeUploaded(index: number) {
+    this.uploaded.splice(index, 1);
+  }
+
+  uploadFiles() {
+    if (this.files.length === 0) return;
+
+    const formData = new FormData();
+    this.files.forEach(file => formData.append('files', file));
+
+    this.isUploading = true;
+    this.http.post('http://localhost:8080/upload', formData).subscribe({
+      next: () => {
+        this.uploaded.push(...this.files.map(f => ({ name: f.name, size: f.size })));
+        this.files = [];
+        this.isUploading = false;
+      },
+      error: () => {
+        alert('Upload failed.');
+        this.isUploading = false;
+      }
+    });
+  }
 }
