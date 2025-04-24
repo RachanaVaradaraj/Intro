@@ -2,42 +2,46 @@
   max-width: 800px;
   margin: 40px auto;
   padding: 30px;
-  border-radius: 14px;
-  background: linear-gradient(to bottom right, #fafafa, #e3f2fd);
-  border: 2px dashed #90caf9;
-  text-align: center;
+  border-radius: 16px;
+  background: linear-gradient(to bottom right, #f0f7ff, #e3f2fd);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
   transition: 0.3s ease;
 }
 
 .upload-container.drag-over {
-  background-color: #bbdefb;
+  background-color: #e1f5fe;
   border-color: #1976d2;
 }
 
 .file-label {
   display: inline-block;
-  margin: 20px 0;
-  padding: 30px;
-  border: 2px dashed #64b5f6;
-  border-radius: 10px;
+  margin: 25px 0;
+  padding: 35px;
+  border: 3px dashed #64b5f6;
+  border-radius: 14px;
   color: #1976d2;
   background: #e3f2fd;
   cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .file-label:hover {
   background-color: #bbdefb;
+  transform: scale(1.02);
 }
 
 .upload-icon {
-  font-size: 40px;
+  font-size: 48px;
   margin-bottom: 8px;
   display: block;
 }
 
 .section {
   margin-top: 30px;
-  text-align: left;
 }
 
 mat-card.file-card,
@@ -45,10 +49,12 @@ mat-card.uploaded-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-  padding: 12px 20px;
-  border-left: 5px solid #2196f3;
+  margin: 12px 0;
+  padding: 14px 20px;
+  border-left: 5px solid #42a5f5;
   background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .file-details {
@@ -58,4 +64,12 @@ mat-card.uploaded-card {
 
 button[mat-icon-button] {
   margin-left: 10px;
+}
+
+button.upload-btn {
+  display: block;
+  margin: 30px auto 0;
+  padding: 10px 40px;
+  font-size: 16px;
+  font-weight: 500;
 }
