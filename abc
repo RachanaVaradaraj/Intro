@@ -1,85 +1,47 @@
-import { Component } from '@angular/core';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
-import { CommonModule } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatListModule } from '@angular/material/list';
-import { MatCardModule } from '@angular/material/card';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+<div
+  class="upload-container mat-elevation-z8"
+  [class.drag-over]="isDragOver"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
+>
+  <h2>File Uploader</h2>
 
-@Component({
-  selector: 'app-file-upload',
-  standalone: true,
-  imports: [
-    CommonModule,
-    HttpClientModule,
-    MatButtonModule,
-    MatIconModule,
-    MatListModule,
-    MatCardModule,
-    MatProgressBarModule
-  ],
-  templateUrl: './file-upload.component.html',
-  styleUrls: ['./file-upload.component.css']
-})
-export class FileUploadComponent {
-  files: File[] = [];
-  uploaded: { name: string, size: number }[] = [];
-  isDragOver = false;
-  isUploading = false;
+  <label class="file-label" for="fileInput">
+    <mat-icon class="upload-icon">cloud_upload</mat-icon>
+    <span>Click or Drag Files Here</span>
+    <input type="file" id="fileInput" (change)="onFileSelected($event)" multiple hidden />
+  </label>
 
-  constructor(private http: HttpClient) {}
+  <div *ngIf="files.length > 0" class="section">
+    <h3>Selected Files</h3>
+    <mat-card class="file-card" *ngFor="let file of files; let i = index">
+      <div class="file-details">
+        <strong>#{{ i + 1 }}. {{ file.name }}</strong>
+        <span>{{ file.size | number }} bytes</span>
+      </div>
+      <button mat-icon-button color="warn" (click)="removeFile(i)">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </mat-card>
 
-  onFileSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    if (input.files) {
-      this.files.push(...Array.from(input.files));
-    }
-  }
+    <button mat-raised-button color="primary" (click)="uploadFiles()" [disabled]="isUploading">
+      Upload All
+    </button>
 
-  onDragOver(event: DragEvent) {
-    event.preventDefault();
-    this.isDragOver = true;
-  }
+    <mat-progress-bar *ngIf="isUploading" mode="indeterminate" color="accent"></mat-progress-bar>
+  </div>
 
-  onDragLeave(event: DragEvent) {
-    event.preventDefault();
-    this.isDragOver = false;
-  }
-
-  onDrop(event: DragEvent) {
-    event.preventDefault();
-    this.isDragOver = false;
-    if (event.dataTransfer?.files.length) {
-      this.files.push(...Array.from(event.dataTransfer.files));
-    }
-  }
-
-  removeFile(index: number) {
-    this.files.splice(index, 1);
-  }
-
-  removeUploaded(index: number) {
-    this.uploaded.splice(index, 1);
-  }
-
-  uploadFiles() {
-    if (this.files.length === 0) return;
-
-    const formData = new FormData();
-    this.files.forEach(file => formData.append('files', file));
-
-    this.isUploading = true;
-    this.http.post('http://localhost:8080/upload', formData).subscribe({
-      next: () => {
-        this.uploaded.push(...this.files.map(f => ({ name: f.name, size: f.size })));
-        this.files = [];
-        this.isUploading = false;
-      },
-      error: () => {
-        alert('Upload failed.');
-        this.isUploading = false;
-      }
-    });
-  }
-}
+  <div *ngIf="uploaded.length > 0" class="section">
+    <h3>Uploaded Files</h3>
+    <mat-card class="uploaded-card" *ngFor="let file of uploaded; let i = index">
+      <div class="file-details">
+        <strong>#{{ i + 1 }}. {{ file.name }}</strong>
+        <span>{{ file.size | number }} bytes</span>
+      </div>
+      <button mat-icon-button color="warn" (click)="removeUploaded(i)">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </mat-card>
+  </div>
+</div>
