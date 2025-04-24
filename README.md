@@ -1,71 +1,38 @@
-import { Component } from '@angular/core';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
-import { CommonModule } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatListModule } from '@angular/material/list';
+<div
+  class="upload-container mat-elevation-z4"
+  [class.drag-over]="isDragOver"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
+>
+  <h2>Upload Your Files</h2>
 
-@Component({
-  selector: 'app-file-upload',
-  standalone: true,
-  imports: [
-    CommonModule,
-    HttpClientModule,
-    MatButtonModule,
-    MatIconModule,
-    MatListModule
-  ],
-  templateUrl: './file-upload.component.html',
-  styleUrls: ['./file-upload.component.css']
-})
-export class FileUploadComponent {
-  files: File[] = [];
-  isDragOver = false;
+  <label class="file-label" for="fileInput">
+    <mat-icon>cloud_upload</mat-icon>
+    <span>Click or Drag to Upload Files</span>
+    <input
+      type="file"
+      id="fileInput"
+      (change)="onFileSelected($event)"
+      multiple
+      hidden
+    />
+  </label>
 
-  constructor(private http: HttpClient) {}
+  <div *ngIf="files.length > 0" class="file-list">
+    <mat-list>
+      <mat-list-item *ngFor="let file of files; let i = index">
+        <mat-icon matListIcon>insert_drive_file</mat-icon>
+        <div matLine>{{ file.name }}</div>
+        <div matLine class="secondary">{{ file.size | number }} bytes</div>
+        <button mat-icon-button color="warn" (click)="removeFile(i)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </mat-list-item>
+    </mat-list>
 
-  onFileSelected(event: any) {
-    const selectedFiles = Array.from(event.target.files) as File[];
-    this.files.push(...selectedFiles);
-  }
-
-  removeFile(index: number) {
-    this.files.splice(index, 1);
-  }
-
-  uploadFiles() {
-    if (this.files.length === 0) return;
-
-    const formData = new FormData();
-    this.files.forEach(file => formData.append('files', file));
-
-    this.http.post('http://localhost:8080/upload', formData).subscribe(
-      res => {
-        alert('Files uploaded successfully!');
-        this.files = [];
-      },
-      err => {
-        alert('Upload failed.');
-      }
-    );
-  }
-
-  onDragOver(event: DragEvent) {
-    event.preventDefault();
-    this.isDragOver = true;
-  }
-
-  onDragLeave(event: DragEvent) {
-    event.preventDefault();
-    this.isDragOver = false;
-  }
-
-  onDrop(event: DragEvent) {
-    event.preventDefault();
-    this.isDragOver = false;
-    if (event.dataTransfer && event.dataTransfer.files.length > 0) {
-      const droppedFiles = Array.from(event.dataTransfer.files);
-      this.files.push(...droppedFiles);
-    }
-  }
-}
+    <button mat-raised-button color="primary" (click)="uploadFiles()">
+      Upload
+    </button>
+  </div>
+</div>
