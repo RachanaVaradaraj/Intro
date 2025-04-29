@@ -1,40 +1,6 @@
-.navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #ffffff;
-  padding: 1rem 2rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.navbar-brand {
-  display: flex;
-  align-items: center;
-}
-
-.logo {
-  height: 40px;
-  margin-right: 0.5rem;
-}
-
-.brand-name {
-  font-size: 1.5rem;
-  color: #006633; /* BNP Paribas green */
-  font-weight: bold;
-}
-
-.nav-links {
-  list-style: none;
-  display: flex;
-  gap: 1.5rem;
-}
-
-.nav-links li a {
-  text-decoration: none;
-  color: #006633;
-  font-weight: 500;
-}
-
-.nav-links li a:hover {
-  text-decoration: underline;
-}
+<div class="upload-container">
+  <label for="file-upload" class="upload-button">
+    Upload File
+  </label>
+  <input type="file" id="file-upload" (change)="onFileSelected($event)" />
+</div>
