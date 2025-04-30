@@ -1,148 +1,59 @@
-<div class="upload-wrapper">
-  <h2>Upload FO and BO Files</h2>
-  <div class="upload-columns">
-    <!-- FO File Upload -->
-    <div class="upload-box">
-      <h3>Upload FO File</h3>
-      <input type="file" (change)="onFileSelect($event, 0)" accept=".xlsx, .xls" />
-      <p *ngIf="files[0]">Selected: {{ files[0].name }}</p>
+<div class="green-header"></div>
 
-      <label *ngIf="columns1.length">Select FO Column:</label>
-      <select *ngIf="columns1.length" [(ngModel)]="selectedCol1">
-        <option *ngFor="let col of columns1" [value]="col">{{ col }}</option>
-      </select>
-    </div>
+<div class="navbar-container">
+  <button class="hamburger" (click)="toggleNavbar()">&#9776;</button>
 
-    <!-- BO File Upload -->
-    <div class="upload-box">
-      <h3>Upload BO File</h3>
-      <input type="file" (change)="onFileSelect($event, 1)" accept=".xlsx, .xls" />
-      <p *ngIf="files[1]">Selected: {{ files[1].name }}</p>
-
-      <label *ngIf="columns2.length">Select BO Column:</label>
-      <select *ngIf="columns2.length" [(ngModel)]="selectedCol2">
-        <option *ngFor="let col of columns2" [value]="col">{{ col }}</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- Match Button -->
-  <div *ngIf="selectedCol1 && selectedCol2" class="centered-button">
-    <button (click)="matchColumns()">Compare Columns</button>
-  </div>
-
-  <!-- Matched Table -->
-  <div *ngIf="matched.length">
-    <h3>Matched Records (from FO file)</h3>
-    <table>
-      <tr>
-        <th *ngFor="let col of columns1">{{ col }}</th>
-      </tr>
-      <tr *ngFor="let row of matched">
-        <td *ngFor="let col of columns1">{{ row[col] }}</td>
-      </tr>
-    </table>
-  </div>
-
-  <!-- Unmatched Table -->
-  <div *ngIf="unmatched.length">
-    <h3>Unmatched Records (from FO file)</h3>
-    <table>
-      <tr>
-        <th *ngFor="let col of columns1">{{ col }}</th>
-      </tr>
-      <tr *ngFor="let row of unmatched">
-        <td *ngFor="let col of columns1">{{ row[col] }}</td>
-      </tr>
-    </table>
+  <div class="sidebar" [class.collapsed]="isCollapsed">
+    <a routerLink="/home" routerLinkActive="active">Home</a>
+    <a routerLink="/upload" routerLinkActive="active">Upload File</a>
+    <a routerLink="/review" routerLinkActive="active">Review Discrepancies</a>
+    <a routerLink="/reports" routerLinkActive="active">Reports</a>
   </div>
 </div>
 
 
 
 
-
-.upload-wrapper {
-  padding: 2rem;
-
-  h2 {
-    text-align: center;
-    margin-bottom: 2rem;
-  }
-
-  .upload-columns {
-    display: flex;
-    gap: 2rem;
-    justify-content: space-between;
-    flex-wrap: wrap;
-  }
-
-  .upload-box {
-    flex: 1 1 45%;
-    background: #f2f2f2;
-    padding: 1rem;
-    border-radius: 8px;
-
-    h3 {
-      margin-bottom: 1rem;
-    }
-
-    input {
-      margin-bottom: 0.5rem;
-    }
-
-    select {
-      display: block;
-      margin-top: 0.5rem;
-      width: 100%;
-      padding: 0.3rem;
-    }
-  }
-
-  .centered-button {
-    text-align: center;
-    margin: 2rem 0;
-
-    button {
-      padding: 0.6rem 1.2rem;
-      font-weight: bold;
-    }
-  }
-
-  table {
-    margin-top: 1rem;
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-
-    th, td {
-      padding: 0.5rem;
-      border: 1px solid #ccc;
-    }
-  }
+.green-header {
+  height: 5px;
+  background-color: #009b5e; /* BNP Paribas green */
 }
 
+.navbar-container {
+  display: flex;
+  align-items: flex-start;
+}
 
-onFileSelect(event: any, index: number) {
-  const file = event.target.files[0];
-  if (!file) return;
+.hamburger {
+  font-size: 24px;
+  margin: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
 
-  this.files[index] = file;
+.sidebar {
+  background-color: #f1f1f1;
+  width: 200px;
+  height: 100vh;
+  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease;
+}
 
-  const reader = new FileReader();
-  reader.onload = (e: any) => {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: 'array' });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const parsed = XLSX.utils.sheet_to_json(sheet);
+.sidebar.collapsed {
+  transform: translateX(-100%);
+}
 
-    if (index === 0) {
-      this.data1 = parsed;
-      this.columns1 = Object.keys(parsed[0] || {});
-    } else {
-      this.data2 = parsed;
-      this.columns2 = Object.keys(parsed[0] || {});
-    }
-  };
-  reader.readAsArrayBuffer(file);
+.sidebar a {
+  padding: 10px 20px;
+  text-decoration: none;
+  color: #333;
+  transition: background 0.3s;
+}
+
+.sidebar a:hover, .sidebar a.active {
+  background-color: #009b5e;
+  color: white;
 }
