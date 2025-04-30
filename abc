@@ -1,40 +1,269 @@
-.upload-container {
-  margin: 2rem;
-}
+import { Routes } from '@angular/router';
+import { HomeComponent } from './pages/home/home.component';
+import { UploadComponent } from './pages/upload/upload.component';
+import { ReviewComponent } from './pages/review/review.component';
+import { ReportComponent } from './pages/report/report.component';
 
-.upload-button {
-  display: inline-block;
-  background-color: #006633;
-  color: #ffffff;
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-}
+export const routes: Routes = [
+  { path: '', component: HomeComponent },
+  { path: 'upload', component: UploadComponent },
+  { path: 'review', component: ReviewComponent },
+  { path: 'report', component: ReportComponent },
+];
 
-.upload-button:hover {
-  background-color: #00512a;
-}
 
-input[type="file"] {
-  display: none;
-}
 
 
 import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 
 @Component({
-  selector: 'app-upload',
-  templateUrl: './upload.component.html',
-  styleUrls: ['./upload.component.css']
+  selector: 'app-navbar',
+  standalone: true,
+  imports: [CommonModule, RouterModule],
+  templateUrl: './navbar.component.html',
+  styleUrls: ['./navbar.component.scss']
 })
-export class UploadComponent {
-  onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length) {
-      const file = input.files[0];
-      console.log('Selected file:', file.name);
-      // Implement file upload logic here
+export class NavbarComponent {}
+
+
+
+<nav class="navbar">
+  <div class="logo">BNP Portal</div>
+  <ul class="nav-links">
+    <li><a routerLink="/">Home</a></li>
+    <li><a routerLink="/upload">Upload File</a></li>
+    <li><a routerLink="/review">Review Discrepancies</a></li>
+    <li><a routerLink="/report">Reports</a></li>
+  </ul>
+</nav>
+
+
+
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  background-color: #006341;
+  padding: 1rem;
+  color: white;
+
+  .logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+    list-style: none;
+
+    li a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+
+      &:hover {
+        text-decoration: underline;
+      }
     }
   }
 }
+
+
+
+
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-home',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './home.component.html',
+  styleUrls: ['./home.component.scss']
+})
+export class HomeComponent {}
+
+
+
+
+<div class="home-info">
+  <h1>Welcome to BNP Discrepancy Portal</h1>
+  <p>This platform allows users to upload Excel files, compare columns, and review matched/unmatched values easily.</p>
+  <p>Use the Upload tab to get started.</p>
+</div>
+
+
+
+
+
+
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import * as XLSX from 'xlsx';
+
+@Component({
+  selector: 'app-upload',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './upload.component.html',
+  styleUrls: ['./upload.component.scss']
+})
+export class UploadComponent {
+  files: File[] = [];
+  data1: any[] = [];
+  data2: any[] = [];
+  columns1: string[] = [];
+  columns2: string[] = [];
+  selectedCol1: string = '';
+  selectedCol2: string = '';
+  matched: any[] = [];
+  unmatched: any[] = [];
+
+  onFileSelect(event: any) {
+    const selected = Array.from(event.target.files) as File[];
+    this.files = selected.slice(0, 2);
+    this.parseFiles();
+  }
+
+  removeFile(index: number) {
+    this.files.splice(index, 1);
+  }
+
+  parseFiles() {
+    this.columns1 = [];
+    this.columns2 = [];
+
+    this.files.forEach((file, index) => {
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const parsed = XLSX.utils.sheet_to_json(worksheet);
+        if (index === 0) {
+          this.data1 = parsed;
+          this.columns1 = Object.keys(parsed[0] || {});
+        } else if (index === 1) {
+          this.data2 = parsed;
+          this.columns2 = Object.keys(parsed[0] || {});
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  matchColumns() {
+    this.matched = [];
+    this.unmatched = [];
+    const set2 = new Set(this.data2.map(row => row[this.selectedCol2]));
+    this.data1.forEach(row => {
+      if (set2.has(row[this.selectedCol1])) this.matched.push(row);
+      else this.unmatched.push(row);
+    });
+  }
+}
+
+
+
+
+
+
+
+<div class="upload-section">
+  <h2>Upload Files</h2>
+  <input type="file" (change)="onFileSelect($event)" multiple accept=".xlsx,.xls" />
+  <ul>
+    <li *ngFor="let file of files; let i = index">
+      {{ file.name }} <button (click)="removeFile(i)">Remove</button>
+    </li>
+  </ul>
+
+  <div *ngIf="columns1.length && columns2.length">
+    <label>File 1 Column:</label>
+    <select [(ngModel)]="selectedCol1">
+      <option *ngFor="let col of columns1" [value]="col">{{ col }}</option>
+    </select>
+
+    <label>File 2 Column:</label>
+    <select [(ngModel)]="selectedCol2">
+      <option *ngFor="let col of columns2" [value]="col">{{ col }}</option>
+    </select>
+
+    <button (click)="matchColumns()">Match</button>
+  </div>
+
+  <div *ngIf="matched.length">
+    <h3>Matched Records</h3>
+    <table>
+      <tr>
+        <th *ngFor="let col of columns1">{{ col }}</th>
+      </tr>
+      <tr *ngFor="let row of matched">
+        <td *ngFor="let col of columns1">{{ row[col] }}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div *ngIf="unmatched.length">
+    <h3>Unmatched Records</h3>
+    <table>
+      <tr>
+        <th *ngFor="let col of columns1">{{ col }}</th>
+      </tr>
+      <tr *ngFor="let row of unmatched">
+        <td *ngFor="let col of columns1">{{ row[col] }}</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+
+
+
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-review',
+  standalone: true,
+  imports: [CommonModule],
+  template: `<h2>Review Discrepancies Page Coming Soon...</h2>`
+})
+export class ReviewComponent {}
+
+
+
+
+
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-report',
+  standalone: true,
+  imports: [CommonModule],
+  template: `<h2>Report Page Coming Soon...</h2>`
+})
+export class ReportComponent {}
+
+
+
+
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { NavbarComponent } from './components/navbar/navbar.component';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [RouterOutlet, NavbarComponent],
+  template: `
+    <app-navbar></app-navbar>
+    <router-outlet></router-outlet>
+  `
+})
+export class AppComponent {}
