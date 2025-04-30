@@ -1,121 +1,40 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import * as XLSX from 'xlsx';
+<div class="upload-wrapper">
+  <h2>Upload FO and BO Files</h2>
+  <div class="upload-columns">
+    <!-- FO File Upload -->
+    <div class="upload-box">
+      <h3>Upload FO File</h3>
+      <input type="file" (change)="onFileSelect($event, 0)" accept=".xlsx, .xls" />
+      <p *ngIf="files[0]">Selected: {{ files[0].name }}</p>
 
-@Component({
-  selector: 'app-upload',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './upload.component.html',
-  styleUrls: ['./upload.component.scss']
-})
-export class UploadComponent {
-  files: File[] = [];
-  data1: any[] = [];
-  data2: any[] = [];
-  columns1: string[] = [];
-  columns2: string[] = [];
-  selectedCol1 = '';
-  selectedCol2 = '';
-  matched: any[] = [];
-  unmatched: any[] = [];
-  showSelect = false;
+      <label *ngIf="columns1.length">Select FO Column:</label>
+      <select *ngIf="columns1.length" [(ngModel)]="selectedCol1">
+        <option *ngFor="let col of columns1" [value]="col">{{ col }}</option>
+      </select>
+    </div>
 
-  onFileSelect(event: any) {
-    this.resetAll();
-    const selected = Array.from(event.target.files) as File[];
-    this.files = selected.slice(0, 2); // Limit to 2 files
+    <!-- BO File Upload -->
+    <div class="upload-box">
+      <h3>Upload BO File</h3>
+      <input type="file" (change)="onFileSelect($event, 1)" accept=".xlsx, .xls" />
+      <p *ngIf="files[1]">Selected: {{ files[1].name }}</p>
 
-    this.files.forEach((file, index) => {
-      const reader = new FileReader();
-      reader.onload = (e: any) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const parsed = XLSX.utils.sheet_to_json(sheet);
+      <label *ngIf="columns2.length">Select BO Column:</label>
+      <select *ngIf="columns2.length" [(ngModel)]="selectedCol2">
+        <option *ngFor="let col of columns2" [value]="col">{{ col }}</option>
+      </select>
+    </div>
+  </div>
 
-        if (index === 0) {
-          this.data1 = parsed;
-          this.columns1 = Object.keys(parsed[0] || {});
-        } else {
-          this.data2 = parsed;
-          this.columns2 = Object.keys(parsed[0] || {});
-        }
-
-        // Show select only after both files are loaded
-        if (this.columns1.length && this.columns2.length) {
-          this.showSelect = true;
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    });
-  }
-
-  matchColumns() {
-    this.matched = [];
-    this.unmatched = [];
-
-    const set2 = new Set(this.data2.map(row => row[this.selectedCol2]));
-
-    this.data1.forEach(row => {
-      const value = row[this.selectedCol1];
-      if (set2.has(value)) {
-        this.matched.push(row);
-      } else {
-        this.unmatched.push(row);
-      }
-    });
-  }
-
-  removeFile(index: number) {
-    this.files.splice(index, 1);
-    this.resetAll();
-  }
-
-  resetAll() {
-    this.data1 = [];
-    this.data2 = [];
-    this.columns1 = [];
-    this.columns2 = [];
-    this.selectedCol1 = '';
-    this.selectedCol2 = '';
-    this.matched = [];
-    this.unmatched = [];
-    this.showSelect = false;
-  }
-}
-
-
-
-
-<div class="upload-section">
-  <h2>Upload Exactly Two Excel Files</h2>
-  <input type="file" (change)="onFileSelect($event)" multiple accept=".xlsx, .xls" />
-  <ul>
-    <li *ngFor="let file of files; let i = index">
-      {{ file.name }}
-      <button (click)="removeFile(i)">Remove</button>
-    </li>
-  </ul>
-
-  <div *ngIf="showSelect" class="selectors">
-    <label>Column from File 1:</label>
-    <select [(ngModel)]="selectedCol1">
-      <option *ngFor="let col of columns1" [value]="col">{{ col }}</option>
-    </select>
-
-    <label>Column from File 2:</label>
-    <select [(ngModel)]="selectedCol2">
-      <option *ngFor="let col of columns2" [value]="col">{{ col }}</option>
-    </select>
-
+  <!-- Match Button -->
+  <div *ngIf="selectedCol1 && selectedCol2" class="centered-button">
     <button (click)="matchColumns()">Compare Columns</button>
   </div>
 
+  <!-- Matched Table -->
   <div *ngIf="matched.length">
-    <h3>Matched Records</h3>
-    <table border="1">
+    <h3>Matched Records (from FO file)</h3>
+    <table>
       <tr>
         <th *ngFor="let col of columns1">{{ col }}</th>
       </tr>
@@ -125,9 +44,10 @@ export class UploadComponent {
     </table>
   </div>
 
+  <!-- Unmatched Table -->
   <div *ngIf="unmatched.length">
-    <h3>Unmatched Records</h3>
-    <table border="1">
+    <h3>Unmatched Records (from FO file)</h3>
+    <table>
       <tr>
         <th *ngFor="let col of columns1">{{ col }}</th>
       </tr>
@@ -140,35 +60,52 @@ export class UploadComponent {
 
 
 
-.upload-section {
+
+
+.upload-wrapper {
   padding: 2rem;
 
   h2 {
-    margin-bottom: 1rem;
+    text-align: center;
+    margin-bottom: 2rem;
   }
 
-  input {
-    margin-bottom: 1rem;
+  .upload-columns {
+    display: flex;
+    gap: 2rem;
+    justify-content: space-between;
+    flex-wrap: wrap;
   }
 
-  ul {
-    list-style: none;
-    padding: 0;
+  .upload-box {
+    flex: 1 1 45%;
+    background: #f2f2f2;
+    padding: 1rem;
+    border-radius: 8px;
 
-    li {
+    h3 {
+      margin-bottom: 1rem;
+    }
+
+    input {
       margin-bottom: 0.5rem;
     }
-  }
-
-  .selectors {
-    margin-top: 1rem;
 
     select {
-      margin-right: 1rem;
+      display: block;
+      margin-top: 0.5rem;
+      width: 100%;
+      padding: 0.3rem;
     }
+  }
+
+  .centered-button {
+    text-align: center;
+    margin: 2rem 0;
 
     button {
-      padding: 0.5rem 1rem;
+      padding: 0.6rem 1.2rem;
+      font-weight: bold;
     }
   }
 
@@ -176,10 +113,36 @@ export class UploadComponent {
     margin-top: 1rem;
     width: 100%;
     border-collapse: collapse;
+    text-align: left;
 
     th, td {
       padding: 0.5rem;
       border: 1px solid #ccc;
     }
   }
+}
+
+
+onFileSelect(event: any, index: number) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  this.files[index] = file;
+
+  const reader = new FileReader();
+  reader.onload = (e: any) => {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const parsed = XLSX.utils.sheet_to_json(sheet);
+
+    if (index === 0) {
+      this.data1 = parsed;
+      this.columns1 = Object.keys(parsed[0] || {});
+    } else {
+      this.data2 = parsed;
+      this.columns2 = Object.keys(parsed[0] || {});
+    }
+  };
+  reader.readAsArrayBuffer(file);
 }
