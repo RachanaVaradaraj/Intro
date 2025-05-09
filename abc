@@ -1,73 +1,95 @@
-<main>
-  <div class="upload">
-    <pre>File Upload</pre>
-    <div class="box">
-      <div class="file">
-        <p>Source A</p>
-        <label class="upload-label">
-          <input type="file" class="upload-input" (change)="onFileUpload($event, 1)">
-          <span class="upload-placeholder">
-            <span class="pi pi-file-excel"></span> Choose a file
-          </span>
-          <span *ngIf="filename1" class="upload-filename">{{ filename1 }}</span>
-        </label>
-      </div>
-      <div class="file">
-        <p>Source B</p>
-        <label class="upload-label">
-          <input type="file" class="upload-input" (change)="onFileUpload($event, 2)">
-          <span class="upload-placeholder">
-            <span class="pi pi-file-excel"></span> Choose a file
-          </span>
-          <span *ngIf="filename2" class="upload-filename">{{ filename2 }}</span>
-        </label>
-      </div>
-    </div>
-  </div>
+import { Component } from '@angular/core';
+import * as XLSX from 'xlsx';
+import { OneToOneService } from 'src/app/services/one-to-one.service';
 
-  <div class="box-columns">
-    <!-- File 1 Columns -->
-    <div class="column-box">
-      <h4>File 1 Columns</h4>
-      <div *ngFor="let col of file1Columns"
-           class="column-item"
-           draggable="true"
-           (dragstart)="onDragStart($event, col, 'file1')">
-        {{ col }}
-      </div>
-    </div>
+@Component({
+  selector: 'app-match',
+  templateUrl: './match.component.html',
+  styleUrls: ['./match.component.css']
+})
+export class MatchComponent {
+  file1Data: any[] = [];
+  file2Data: any[] = [];
+  file1Columns: string[] = [];
+  file2Columns: string[] = [];
+  dropZone1: string[] = [];
+  dropZone2: string[] = [];
+  filename1: string = '';
+  filename2: string = '';
 
-    <!-- Drop Zone 1 -->
-    <div class="drop-box"
-         (dragover)="onDragOver($event)"
-         (drop)="onDrop($event, 'drop1')">
-      <h4>Drop Zone A</h4>
-      <div *ngFor="let col of dropZone1">
-        {{ col }}
-      </div>
-    </div>
+  matchedCount: number = 0;
+  mismatchedCount: number = 0;
+  CombinedData: any[] = [];
 
-    <!-- Drop Zone 2 -->
-    <div class="drop-box"
-         (dragover)="onDragOver($event)"
-         (drop)="onDrop($event, 'drop2')">
-      <h4>Drop Zone B</h4>
-      <div *ngFor="let col of dropZone2">
-        {{ col }}
-      </div>
-    </div>
+  constructor(private oneToOneService: OneToOneService) {}
 
-    <!-- File 2 Columns -->
-    <div class="column-box">
-      <h4>File 2 Columns</h4>
-      <div *ngFor="let col of file2Columns"
-           class="column-item"
-           draggable="true"
-           (dragstart)="onDragStart($event, col, 'file2')">
-        {{ col }}
-      </div>
-    </div>
-  </div>
+  onFileUpload(event: any, fileNumber: number) {
+    const file = event.target.files[0];
+    const reader = new FileReader();
 
-  <button (click)="compareColumns()">Compare</button>
-</main>
+    reader.onload = (e: any) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      if (fileNumber === 1) {
+        this.file1Data = jsonData;
+        this.file1Columns = Object.keys(jsonData[0] as Object);
+        this.filename1 = file.name;
+      } else {
+        this.file2Data = jsonData;
+        this.file2Columns = Object.keys(jsonData[0] as Object);
+        this.filename2 = file.name;
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
+  }
+
+  onDragStart(event: DragEvent, col: string, source: string) {
+    event.dataTransfer?.setData('text/plain', JSON.stringify({ col, source }));
+  }
+
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+  }
+
+  onDrop(event: DragEvent, target: 'drop1' | 'drop2') {
+    event.preventDefault();
+    const data = JSON.parse(event.dataTransfer?.getData('text/plain') || '{}');
+    if (data && data.col) {
+      if (target === 'drop1' && !this.dropZone1.includes(data.col)) {
+        this.dropZone1.push(data.col);
+      } else if (target === 'drop2' && !this.dropZone2.includes(data.col)) {
+        this.dropZone2.push(data.col);
+      }
+    }
+  }
+
+  compareColumns() {
+    if (this.dropZone1.length === 0 || this.dropZone2.length === 0) {
+      console.error("Please drop columns from both files before comparing.");
+      return;
+    }
+
+    const payload = {
+      selectedCol1: this.dropZone1[0], // or allow multiple if backend supports
+      selectedCol2: this.dropZone2[0]
+    };
+
+    console.log("Payload sent to compare:", payload);
+
+    this.oneToOneService.oneToOne(payload).subscribe({
+      next: (res) => {
+        this.matchedCount = res.matchedCount;
+        this.mismatchedCount = res.unmatchedCount;
+        this.CombinedData = [...res.matched, ...res.unmatched];
+        console.log("Combined data from frontend", this.CombinedData);
+      },
+      error: (e) => {
+        console.error("Comparison error", e);
+      }
+    });
+  }
+}
