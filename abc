@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 import * as XLSX from 'xlsx';
-import { OneToOneService } from 'src/app/services/one-to-one.service';
 
 @Component({
   selector: 'app-match',
@@ -17,11 +16,11 @@ export class MatchComponent {
   filename1: string = '';
   filename2: string = '';
 
+  selectedCol1: string = '';
+  selectedCol2: string = '';
   matchedCount: number = 0;
   mismatchedCount: number = 0;
   CombinedData: any[] = [];
-
-  constructor(private oneToOneService: OneToOneService) {}
 
   onFileUpload(event: any, fileNumber: number) {
     const file = event.target.files[0];
@@ -35,11 +34,11 @@ export class MatchComponent {
 
       if (fileNumber === 1) {
         this.file1Data = jsonData;
-        this.file1Columns = Object.keys(jsonData[0] as Object);
+        this.file1Columns = Object.keys(jsonData[0] || {});
         this.filename1 = file.name;
       } else {
         this.file2Data = jsonData;
-        this.file2Columns = Object.keys(jsonData[0] as Object);
+        this.file2Columns = Object.keys(jsonData[0] || {});
         this.filename2 = file.name;
       }
     };
@@ -47,49 +46,41 @@ export class MatchComponent {
     reader.readAsArrayBuffer(file);
   }
 
-  onDragStart(event: DragEvent, col: string, source: string) {
-    event.dataTransfer?.setData('text/plain', JSON.stringify({ col, source }));
+  onDragStart(event: DragEvent, column: string, source: string) {
+    event.dataTransfer?.setData('text/plain', JSON.stringify({ column, source }));
   }
 
   onDragOver(event: DragEvent) {
     event.preventDefault();
   }
 
-  onDrop(event: DragEvent, target: 'drop1' | 'drop2') {
+  onDrop(event: DragEvent, dropTarget: 'drop1' | 'drop2') {
     event.preventDefault();
     const data = JSON.parse(event.dataTransfer?.getData('text/plain') || '{}');
-    if (data && data.col) {
-      if (target === 'drop1' && !this.dropZone1.includes(data.col)) {
-        this.dropZone1.push(data.col);
-      } else if (target === 'drop2' && !this.dropZone2.includes(data.col)) {
-        this.dropZone2.push(data.col);
+    if (data.column && data.source) {
+      if (dropTarget === 'drop1') {
+        this.dropZone1 = [data.column];  // only one allowed
+        this.selectedCol1 = data.column;
+      } else if (dropTarget === 'drop2') {
+        this.dropZone2 = [data.column];  // only one allowed
+        this.selectedCol2 = data.column;
       }
     }
   }
 
   compareColumns() {
-    if (this.dropZone1.length === 0 || this.dropZone2.length === 0) {
-      console.error("Please drop columns from both files before comparing.");
-      return;
-    }
-
     const payload = {
-      selectedCol1: this.dropZone1[0], // or allow multiple if backend supports
-      selectedCol2: this.dropZone2[0]
+      selectedCol1: this.selectedCol1,
+      selectedCol2: this.selectedCol2
     };
 
-    console.log("Payload sent to compare:", payload);
+    console.log(payload);
 
-    this.oneToOneService.oneToOne(payload).subscribe({
-      next: (res) => {
-        this.matchedCount = res.matchedCount;
-        this.mismatchedCount = res.unmatchedCount;
-        this.CombinedData = [...res.matched, ...res.unmatched];
-        console.log("Combined data from frontend", this.CombinedData);
-      },
-      error: (e) => {
-        console.error("Comparison error", e);
-      }
-    });
+    // Replace this with actual comparison logic if needed
+    this.matchedCount = 0;
+    this.mismatchedCount = 0;
+    this.CombinedData = [];
+
+    console.log("Combined data from frontend", this.CombinedData);
   }
 }
