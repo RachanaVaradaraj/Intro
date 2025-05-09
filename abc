@@ -1,149 +1,20 @@
-import { Component, HostListener, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
-import * as XLSX from 'xlsx';
-import { MatchService } from '../../services/match.service';
-import { TableModule } from 'primeng/table';
-import { TagModule } from 'primeng/tag';
-import { IconFieldModule } from 'primeng/iconfield';
-import { InputIconModule } from 'primeng/inputicon';
-import { InputTextModule } from 'primeng/inputtext';
-import { MultiSelectModule } from 'primeng/multiselect';
-import { DropdownModule } from 'primeng/dropdown';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 
-@Component({
-  selector: 'app-match',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    TableModule,
-    TagModule,
-    IconFieldModule,
-    InputIconModule,
-    InputTextModule,
-    MultiSelectModule,
-    DropdownModule,
-    HttpClientModule
-  ],
-  templateUrl: './match.component.html',
-  styleUrls: ['./match.component.css']
+@Injectable({
+  providedIn: 'root'
 })
-export class MatchComponent implements OnInit {
-  rows = 5;
-  file1Data: any[] = [];
-  file2Data: any[] = [];
-  file1Columns: string[] = [];
-  file2Columns: string[] = [];
-  selectedCol1 = '';
-  selectedCol2 = '';
-  filename1 = '';
-  filename2 = '';
-  matchedCount = 0;
-  mismatchedCount = 0;
-  combinedData: any[] = [];
-  selectedColumns1: string[] = [];
-  selectedColumns2: string[] = [];
+export class MatchService {
+  private apiUrl = 'http://localhost:3215/api/reconcile';
 
-  constructor(private matchService: MatchService) {}
+  constructor(private http: HttpClient) {}
 
-  ngOnInit() {
-    this.setRowsBasedOnScreenHeight();
+  oneToOne(data: any): Observable<any> {
+    return this.http.post(this.apiUrl, data);
   }
 
-  @HostListener('window:resize')
-  onResize() {
-    this.setRowsBasedOnScreenHeight();
-  }
-
-  private setRowsBasedOnScreenHeight() {
-    const height = window.innerHeight;
-    if (height < 500) this.rows = 5;
-    else if (height < 800) this.rows = 10;
-    else if (height < 1000) this.rows = 15;
-    else if (height < 1300) this.rows = 20;
-    else this.rows = 25;
-  }
-
-  onFileUpload(event: any, fileNumber: number) {
-    const file = event.target.files[0];
-    const reader = new FileReader();
-
-    reader.onload = (e: any) => {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-
-      if (!jsonData.length) {
-        alert(`File ${file.name} appears to be empty or invalid.`);
-        return;
-      }
-
-      // Reset selections and data
-      this.selectedColumns1 = [];
-      this.selectedColumns2 = [];
-      this.combinedData = [];
-      this.matchedCount = 0;
-      this.mismatchedCount = 0;
-
-      if (fileNumber === 1) {
-        this.file1Data = jsonData;
-        this.file1Columns = Object.keys(jsonData[0]);
-        this.filename1 = file.name;
-      } else {
-        this.file2Data = jsonData;
-        this.file2Columns = Object.keys(jsonData[0]);
-        this.filename2 = file.name;
-      }
-    };
-
-    reader.readAsArrayBuffer(file);
-  }
-
-  onDragStart(event: DragEvent, column: string, source: number) {
-    event.dataTransfer?.setData('text/plain', JSON.stringify({ column, source }));
-  }
-
-  onDragOver(event: DragEvent) {
-    event.preventDefault();
-  }
-
-  onDrop(event: DragEvent, targetSource: number) {
-    event.preventDefault();
-    const data = JSON.parse(event.dataTransfer?.getData('text/plain') || '{}');
-
-    if (data.source === 1 && targetSource === 1) {
-      this.selectedColumns1 = [data.column];
-    } else if (data.source === 2 && targetSource === 2) {
-      this.selectedColumns2 = [data.column];
-    }
-  }
-
-  compareColumns() {
-    if (!this.selectedColumns1.length || !this.selectedColumns2.length) {
-      alert('Please drag and drop one column from each file to compare.');
-      return;
-    }
-
-    const payload = {
-      selectedCol1: this.selectedColumns1[0],
-      selectedCol2: this.selectedColumns2[0],
-      file1Data: this.file1Data,
-      file2Data: this.file2Data
-    };
-
-    this.matchService.compareColumns(payload).subscribe({
-      next: (res: any) => {
-        this.matchedCount = res.matchedCount;
-        this.mismatchedCount = res.mismatchedCount;
-        this.combinedData = [...res.matched, ...res.unmatched];
-      },
-      error: (err: unknown) => {
-        console.error('Comparison error:', err);
-        alert('An error occurred during comparison. Please try again.');
-      }
-    });
+  compareColumns(data: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/compare-columns`, data);
   }
 }
