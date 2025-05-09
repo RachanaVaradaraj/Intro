@@ -26,7 +26,7 @@
     </div>
 
     <div class="box drag-drop-box">
-      <p>Drag column from Source A to Source B</p>
+      <p>Drag and drop columns to match</p>
       <div class="columns-container">
         <div class="source-box" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'A')">
           <h5>Source A Columns</h5>
@@ -52,10 +52,52 @@
           </div>
         </div>
       </div>
+
+      <div class="matched-columns" *ngIf="selectedCol1 && selectedCol2">
+        <p>Matched Column:</p>
+        <p><strong>{{ selectedCol1 }}</strong> → <strong>{{ selectedCol2 }}</strong></p>
+      </div>
     </div>
 
     <button (click)="compareColumns()">Compare</button>
   </div>
 
-  <!-- TABLE + COUNT SECTIONS UNCHANGED -->
+  <div *ngIf="showTables" class="table-container">
+    <div class="table-box">
+      <h3>Source A</h3>
+      <table>
+        <thead>
+          <tr>
+            <th *ngFor="let col of file1Columns">{{ col }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of file1Data">
+            <td *ngFor="let col of file1Columns">{{ row[col] }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-box">
+      <h3>Source B</h3>
+      <table>
+        <thead>
+          <tr>
+            <th *ngFor="let col of file2Columns">{{ col }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of file2Data">
+            <td *ngFor="let col of file2Columns">{{ row[col] }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="counts" *ngIf="showTables">
+    <h4>Matched Rows: {{ matchedRows }}</h4>
+    <h4>Unmatched Rows: {{ unmatchedRows }}</h4>
+  </div>
 </main>
