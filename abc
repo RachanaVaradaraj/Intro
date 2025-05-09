@@ -1,86 +1,20 @@
-import { Component } from '@angular/core';
-import * as XLSX from 'xlsx';
+select {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  font-size: 14px;
+  min-width: 200px;
+  margin: 10px 0;
+  transition: border-color 0.3s ease;
+}
 
-@Component({
-  selector: 'app-match',
-  templateUrl: './match.component.html',
-  styleUrls: ['./match.component.css']
-})
-export class MatchComponent {
-  file1Data: any[] = [];
-  file2Data: any[] = [];
-  file1Columns: string[] = [];
-  file2Columns: string[] = [];
-  dropZone1: string[] = [];
-  dropZone2: string[] = [];
-  filename1: string = '';
-  filename2: string = '';
+select:focus {
+  border-color: #007bff;
+  outline: none;
+}
 
-  selectedCol1: string = '';
-  selectedCol2: string = '';
-  matchedCount: number = 0;
-  mismatchedCount: number = 0;
-  CombinedData: any[] = [];
-
-  onFileUpload(event: any, fileNumber: number) {
-    const file = event.target.files[0];
-    const reader = new FileReader();
-
-    reader.onload = (e: any) => {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-
-      if (fileNumber === 1) {
-        this.file1Data = jsonData;
-        this.file1Columns = Object.keys(jsonData[0] || {});
-        this.filename1 = file.name;
-      } else {
-        this.file2Data = jsonData;
-        this.file2Columns = Object.keys(jsonData[0] || {});
-        this.filename2 = file.name;
-      }
-    };
-
-    reader.readAsArrayBuffer(file);
-  }
-
-  onDragStart(event: DragEvent, column: string, source: string) {
-    event.dataTransfer?.setData('text/plain', JSON.stringify({ column, source }));
-  }
-
-  onDragOver(event: DragEvent) {
-    event.preventDefault();
-  }
-
-  onDrop(event: DragEvent, dropTarget: 'drop1' | 'drop2') {
-    event.preventDefault();
-    const data = JSON.parse(event.dataTransfer?.getData('text/plain') || '{}');
-    if (data.column && data.source) {
-      if (dropTarget === 'drop1') {
-        this.dropZone1 = [data.column];  // only one allowed
-        this.selectedCol1 = data.column;
-      } else if (dropTarget === 'drop2') {
-        this.dropZone2 = [data.column];  // only one allowed
-        this.selectedCol2 = data.column;
-      }
-    }
-  }
-
-  compareColumns() {
-    const payload = {
-      selectedCol1: this.selectedCol1,
-      selectedCol2: this.selectedCol2
-    };
-
-    console.log(payload);
-
-    // Replace this with actual comparison logic if needed
-    this.matchedCount = 0;
-    this.mismatchedCount = 0;
-    this.CombinedData = [];
-
-    console.log("Combined data from frontend", this.CombinedData);
-  }
+option {
+  padding: 8px;
+  font-size: 14px;
 }
