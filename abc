@@ -1,129 +1,99 @@
-import { Component, HostListener, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
-import * as XLSX from 'xlsx';
-import { MatchService } from '../../services/match.service';
-import { TableModule } from 'primeng/table';
-import { TagModule } from 'primeng/tag';
-import { IconFieldModule } from 'primeng/iconfield';
-import { InputIconModule } from 'primeng/inputicon';
-import { InputTextModule } from 'primeng/inputtext';
-import { MultiSelectModule } from 'primeng/multiselect';
-import { DropdownModule } from 'primeng/dropdown';
+<div class="container">
+    <!-- File Upload Sections -->
+    <div class="upload-section">
+        <div class="box" *ngFor="let source of [1,2]; let i = index">
+            <div class="file">
+                <p>Source {{i+1}}</p>
+                <label class="upload-label">
+                    <input type="file" class="upload-input" 
+                           (change)="onFileUpload($event, i+1)">
+                    <span class="upload-placeholder">
+                        <span class="pi pi-file-excel"></span>
+                        Choose File
+                    </span>
+                    <span *ngIf="filenames[i]" class="upload-filename">
+                        {{filenames[i]}}
+                    </span>
+                </label>
+            </div>
+        </div>
+    </div><!-- Columns Selection with Drag & Drop -->
+<div class="columns-container">
+    <!-- Source 1 Columns -->
+    <div class="columns-list" *ngIf="file1Columns?.length">
+        <h4>Columns from Source 1:</h4>
+        <div class="draggable-column" 
+             *ngFor="let col of file1Columns" 
+             draggable="true"
+             (dragstart)="onDragStart($event, col, 1)">
+            {{col}}
+        </div>
+    </div>
 
-@Component({
-  selector: 'app-match',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    TableModule,
-    TagModule,
-    IconFieldModule,
-    InputIconModule,
-    InputTextModule,
-    MultiSelectModule,
-    DropdownModule,
-    HttpClientModule
-  ],
-  templateUrl: './match.component.html',
-  styleUrls: ['./match.component.css']
-})
-export class MatchComponent implements OnInit {
-  rows: number = 5;
-  file1Data: any[] = [];
-  file2Data: any[] = [];
-  file1Columns: string[] = [];
-  file2Columns: string[] = [];
-  selectedCol1: string = '';
-  selectedCol2: string = '';
-  filename1: string = '';
-  filename2: string = '';
-  matchedCount: number = 0;
-  mismatchedCount: number = 0;
-  combinedData: any[] = [];
-  selectedColumns1: string[] = [];
-  selectedColumns2: string[] = [];
+    <!-- Source 2 Columns -->
+    <div class="columns-list" *ngIf="file2Columns?.length">
+        <h4>Columns from Source 2:</h4>
+        <div class="draggable-column" 
+             *ngFor="let col of file2Columns" 
+             draggable="true"
+             (dragstart)="onDragStart($event, col, 2)">
+            {{col}}
+        </div>
+    </div>
 
-  constructor(private matchService: MatchService) { }
+    <!-- Drop Zones -->
+    <div class="drop-zones">
+        <div class="drop-zone" 
+             (dragover)="onDragOver($event)" 
+             (drop)="onDrop($event, 1)">
+            <h4>Drop Source 1 Columns Here</h4>
+            <div *ngFor="let col of selectedColumns1" class="selected-column">
+                {{col}} <span class="remove" (click)="removeColumn(col, 1)">x</span>
+            </div>
+        </div>
 
-  ngOnInit() {
-    this.setRowsBasedOnScreenHeight();
-  }
+        <div class="drop-zone" 
+             (dragover)="onDragOver($event)" 
+             (drop)="onDrop($event, 2)">
+            <h4>Drop Source 2 Columns Here</h4>
+            <div *ngFor="let col of selectedColumns2" class="selected-column">
+                {{col}} <span class="remove" (click)="removeColumn(col, 2)">x</span>
+            </div>
+        </div>
+    </div>
+</div>
 
-  @HostListener('window:resize')
-  onResize() {
-    this.setRowsBasedOnScreenHeight();
-  }
+<!-- Compare Button -->
+<button class="compare-btn" (click)="compareColumns()">Compare</button>
 
-  private setRowsBasedOnScreenHeight() {
-    const height = window.innerHeight;
-    if (height < 500) this.rows = 5;
-    else if (height < 800) this.rows = 10;
-    else if (height < 1000) this.rows = 15;
-    else if (height < 1300) this.rows = 20;
-    else this.rows = 25;
-  }
+<!-- Results Display -->
+<div class="results-section" *ngIf="combinedData?.length">
+    <div class="count-summary">
+        <p>Total Matched: <span class="matched">{{matchedCount}}</span></p>
+        <p>Total Mismatched: <span class="mismatched">{{mismatchedCount}}</span></p>
+    </div>
 
-  onFileUpload(event: any, fileNumber: number) {
-    const file = event.target.files[0];
-    const reader = new FileReader();
-    
-    reader.onload = (e: any) => {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    <p-table [value]="combinedData" [paginator]="true" [rows]="10">
+        <ng-template pTemplate="header">
+            <tr>
+                <th *ngFor="let col of selectedColumns1">{{col}}</th>
+                <th *ngFor="let col of selectedColumns2">{{col}}</th>
+                <th>Status</th>
+            </tr>
+        </ng-template>
 
-      if (fileNumber === 1) {
-        this.file1Data = jsonData;
-        this.file1Columns = Object.keys(jsonData[0]);
-        this.filename1 = file.name;
-      } else {
-        this.file2Data = jsonData;
-        this.file2Columns = Object.keys(jsonData[0]);
-        this.filename2 = file.name;
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  }
+        <ng-template pTemplate="body" let-row>
+            <tr>
+                <td *ngFor="let col of selectedColumns1">{{row.source1[col]}}</td>
+                <td *ngFor="let col of selectedColumns2">{{row.source2[col]}}</td>
+                <td>
+                    <span [style.color]="row.match ? 'green' : 'red'">
+                        {{row.match ? 'MATCH' : 'MISMATCH'}}
+                    </span>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
 
-  // Drag & Drop Handlers
-  onDragStart(event: DragEvent, column: string, source: number) {
-    event.dataTransfer?.setData('text/plain', JSON.stringify({ column, source }));
-  }
-
-  onDragOver(event: DragEvent) {
-    event.preventDefault();
-  }
-
-  onDrop(event: DragEvent, targetSource: number) {
-    event.preventDefault();
-    const data = JSON.parse(event.dataTransfer?.getData('text/plain') || '{}');
-    
-    if (data.source === 1 && targetSource === 1) {
-      this.selectedColumns1 = [data.column];
-    } else if (data.source === 2 && targetSource === 2) {
-      this.selectedColumns2 = [data.column];
-    }
-  }
-
-  compareColumns() {
-    const payload = {
-      selectedCol1: this.selectedColumns1[0],
-      selectedCol2: this.selectedColumns2[0],
-      file1Data: this.file1Data,
-      file2Data: this.file2Data
-    };
-
-    this.matchService.compareColumns(payload).subscribe({
-      next: (res) => {
-        this.matchedCount = res.matchedCount;
-        this.mismatchedCount = res.mismatchedCount;
-        this.combinedData = [...res.matched, ...res.unmatched];
-      },
-      error: (err) => console.error('Comparison error:', err)
-    });
-  }
-}
+</div>
