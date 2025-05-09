@@ -1,191 +1,129 @@
+import { Component, HostListener, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
+import * as XLSX from 'xlsx';
+import { MatchService } from '../../services/match.service';
+import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { InputTextModule } from 'primeng/inputtext';
+import { MultiSelectModule } from 'primeng/multiselect';
+import { DropdownModule } from 'primeng/dropdown';
 
-/* Main Container */
-.main {
-  position: absolute;
-  height: 100dvh;
-  width: 100%;
-}
+@Component({
+  selector: 'app-match',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    TableModule,
+    TagModule,
+    IconFieldModule,
+    InputIconModule,
+    InputTextModule,
+    MultiSelectModule,
+    DropdownModule,
+    HttpClientModule
+  ],
+  templateUrl: './match.component.html',
+  styleUrls: ['./match.component.css']
+})
+export class MatchComponent implements OnInit {
+  rows: number = 5;
+  file1Data: any[] = [];
+  file2Data: any[] = [];
+  file1Columns: string[] = [];
+  file2Columns: string[] = [];
+  selectedCol1: string = '';
+  selectedCol2: string = '';
+  filename1: string = '';
+  filename2: string = '';
+  matchedCount: number = 0;
+  mismatchedCount: number = 0;
+  combinedData: any[] = [];
+  selectedColumns1: string[] = [];
+  selectedColumns2: string[] = [];
 
-/* Upload Section */
-.upload {
-  position: relative;
-  top: 5%;
-  left: 10%;
-  transform: translateY(50%);
-  display: flex;
-  gap: 1.5rem;
-  padding: 1em 0 1em 2em;
-  width: 85%;
-  border: 1px solid #ee000013;
-  border-radius: 1em;
-  margin-bottom: 1em;
-}
+  constructor(private matchService: MatchService) { }
 
-.box p {
-  color: #eeeeee;
-  font-size: x-small;
-}
+  ngOnInit() {
+    this.setRowsBasedOnScreenHeight();
+  }
 
-/* Upload Elements */
-.upload-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 2em;
-  border-radius: 6px;
-  border: 1.5px dashed rgb(2, 110, 56);
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  position: relative;
-}
+  @HostListener('window:resize')
+  onResize() {
+    this.setRowsBasedOnScreenHeight();
+  }
 
-.upload-input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
+  private setRowsBasedOnScreenHeight() {
+    const height = window.innerHeight;
+    if (height < 500) this.rows = 5;
+    else if (height < 800) this.rows = 10;
+    else if (height < 1000) this.rows = 15;
+    else if (height < 1300) this.rows = 20;
+    else this.rows = 25;
+  }
 
-.upload-placeholder {
-  font-size: x-small;
-  color: rgb(2, 110, 56);
-  flex-grow: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-}
+  onFileUpload(event: any, fileNumber: number) {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = (e: any) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
-.upload-label:hover {
-  border-color: rgb(0, 0, 0);
-}
+      if (fileNumber === 1) {
+        this.file1Data = jsonData;
+        this.file1Columns = Object.keys(jsonData[0]);
+        this.filename1 = file.name;
+      } else {
+        this.file2Data = jsonData;
+        this.file2Columns = Object.keys(jsonData[0]);
+        this.filename2 = file.name;
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
 
-.upload-filename {
-  font-size: xx-small;
-  color: var(--text-color);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 55%;
-  text-align: right;
-  color: rgb(2, 110, 56);
-}
+  // Drag & Drop Handlers
+  onDragStart(event: DragEvent, column: string, source: number) {
+    event.dataTransfer?.setData('text/plain', JSON.stringify({ column, source }));
+  }
 
-/* Drag & Drop Section */
-.columns-container {
-  display: flex;
-  gap: 30px;
-  margin: 20px 0;
-}
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+  }
 
-.draggable-column {
-  padding: 8px;
-  margin: 5px 0;
-  background: #f0f0f0;
-  border: 1px solid #ddd;
-  cursor: move;
-  border-radius: 4px;
-  transition: transform 0.2s ease;
-}
+  onDrop(event: DragEvent, targetSource: number) {
+    event.preventDefault();
+    const data = JSON.parse(event.dataTransfer?.getData('text/plain') || '{}');
+    
+    if (data.source === 1 && targetSource === 1) {
+      this.selectedColumns1 = [data.column];
+    } else if (data.source === 2 && targetSource === 2) {
+      this.selectedColumns2 = [data.column];
+    }
+  }
 
-.draggable-column:hover {
-  transform: translateX(5px);
-  background: #e0e0e0;
-}
+  compareColumns() {
+    const payload = {
+      selectedCol1: this.selectedColumns1[0],
+      selectedCol2: this.selectedColumns2[0],
+      file1Data: this.file1Data,
+      file2Data: this.file2Data
+    };
 
-.drop-zone {
-  flex: 1;
-  min-height: 150px;
-  border: 2px dashed #ccc;
-  padding: 15px;
-  background: #f8f8f8;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-
-.drop-zone.drag-over {
-  border-color: #2196F3;
-  background: #e3f2fd;
-}
-
-/* Buttons & Controls */
-.box button {
-  padding: 0.5rem 1rem;
-  border: 1px solid black;
-  background-color: #000;
-  color: aliceblue;
-  border-radius: 1em;
-  cursor: pointer;
-  height: fit-content;
-  text-align: center;
-  font-size: x-small;
-  min-width: fit-content;
-  transition: box-shadow 0.5s ease;
-}
-
-.box button:hover {
-  box-shadow: 0 0 10px 1px rgb(0, 0, 0);
-}
-
-.box select {
-  border-radius: 6px;
-  color: #000000af;
-  cursor: pointer;
-  padding: 0.4rem;
-  font-size: x-small;
-  min-width: fit-content;
-  transition: border-color 0.3s ease;
-}
-
-/* Results Section */
-.count-summary {
-  position: relative;
-  padding: 0.5rem;
-  top: 9%;
-  left: -30%;
-  transform: translateX(50%);
-  width: 80%;
-  display: flex;
-  justify-content: center;
-  gap: 3em;
-  font-size: small;
-  color: #eeeeee;
-}
-
-.table-container {
-  position: relative;
-  left: -45%;
-  transform: translateX(50%);
-  width: 95%;
-  margin-bottom: 10em;
-  border: 1px solid #00000013;
-  border-radius: 1em;
-  height: fit-content;
-}
-
-/* PrimeNG Table Overrides */
-::ng-deep .p-component {
-  font-size: x-small !important;
-  padding: 0.4rem !important;
-}
-
-::ng-deep .p-datatable .p-datatable-tbody > tr > td {
-  padding: 0.2rem !important;
-}
-
-::ng-deep .p-paginator {
-  font-size: x-small !important;
-}
-
-::ng-deep .p-paginator .p-paginator-pages .p-paginator-page {
-  min-width: 2rem !important;
-  height: 2rem !important;
-}
-
-::ng-deep .p-paginator-first,
-::ng-deep .p-paginator-prev,
-::ng-deep .p-paginator-next,
-::ng-deep .p-paginator-last {
-  min-width: 1rem !important;
-  height: 0.5rem !important;
+    this.matchService.compareColumns(payload).subscribe({
+      next: (res) => {
+        this.matchedCount = res.matchedCount;
+        this.mismatchedCount = res.mismatchedCount;
+        this.combinedData = [...res.matched, ...res.unmatched];
+      },
+      error: (err) => console.error('Comparison error:', err)
+    });
+  }
 }
