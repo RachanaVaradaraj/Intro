@@ -31,18 +31,20 @@ import { DropdownModule } from 'primeng/dropdown';
   styleUrls: ['./match.component.css']
 })
 export class MatchComponent implements OnInit {
-  rows: number = 5;
+  rows = 5;
   file1Data: any[] = [];
   file2Data: any[] = [];
   file1Columns: string[] = [];
   file2Columns: string[] = [];
+  selectedCol1 = '';
+  selectedCol2 = '';
+  filename1 = '';
+  filename2 = '';
+  matchedCount = 0;
+  mismatchedCount = 0;
+  combinedData: any[] = [];
   selectedColumns1: string[] = [];
   selectedColumns2: string[] = [];
-  filename1: string = '';
-  filename2: string = '';
-  matchedCount: number = 0;
-  mismatchedCount: number = 0;
-  combinedData: any[] = [];
 
   constructor(private matchService: MatchService) {}
 
@@ -66,18 +68,13 @@ export class MatchComponent implements OnInit {
 
   onFileUpload(event: any, fileNumber: number) {
     const file = event.target.files[0];
-
-    if (!file || !file.name.endsWith('.xlsx')) {
-      alert('Please upload a valid .xlsx file.');
-      return;
-    }
-
     const reader = new FileReader();
+
     reader.onload = (e: any) => {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: 'array' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      const jsonData: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
       if (!jsonData.length) {
         alert(`File ${file.name} appears to be empty or invalid.`);
@@ -138,12 +135,12 @@ export class MatchComponent implements OnInit {
     };
 
     this.matchService.compareColumns(payload).subscribe({
-      next: (res) => {
+      next: (res: any) => {
         this.matchedCount = res.matchedCount;
         this.mismatchedCount = res.mismatchedCount;
         this.combinedData = [...res.matched, ...res.unmatched];
       },
-      error: (err) => {
+      error: (err: unknown) => {
         console.error('Comparison error:', err);
         alert('An error occurred during comparison. Please try again.');
       }
