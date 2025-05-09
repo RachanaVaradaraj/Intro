@@ -5,99 +5,69 @@
       <div class="file">
         <p>Source A</p>
         <label class="upload-label">
-          <input type="file" class="upload-input" (change)="onFileUpload($event, 1)" />
+          <input type="file" class="upload-input" (change)="onFileUpload($event, 1)">
           <span class="upload-placeholder">
-            <span class="pi pi-file-excel"></span>
-            <span *ngIf="filename1" class="upload-filename">{{ filename1 }}</span>
+            <span class="pi pi-file-excel"></span> Choose a file
           </span>
+          <span *ngIf="filename1" class="upload-filename">{{ filename1 }}</span>
         </label>
       </div>
-
       <div class="file">
         <p>Source B</p>
         <label class="upload-label">
-          <input type="file" class="upload-input" (change)="onFileUpload($event, 2)" />
+          <input type="file" class="upload-input" (change)="onFileUpload($event, 2)">
           <span class="upload-placeholder">
-            <span class="pi pi-file-excel"></span>
-            <span *ngIf="filename2" class="upload-filename">{{ filename2 }}</span>
+            <span class="pi pi-file-excel"></span> Choose a file
           </span>
+          <span *ngIf="filename2" class="upload-filename">{{ filename2 }}</span>
         </label>
       </div>
     </div>
+  </div>
 
-    <div class="box drag-drop-box">
-      <p>Drag and drop columns to match</p>
-      <div class="columns-container">
-        <div class="source-box" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'A')">
-          <h5>Source A Columns</h5>
-          <div
-            *ngFor="let col of file1Columns"
-            draggable="true"
-            (dragstart)="onDragStart($event, col, 'A')"
-            class="draggable-item"
-          >
-            {{ col }}
-          </div>
-        </div>
-
-        <div class="target-box" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'B')">
-          <h5>Source B Columns</h5>
-          <div
-            *ngFor="let col of file2Columns"
-            draggable="true"
-            (dragstart)="onDragStart($event, col, 'B')"
-            class="draggable-item"
-          >
-            {{ col }}
-          </div>
-        </div>
-      </div>
-
-      <div class="matched-columns" *ngIf="selectedCol1 && selectedCol2">
-        <p>Matched Column:</p>
-        <p><strong>{{ selectedCol1 }}</strong> → <strong>{{ selectedCol2 }}</strong></p>
+  <div class="box-columns">
+    <!-- File 1 Columns -->
+    <div class="column-box">
+      <h4>File 1 Columns</h4>
+      <div *ngFor="let col of file1Columns"
+           class="column-item"
+           draggable="true"
+           (dragstart)="onDragStart($event, col, 'file1')">
+        {{ col }}
       </div>
     </div>
 
-    <button (click)="compareColumns()">Compare</button>
-  </div>
-
-  <div *ngIf="showTables" class="table-container">
-    <div class="table-box">
-      <h3>Source A</h3>
-      <table>
-        <thead>
-          <tr>
-            <th *ngFor="let col of file1Columns">{{ col }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let row of file1Data">
-            <td *ngFor="let col of file1Columns">{{ row[col] }}</td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Drop Zone 1 -->
+    <div class="drop-box"
+         (dragover)="onDragOver($event)"
+         (drop)="onDrop($event, 'drop1')">
+      <h4>Drop Zone A</h4>
+      <div *ngFor="let col of dropZone1">
+        {{ col }}
+      </div>
     </div>
 
-    <div class="table-box">
-      <h3>Source B</h3>
-      <table>
-        <thead>
-          <tr>
-            <th *ngFor="let col of file2Columns">{{ col }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let row of file2Data">
-            <td *ngFor="let col of file2Columns">{{ row[col] }}</td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Drop Zone 2 -->
+    <div class="drop-box"
+         (dragover)="onDragOver($event)"
+         (drop)="onDrop($event, 'drop2')">
+      <h4>Drop Zone B</h4>
+      <div *ngFor="let col of dropZone2">
+        {{ col }}
+      </div>
+    </div>
+
+    <!-- File 2 Columns -->
+    <div class="column-box">
+      <h4>File 2 Columns</h4>
+      <div *ngFor="let col of file2Columns"
+           class="column-item"
+           draggable="true"
+           (dragstart)="onDragStart($event, col, 'file2')">
+        {{ col }}
+      </div>
     </div>
   </div>
 
-  <div class="counts" *ngIf="showTables">
-    <h4>Matched Rows: {{ matchedRows }}</h4>
-    <h4>Unmatched Rows: {{ unmatchedRows }}</h4>
-  </div>
+  <button (click)="compareColumns()">Compare</button>
 </main>
