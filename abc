@@ -1,99 +1,141 @@
-<div class="container">
-    <!-- File Upload Sections -->
-    <div class="upload-section">
-        <div class="box" *ngFor="let source of [1,2]; let i = index">
-            <div class="file">
-                <p>Source {{i+1}}</p>
-                <label class="upload-label">
-                    <input type="file" class="upload-input" 
-                           (change)="onFileUpload($event, i+1)">
-                    <span class="upload-placeholder">
-                        <span class="pi pi-file-excel"></span>
-                        Choose File
-                    </span>
-                    <span *ngIf="filenames[i]" class="upload-filename">
-                        {{filenames[i]}}
-                    </span>
-                </label>
-            </div>
-        </div>
-    </div><!-- Columns Selection with Drag & Drop -->
-<div class="columns-container">
-    <!-- Source 1 Columns -->
-    <div class="columns-list" *ngIf="file1Columns?.length">
-        <h4>Columns from Source 1:</h4>
-        <div class="draggable-column" 
-             *ngFor="let col of file1Columns" 
-             draggable="true"
-             (dragstart)="onDragStart($event, col, 1)">
-            {{col}}
-        </div>
-    </div>
+main {
+  position: absolute;
+  height: 100dvh;
+  width: 100%;
+}
 
-    <!-- Source 2 Columns -->
-    <div class="columns-list" *ngIf="file2Columns?.length">
-        <h4>Columns from Source 2:</h4>
-        <div class="draggable-column" 
-             *ngFor="let col of file2Columns" 
-             draggable="true"
-             (dragstart)="onDragStart($event, col, 2)">
-            {{col}}
-        </div>
-    </div>
+.upload {
+  position: relative;
+  top: 5%;
+  left: 10%;
+  transform: translateY(50%);
+  display: flex;
+  gap: 1.5rem;
+  padding: 1em 0 1em 2em;
+  width: 85%;
+  border: #ee000013 1px solid;
+  border-radius: 1em;
+  margin-bottom: 1em;
+}
 
-    <!-- Drop Zones -->
-    <div class="drop-zones">
-        <div class="drop-zone" 
-             (dragover)="onDragOver($event)" 
-             (drop)="onDrop($event, 1)">
-            <h4>Drop Source 1 Columns Here</h4>
-            <div *ngFor="let col of selectedColumns1" class="selected-column">
-                {{col}} <span class="remove" (click)="removeColumn(col, 1)">x</span>
-            </div>
-        </div>
+.upload-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2em;
+  border-radius: 6px;
+  border: 1.5px dashed rgb(2, 110, 56);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+}
 
-        <div class="drop-zone" 
-             (dragover)="onDragOver($event)" 
-             (drop)="onDrop($event, 2)">
-            <h4>Drop Source 2 Columns Here</h4>
-            <div *ngFor="let col of selectedColumns2" class="selected-column">
-                {{col}} <span class="remove" (click)="removeColumn(col, 2)">x</span>
-            </div>
-        </div>
-    </div>
-</div>
+.upload-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
 
-<!-- Compare Button -->
-<button class="compare-btn" (click)="compareColumns()">Compare</button>
+.upload-placeholder {
+  font-size: x-small;
+  color: rgb(2, 110, 56);
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
 
-<!-- Results Display -->
-<div class="results-section" *ngIf="combinedData?.length">
-    <div class="count-summary">
-        <p>Total Matched: <span class="matched">{{matchedCount}}</span></p>
-        <p>Total Mismatched: <span class="mismatched">{{mismatchedCount}}</span></p>
-    </div>
+.upload-label:hover {
+  border-color: rgb(0, 0, 0);
+}
 
-    <p-table [value]="combinedData" [paginator]="true" [rows]="10">
-        <ng-template pTemplate="header">
-            <tr>
-                <th *ngFor="let col of selectedColumns1">{{col}}</th>
-                <th *ngFor="let col of selectedColumns2">{{col}}</th>
-                <th>Status</th>
-            </tr>
-        </ng-template>
+.upload-placeholder:hover {
+  color: rgb(2, 110, 56);
+}
 
-        <ng-template pTemplate="body" let-row>
-            <tr>
-                <td *ngFor="let col of selectedColumns1">{{row.source1[col]}}</td>
-                <td *ngFor="let col of selectedColumns2">{{row.source2[col]}}</td>
-                <td>
-                    <span [style.color]="row.match ? 'green' : 'red'">
-                        {{row.match ? 'MATCH' : 'MISMATCH'}}
-                    </span>
-                </td>
-            </tr>
-        </ng-template>
-    </p-table>
-</div>
+.upload-filename {
+  font-size: xx-small;
+  color: var(--text-color);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 55%;
+  text-align: right;
+  color: rgb(2, 110, 56);
+}
 
-</div>
+.box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2em;
+  width: 58%;
+  padding: 0 1em;
+}
+
+.box label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  color: #eeeeee;
+  white-space: nowrap;
+}
+
+.box button {
+  padding: 0.5rem 1rem;
+  border: 1px solid black;
+  background-color: #000;
+  color: aliceblue;
+  border-radius: 1em;
+  cursor: pointer;
+  height: fit-content;
+  text-align: center;
+  font-size: x-small;
+  min-width: fit-content;
+}
+
+.box button:hover {
+  box-shadow: 0 0px 10px 1px rgb(0, 0, 0);
+  transition: 0.5s ease;
+}
+
+.box select {
+  border-radius: 6px;
+  color: #000000af;
+  cursor: pointer;
+  padding: 0.4rem;
+  font-size: x-small;
+  min-width: fit-content;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.box select:hover {
+  border-color: var(--primary-color);
+}
+
+.count-summary {
+  position: relative;
+  padding: 8.5rem;
+  top: 9%;
+  left: -30%;
+  transform: translateX(50%);
+  width: 80%;
+  display: flex;
+  justify-content: center;
+  gap: 3em;
+  font-size: small;
+  color: #eeeeee;
+}
+
+.table-container {
+  position: relative;
+  left: -45%;
+  transform: translateX(50%);
+  width: 95%;
+  margin-bottom: 10em;
+  border: #00000013 1px solid;
+  border-radius: 1em;
+  height: fit-content;
+}
