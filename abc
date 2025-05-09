@@ -1,242 +1,101 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import * as XLSX from 'xlsx';
-
-@Component({
-  selector: 'app-upload',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './upload.component.html',
-  styleUrls: ['./upload.component.scss']
-})
-export class UploadComponent {
-  foFile: File | null = null;
-  boFile: File | null = null;
-
-  foData: any[] = [];
-  boData: any[] = [];
-
-  foColumns: string[] = [];
-  boColumns: string[] = [];
-
-  selectedFoColumn = '';
-  selectedBoColumn = '';
-
-  comparisonResults: { foValue: any; boValue: any; status: string }[] = [];
-
-  onFileDrop(event: DragEvent, type: 'fo' | 'bo') {
-    event.preventDefault();
-    const file = event.dataTransfer?.files?.[0];
-    if (file) {
-      this.readFile(file, type);
-    }
-  }
-
-  onFileSelect(event: Event, type: 'fo' | 'bo') {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (file) {
-      this.readFile(file, type);
-    }
-  }
-
-  readFile(file: File, type: 'fo' | 'bo') {
-    const reader = new FileReader();
-    reader.onload = (e: any) => {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(sheet);
-
-      if (type === 'fo') {
-        this.foFile = file;
-        this.foData = jsonData;
-        this.foColumns = Object.keys(jsonData[0] || {});
-      } else {
-        this.boFile = file;
-        this.boData = jsonData;
-        this.boColumns = Object.keys(jsonData[0] || {});
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  }
-
-  compareColumns() {
-    this.comparisonResults = [];
-    const boSet = new Set(this.boData.map(row => row[this.selectedBoColumn]));
-
-    this.foData.forEach(row => {
-      const value = row[this.selectedFoColumn];
-      const match = boSet.has(value);
-      this.comparisonResults.push({
-        foValue: value,
-        boValue: value,
-        status: match ? 'Matched' : 'Mismatched'
-      });
-    });
-  }
-}
-
-
-
-
-
-
-
-
-<div class="upload-container">
-  <!-- FO File Column -->
-  <div class="file-section">
-    <h3>Upload FO File</h3>
-    
-    <div class="drop-zone" 
-         (drop)="onFileDrop($event, 'fo')" 
-         (dragover)="$event.preventDefault()">
-      <p>Drag & Drop FO File Here</p>
-      <input type="file" (change)="onFileSelect($event, 'fo')" />
+<!DOCTYPE html>
+<div class="container">
+    <!-- File Upload Sections -->
+    <div class="upload-section">
+        <div class="box" *ngFor="let source of [1,2]; let i = index">
+            <div class="file">
+                <p>Source {{i+1}}</p>
+                <label class="upload-label">
+                    <input type="file" class="upload-input" 
+                           (change)="onFileUpload($event, i+1)">
+                    <span class="upload-placeholder">
+                        <span class="pi pi-file-excel"></span>
+                        Choose File
+                    </span>
+                    <span *ngIf="filenames[i]" class="upload-filename">
+                        {{filenames[i]}}
+                    </span>
+                </label>
+            </div>
+        </div>
     </div>
 
-    <div *ngIf="foColumns.length > 0">
-      <label>Select FO Column:</label>
-      <select [(ngModel)]="selectedFoColumn">
-        <option *ngFor="let col of foColumns" [value]="col">{{ col }}</option>
-      </select>
-    </div>
-  </div>
+    <!-- Columns Selection with Drag & Drop -->
+    <div class="columns-container">
+        <!-- Source 1 Columns -->
+        <div class="columns-list" *ngIf="file1Columns?.length">
+            <h4>Columns from Source 1:</h4>
+            <div class="draggable-column" 
+                 *ngFor="let col of file1Columns" 
+                 draggable="true"
+                 (dragstart)="onDragStart($event, col, 1)">
+                {{col}}
+            </div>
+        </div>
 
-  <!-- BO File Column -->
-  <div class="file-section">
-    <h3>Upload BO File</h3>
-    
-    <div class="drop-zone" 
-         (drop)="onFileDrop($event, 'bo')" 
-         (dragover)="$event.preventDefault()">
-      <p>Drag & Drop BO File Here</p>
-      <input type="file" (change)="onFileSelect($event, 'bo')" />
+        <!-- Source 2 Columns -->
+        <div class="columns-list" *ngIf="file2Columns?.length">
+            <h4>Columns from Source 2:</h4>
+            <div class="draggable-column" 
+                 *ngFor="let col of file2Columns" 
+                 draggable="true"
+                 (dragstart)="onDragStart($event, col, 2)">
+                {{col}}
+            </div>
+        </div>
+
+        <!-- Drop Zones -->
+        <div class="drop-zones">
+            <div class="drop-zone" 
+                 (dragover)="onDragOver($event)" 
+                 (drop)="onDrop($event, 1)">
+                <h4>Drop Source 1 Column Here</h4>
+                <div *ngFor="let col of selectedColumns1" class="selected-column">
+                    {{col}}
+                </div>
+            </div>
+
+            <div class="drop-zone" 
+                 (dragover)="onDragOver($event)" 
+                 (drop)="onDrop($event, 2)">
+                <h4>Drop Source 2 Column Here</h4>
+                <div *ngFor="let col of selectedColumns2" class="selected-column">
+                    {{col}}
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div *ngIf="boColumns.length > 0">
-      <label>Select BO Column:</label>
-      <select [(ngModel)]="selectedBoColumn">
-        <option *ngFor="let col of boColumns" [value]="col">{{ col }}</option>
-      </select>
+    <!-- Compare Button -->
+    <button class="compare-btn" (click)="compareColumns()">Compare</button>
+
+    <!-- Results Display -->
+    <div class="results-section">
+        <div class="count-summary">
+            <p>Total Matched: <span class="matched">{{matchedCount}}</span></p>
+            <p>Total Mismatched: <span class="mismatched">{{mismatchedCount}}</span></p>
+        </div>
+
+        <p-table [value]="combinedData" [paginator]="true" [rows]="10">
+            <ng-template pTemplate="header">
+                <tr>
+                    <th>{{selectedColumns1[0] || 'Source 1 Column'}}</th>
+                    <th>{{selectedColumns2[0] || 'Source 2 Column'}}</th>
+                    <th>Status</th>
+                </tr>
+            </ng-template>
+
+            <ng-template pTemplate="body" let-row>
+                <tr>
+                    <td>{{row.source1Value}}</td>
+                    <td>{{row.source2Value}}</td>
+                    <td>
+                        <span [style.color]="row.match ? 'green' : 'red'">
+                            {{row.match ? 'MATCH' : 'MISMATCH'}}
+                        </span>
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
     </div>
-  </div>
 </div>
-
-<!-- Compare Button -->
-<div class="compare-btn">
-  <button (click)="compareColumns()" [disabled]="!selectedFoColumn || !selectedBoColumn">
-    Compare Selected Columns
-  </button>
-</div>
-
-<!-- Result Table -->
-<div *ngIf="comparisonResults.length > 0" class="result-table">
-  <table>
-    <thead>
-      <tr>
-        <th>FO ({{ selectedFoColumn }})</th>
-        <th>BO ({{ selectedBoColumn }})</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let row of comparisonResults">
-        <td>{{ row.foValue }}</td>
-        <td>{{ row.boValue }}</td>
-        <td [ngClass]="{'matched': row.status === 'Matched', 'mismatched': row.status === 'Mismatched'}">
-          {{ row.status }}
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-
-
-
-
-
-
-
-
-
-.upload-container {
-  display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  gap: 2rem;
-  margin: 20px 0;
-}
-
-.file-section {
-  flex: 1;
-  min-width: 300px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 20px;
-  background: #fafafa;
-}
-
-.drop-zone {
-  border: 2px dashed #009b5e;
-  border-radius: 5px;
-  padding: 20px;
-  text-align: center;
-  margin-bottom: 15px;
-  background: #f9f9f9;
-  cursor: pointer;
-}
-
-.drop-zone input {
-  margin-top: 10px;
-}
-
-.compare-btn {
-  text-align: center;
-  margin: 20px 0;
-}
-
-.compare-btn button {
-  padding: 10px 20px;
-  font-weight: bold;
-  background-color: #009b5e;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.result-table {
-  margin-top: 20px;
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: auto;
-}
-
-th, td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: center;
-}
-
-th {
-  background-color: #009b5e;
-  color: white;
-}
-
-.matched {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.mismatched {
-  background-color: #f8d7da;
-  color: #721c24;
-}
