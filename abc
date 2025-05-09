@@ -1,20 +1,86 @@
-import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { Component } from '@angular/core';
+import { MatchService } from 'src/app/services/match.service';
 
-@Injectable({
-  providedIn: 'root'
+@Component({
+  selector: 'app-dragmatch',
+  templateUrl: './dragmatch.component.html',
+  styleUrls: ['./dragmatch.component.css']
 })
-export class MatchService {
-  private apiUrl = 'http://localhost:3215/api/reconcile';
+export class DragMatchComponent {
+  filenames: string[] = [];
+  selectedColumns1: string[] = []; // Adjust type if columns are objects
+  selectedColumns2: string[] = [];
+  result: any;
 
-  constructor(private http: HttpClient) {}
+  constructor(private matchService: MatchService) {}
 
-  oneToOne(data: any): Observable<any> {
-    return this.http.post(this.apiUrl, data);
+  onFileSelected(event: any): void {
+    const file = event.target.files[0];
+    if (file) {
+      this.filenames.push(file.name);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Make API call to upload or process file here
+    }
   }
 
-  compareColumns(data: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/compare-columns`, data);
+  removeColumn(col: any, index: number): void {
+    this.selectedColumns1 = this.selectedColumns1.filter((_, i) => i !== index);
+  }
+
+  compare(): void {
+    const data = {
+      columnSet1: this.selectedColumns1,
+      columnSet2: this.selectedColumns2
+    };
+
+    this.matchService.compareColumns(data).subscribe({
+      next: res => {
+        this.result = res;
+        console.log('Comparison result:', res);
+      },
+      error: err => {
+        console.error('Comparison error:', err);
+      }
+    });
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+<div>
+  <h2>Upload CSV File</h2>
+  <input type="file" (change)="onFileSelected($event)" />
+  <div *ngFor="let file of filenames">
+    <span class="upload-filename">{{ file }}</span>
+  </div>
+</div>
+
+<div>
+  <h3>Selected Columns Set 1</h3>
+  <div *ngFor="let col of selectedColumns1; let i = index">
+    <span>{{ col }}</span>
+    <span class="remove" (click)="removeColumn(col, i)">×</span>
+  </div>
+
+  <h3>Selected Columns Set 2</h3>
+  <div *ngFor="let col of selectedColumns2">
+    <span>{{ col }}</span>
+  </div>
+
+  <button (click)="compare()">Compare</button>
+</div>
+
+<div *ngIf="result">
+  <h3>Result</h3>
+  <pre>{{ result | json }}</pre>
+</div>
