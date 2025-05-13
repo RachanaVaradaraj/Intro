@@ -1,54 +1,147 @@
+public class ReconciliationResult {
+    private int excludedCount;
+    private int nonExcludedCount;
+    private List<String[]> excludedRows;
+    private List<String[]> nonExcludedRows;
+    private String[] headers;
+
+    // Getters and Setters
+    public int getExcludedCount() { return excludedCount; }
+    public void setExcludedCount(int excludedCount) { this.excludedCount = excludedCount; }
+
+    public int getNonExcludedCount() { return nonExcludedCount; }
+    public void setNonExcludedCount(int nonExcludedCount) { this.nonExcludedCount = nonExcludedCount; }
+
+    public List<String[]> getExcludedRows() { return excludedRows; }
+    public void setExcludedRows(List<String[]> excludedRows) { this.excludedRows = excludedRows; }
+
+    public List<String[]> getNonExcludedRows() { return nonExcludedRows; }
+    public void setNonExcludedRows(List<String[]> nonExcludedRows) { this.nonExcludedRows = nonExcludedRows; }
+
+    public String[] getHeaders() { return headers; }
+    public void setHeaders(String[] headers) { this.headers = headers; }
+}
+
+
+
+
+
+@PostMapping("/reconcile")
+public ResponseEntity<ReconciliationResult> reconcile(
+        @RequestParam("file1") MultipartFile file1,
+        @RequestParam("file2") MultipartFile file2) throws IOException {
+
+    BufferedReader reader1 = new BufferedReader(new InputStreamReader(file1.getInputStream()));
+    String headerLine = reader1.readLine(); // Extract header
+    String[] headers = headerLine != null ? headerLine.split(",") : new String[0];
+    List<String[]> file1Rows = reader1.lines().map(line -> line.split(",")).collect(Collectors.toList());
+
+    List<String[]> file2Rows = new BufferedReader(
+            new InputStreamReader(file2.getInputStream()))
+            .lines().map(line -> line.split(",")).collect(Collectors.toList());
+
+    List<String[]> excludedRows = new ArrayList<>();
+    List<String[]> nonExcludedRows = new ArrayList<>();
+
+    Set<String> file2Set = file2Rows.stream().map(Arrays::toString).collect(Collectors.toSet());
+
+    for (String[] row : file1Rows) {
+        if (file2Set.contains(Arrays.toString(row))) {
+            excludedRows.add(row);
+        } else {
+            nonExcludedRows.add(row);
+        }
+    }
+
+    ReconciliationResult result = new ReconciliationResult();
+    result.setExcludedRows(excludedRows);
+    result.setNonExcludedRows(nonExcludedRows);
+    result.setExcludedCount(excludedRows.size());
+    result.setNonExcludedCount(nonExcludedRows.size());
+    result.setHeaders(headers);
+
+    return ResponseEntity.ok(result);
+}
+
+
+
+
+
+
+
+
 import { Component } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 @Component({
-  selector: 'app-exclusion-rule',
-  templateUrl: './exclusion-rule.component.html',
-  styleUrls: ['./exclusion-rule.component.css']
+  selector: 'app-exclusionrule',
+  templateUrl: './exclusionrule.component.html',
+  styleUrls: ['./exclusionrule.component.css']
 })
 export class ExclusionRuleComponent {
-  file1: File | null = null;
-  file2: File | null = null;
-
-  excludedRows: any[] = [];
-  nonExcludedRows: any[] = [];
+  excludedRows: string[][] = [];
+  nonExcludedRows: string[][] = [];
+  headers: string[] = [];
   excludedCount = 0;
   nonExcludedCount = 0;
-  errorMessage = '';
+
+  searchText = '';
+  pageSize = 10;
+  currentPage = 1;
+  mode: 'excluded' | 'nonexcluded' = 'excluded';
 
   constructor(private http: HttpClient) {}
 
-  onFileSelected(event: any, fileNumber: number): void {
-    const file = event.target.files[0];
-    if (fileNumber === 1) {
-      this.file1 = file;
-    } else {
-      this.file2 = file;
+  onFilesSelected(event: any): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length === 2) {
+      const formData = new FormData();
+      formData.append('file1', input.files[0]);
+      formData.append('file2', input.files[1]);
+
+      this.http.post<any>('http://localhost:8080/reconcile', formData).subscribe(
+        res => {
+          this.excludedRows = res.excludedRows;
+          this.nonExcludedRows = res.nonExcludedRows;
+          this.excludedCount = res.excludedCount;
+          this.nonExcludedCount = res.nonExcludedCount;
+          this.headers = res.headers;
+          this.currentPage = 1;
+        },
+        err => console.error('Error:', err)
+      );
     }
   }
 
-  uploadFiles(): void {
-    if (!this.file1 || !this.file2) {
-      this.errorMessage = 'Please select both files.';
-      return;
-    }
+  get rowsToDisplay(): string[][] {
+    const rows = this.mode === 'excluded' ? this.excludedRows : this.nonExcludedRows;
+    return this.filteredRows(rows).slice(this.startIndex, this.startIndex + this.pageSize);
+  }
 
-    const formData = new FormData();
-    formData.append('file1', this.file1);
-    formData.append('file2', this.file2);
+  get startIndex(): number {
+    return (this.currentPage - 1) * this.pageSize;
+  }
 
-    this.http.post<any>('http://localhost:8080/api/reconcile', formData).subscribe({
-      next: (response) => {
-        this.excludedRows = response.excludedRows;
-        this.nonExcludedRows = response.nonExcludedRows;
-        this.excludedCount = response.excludedCount;
-        this.nonExcludedCount = response.nonExcludedCount;
-        this.errorMessage = '';
-      },
-      error: () => {
-        this.errorMessage = 'An error occurred while uploading files.';
-      }
-    });
+  get totalPages(): number {
+    const rows = this.mode === 'excluded' ? this.excludedRows : this.nonExcludedRows;
+    return Math.ceil(this.filteredRows(rows).length / this.pageSize);
+  }
+
+  filteredRows(rows: string[][]): string[][] {
+    if (!this.searchText) return rows;
+    return rows.filter(row =>
+      row.join(' ').toLowerCase().includes(this.searchText.toLowerCase())
+    );
+  }
+
+  changePage(offset: number): void {
+    this.currentPage += offset;
+  }
+
+  switchMode(mode: 'excluded' | 'nonexcluded'): void {
+    this.mode = mode;
+    this.currentPage = 1;
+    this.searchText = '';
   }
 }
 
@@ -57,103 +150,32 @@ export class ExclusionRuleComponent {
 
 
 
+<input type="file" (change)="onFilesSelected($event)" multiple />
 
+<div *ngIf="excludedRows.length || nonExcludedRows.length">
+  <h2>Reconciliation Summary</h2>
+  <p>Excluded Rows Count: {{ excludedCount }}</p>
+  <p>Non-Excluded Rows Count: {{ nonExcludedCount }}</p>
 
+  <button (click)="switchMode('excluded')" [disabled]="mode === 'excluded'">Show Excluded</button>
+  <button (click)="switchMode('nonexcluded')" [disabled]="mode === 'nonexcluded'">Show Non-Excluded</button>
 
+  <input type="text" [(ngModel)]="searchText" placeholder="Search rows..." />
 
+  <table border="1">
+    <thead>
+      <tr>
+        <th *ngFor="let header of headers">{{ header }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of rowsToDisplay">
+        <td *ngFor="let cell of row">{{ cell }}</td>
+      </tr>
+    </tbody>
+  </table>
 
-
-
-<div class="container">
-  <h2>Exclusion Rule Reconciliation</h2>
-
-  <div class="upload-section">
-    <label>Select File 1:</label>
-    <input type="file" (change)="onFileSelected($event, 1)" />
-    <label>Select File 2:</label>
-    <input type="file" (change)="onFileSelected($event, 2)" />
-    <button (click)="uploadFiles()">Upload & Reconcile</button>
-  </div>
-
-  <div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
-
-  <div *ngIf="excludedRows.length || nonExcludedRows.length" class="results-section">
-    <h3>Reconciliation Results</h3>
-    <p>Excluded Count: {{ excludedCount }}</p>
-    <p>Non-Excluded Count: {{ nonExcludedCount }}</p>
-
-    <h4>Excluded Rows</h4>
-    <table *ngIf="excludedRows.length > 0">
-      <thead>
-        <tr>
-          <th *ngFor="let key of excludedRows[0] | keyvalue">{{ key.key }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let row of excludedRows">
-          <td *ngFor="let cell of row | keyvalue">{{ cell.value }}</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h4>Non-Excluded Rows</h4>
-    <table *ngIf="nonExcludedRows.length > 0">
-      <thead>
-        <tr>
-          <th *ngFor="let key of nonExcludedRows[0] | keyvalue">{{ key.key }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let row of nonExcludedRows">
-          <td *ngFor="let cell of row | keyvalue">{{ cell.value }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  <button (click)="changePage(-1)" [disabled]="currentPage <= 1">Previous</button>
+  <span>Page {{ currentPage }} of {{ totalPages }}</span>
+  <button (click)="changePage(1)" [disabled]="currentPage >= totalPages">Next</button>
 </div>
-
-
-
-
-
-
-
-
-.container {
-  max-width: 900px;
-  margin: auto;
-  padding: 20px;
-}
-
-.upload-section {
-  margin-bottom: 20px;
-}
-
-.upload-section label {
-  display: block;
-  margin-top: 10px;
-}
-
-button {
-  margin-top: 10px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 20px;
-}
-
-thead {
-  background-color: #f0f0f0;
-}
-
-th, td {
-  border: 1px solid #ddd;
-  padding: 8px;
-}
-
-.error {
-  color: red;
-  font-weight: bold;
-}
