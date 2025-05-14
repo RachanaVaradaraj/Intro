@@ -1,38 +1,46 @@
-this.exclusionService.exclude(payload).subscribe({
-  next: (res) => {
-    this.excluded = res.excluded.map((item: any) => ({ ...item, statusFlag: 'Excluded' }));
-    this.nonExcluded = res.nonExcluded.map((item: any) => ({ ...item, statusFlag: 'Non Excluded' }));
 
-    // Merge both into a single list
-    this.allRecords = [...this.excluded, ...this.nonExcluded];
-
-    console.log(this.allRecords); // optional
-  },
-  error: (e) => console.error(e, 'Error'),
-});
-
-
-
-
-
-
-
-<table>
-  <thead>
+<p-table [value]="allRecords" [paginator]="true" [rows]="10">
+  <ng-template pTemplate="header">
     <tr>
-      <th>Deal Id</th>
-      <th>ISIN</th>
-      <th>Maturity Date</th>
+      <th *ngFor="let col of columns">
+        {{ col.header }}
+      </th>
       <th>Status</th>
-      <!-- Add other relevant headers -->
     </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let record of allRecords">
-      <td>{{ record.allRecords?.['Deal Id'] }}</td>
-      <td>{{ record.allRecords?.ISIN }}</td>
-      <td>{{ record.allRecords?.['Maturity Date'] }}</td>
-      <td>{{ record.statusFlag }}</td>
+  </ng-template>
+
+  <ng-template pTemplate="body" let-row>
+    <tr>
+      <td *ngFor="let col of columns">
+        {{ row.allRecords[col.field] }}
+      </td>
+      <td>
+        {{ row.statusFlag }}
+      </td>
     </tr>
-  </tbody>
-</table>
+  </ng-template>
+
+  <ng-template pTemplate="emptymessage">
+    <tr>
+      <td colspan="100%">No rows found.</td>
+    </tr>
+  </ng-template>
+</p-table>
+
+
+
+
+
+columns = [
+  { field: 'Deal Id', header: 'Deal Id' },
+  { field: 'ISIN', header: 'ISIN' },
+  { field: 'Maturity Date', header: 'Maturity Date' },
+  { field: 'Legal Entity', header: 'Legal Entity' },
+  { field: 'Notional', header: 'Notional' },
+  { field: 'Portfolio Code', header: 'Portfolio Code' },
+  { field: 'Managing Location', header: 'Managing Location' },
+  { field: 'CRDS Party Code', header: 'CRDS Party Code' },
+  { field: 'CRDS Party No', header: 'CRDS Party No' },
+  { field: 'New_code', header: 'New_code' }
+  // Add more fields as needed from your data
+];
