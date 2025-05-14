@@ -1,76 +1,15 @@
-import { Component } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+this.exclusionService.exclude(payload).subscribe({
+  next: (res) => {
+    this.excluded = res.excluded.map((item: any) => ({ ...item, statusFlag: 'Excluded' }));
+    this.nonExcluded = res.nonExcluded.map((item: any) => ({ ...item, statusFlag: 'Non Excluded' }));
 
-@Component({
-  selector: 'app-login',
-  templateUrl: './login.component.html',
-  styleUrls: ['./login.component.scss']
-})
-export class LoginComponent {
-  loginForm: FormGroup;
-  submitted = false;
+    // Merge both into a single list
+    this.allRecords = [...this.excluded, ...this.nonExcluded];
 
-  constructor(private fb: FormBuilder) {
-    this.loginForm = this.fb.group({
-      username: ['', [Validators.required]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
-    });
-  }
-
-  get f() {
-    return this.loginForm.controls;
-  }
-
-  onSubmit(): void {
-    this.submitted = true;
-    if (this.loginForm.invalid) {
-      return;
-    }
-    console.log('Login successful', this.loginForm.value);
-    // Call authentication service here
-  }
-}
-
-
-
-
-
-<div class="login-container">
-  <div class="glass-card">
-    <div class="logo">
-      <img src="assets/bnp-logo.png" alt="BNP Paribas Logo" />
-    </div>
-    <h2>BNP Paribas Login</h2>
-
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-      <div class="form-group">
-        <input
-          type="text"
-          formControlName="username"
-          placeholder="Username"
-          [class.invalid]="submitted && f.username.errors"
-        />
-        <div *ngIf="submitted && f.username.errors" class="error">
-          Username is required.
-        </div>
-      </div>
-
-      <div class="form-group">
-        <input
-          type="password"
-          formControlName="password"
-          placeholder="Password"
-          [class.invalid]="submitted && f.password.errors"
-        />
-        <div *ngIf="submitted && f.password.errors" class="error">
-          Password is required (min 6 chars).
-        </div>
-      </div>
-
-      <button type="submit">Login</button>
-    </form>
-  </div>
-</div>
+    console.log(this.allRecords); // optional
+  },
+  error: (e) => console.error(e, 'Error'),
+});
 
 
 
@@ -78,95 +17,22 @@ export class LoginComponent {
 
 
 
-.login-container {
-  height: 100vh;
-  background: linear-gradient(135deg, #0b3d91, #2e8b57);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-family: 'Segoe UI', sans-serif;
-}
-
-.glass-card {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 16px;
-  padding: 40px;
-  width: 350px;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #ffffff;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.logo img {
-  width: 120px;
-  margin-bottom: 20px;
-}
-
-h2 {
-  margin-bottom: 30px;
-  color: #ffffff;
-}
-
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-
-  input {
-    padding: 12px;
-    border: none;
-    border-radius: 8px;
-    outline: none;
-    font-size: 16px;
-    background: rgba(255, 255, 255, 0.1);
-    color: #ffffff;
-    transition: all 0.2s ease;
-
-    &::placeholder {
-      color: rgba(255, 255, 255, 0.7);
-    }
-
-    &.invalid {
-      border: 1px solid #ff4d4f;
-    }
-  }
-
-  .error {
-    color: #ffbaba;
-    font-size: 13px;
-    margin-top: 4px;
-    text-align: left;
-  }
-}
-
-button {
-  padding: 12px;
-  background-color: #009473;
-  border: none;
-  border-radius: 8px;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.3s ease;
-
-  &:hover {
-    background-color: #007b61;
-  }
-}
-
-
-
-
-
-
-
+<table>
+  <thead>
+    <tr>
+      <th>Deal Id</th>
+      <th>ISIN</th>
+      <th>Maturity Date</th>
+      <th>Status</th>
+      <!-- Add other relevant headers -->
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let record of allRecords">
+      <td>{{ record.allRecords?.['Deal Id'] }}</td>
+      <td>{{ record.allRecords?.ISIN }}</td>
+      <td>{{ record.allRecords?.['Maturity Date'] }}</td>
+      <td>{{ record.statusFlag }}</td>
+    </tr>
+  </tbody>
+</table>
