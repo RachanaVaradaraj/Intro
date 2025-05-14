@@ -1,46 +1,185 @@
+<div class="container">
+  <div class="carousel">
+    <div class="slide" *ngFor="let slide of slides; let i = index" [class.active]="i === activeSlide">
+      <h2>{{ slide.title }}</h2>
+      <p>{{ slide.description }}</p>
+    </div>
+  </div>
 
-<p-table [value]="allRecords" [paginator]="true" [rows]="10">
-  <ng-template pTemplate="header">
-    <tr>
-      <th *ngFor="let col of columns">
-        {{ col.header }}
-      </th>
-      <th>Status</th>
-    </tr>
-  </ng-template>
-
-  <ng-template pTemplate="body" let-row>
-    <tr>
-      <td *ngFor="let col of columns">
-        {{ row.allRecords[col.field] }}
-      </td>
-      <td>
-        {{ row.statusFlag }}
-      </td>
-    </tr>
-  </ng-template>
-
-  <ng-template pTemplate="emptymessage">
-    <tr>
-      <td colspan="100%">No rows found.</td>
-    </tr>
-  </ng-template>
-</p-table>
-
+  <div class="login-card glass">
+    <h2>Login</h2>
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <input type="text" formControlName="username" placeholder="Username" />
+        <div *ngIf="loginForm.controls.username.invalid && loginForm.controls.username.touched" class="error">
+          Username is required
+        </div>
+      </div>
+      <div class="form-group">
+        <input type="password" formControlName="password" placeholder="Password" />
+        <div *ngIf="loginForm.controls.password.invalid && loginForm.controls.password.touched" class="error">
+          Password is required
+        </div>
+      </div>
+      <button type="submit" [disabled]="loginForm.invalid">Login</button>
+    </form>
+  </div>
+</div>
 
 
 
 
-columns = [
-  { field: 'Deal Id', header: 'Deal Id' },
-  { field: 'ISIN', header: 'ISIN' },
-  { field: 'Maturity Date', header: 'Maturity Date' },
-  { field: 'Legal Entity', header: 'Legal Entity' },
-  { field: 'Notional', header: 'Notional' },
-  { field: 'Portfolio Code', header: 'Portfolio Code' },
-  { field: 'Managing Location', header: 'Managing Location' },
-  { field: 'CRDS Party Code', header: 'CRDS Party Code' },
-  { field: 'CRDS Party No', header: 'CRDS Party No' },
-  { field: 'New_code', header: 'New_code' }
-  // Add more fields as needed from your data
-];
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+
+@Component({
+  selector: 'app-login',
+  templateUrl: './login.component.html',
+  styleUrls: ['./login.component.scss']
+})
+export class LoginComponent implements OnInit {
+  loginForm: FormGroup;
+  slides = [
+    {
+      title: 'Online Documentation',
+      description: 'Access full documentation on how to upload, exclude, and reconcile CSV files with ease.'
+    },
+    {
+      title: 'Reconciliation Process',
+      description: 'Understand how excluded and non-excluded rows are matched across datasets automatically.'
+    }
+  ];
+  activeSlide = 0;
+
+  constructor(private fb: FormBuilder) {}
+
+  ngOnInit(): void {
+    this.loginForm = this.fb.group({
+      username: ['', Validators.required],
+      password: ['', Validators.required]
+    });
+
+    setInterval(() => {
+      this.activeSlide = (this.activeSlide + 1) % this.slides.length;
+    }, 4000);
+  }
+
+  onSubmit(): void {
+    if (this.loginForm.valid) {
+      console.log('Login submitted:', this.loginForm.value);
+      // Add actual login logic
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+.container {
+  display: flex;
+  height: 100vh;
+  background: linear-gradient(to right, #e0eafc, #cfdef3);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.carousel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a2e;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  padding: 2rem;
+
+  .slide {
+    opacity: 0;
+    position: absolute;
+    transition: opacity 0.8s ease-in-out;
+    text-align: center;
+    max-width: 400px;
+
+    &.active {
+      opacity: 1;
+    }
+
+    h2 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      font-size: 1.1rem;
+    }
+  }
+}
+
+.login-card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+
+  .glass {
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 2rem;
+    width: 350px;
+    color: #000;
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.2rem;
+
+      input {
+        width: 100%;
+        padding: 0.7rem;
+        border: none;
+        border-radius: 10px;
+        font-size: 1rem;
+        background: rgba(255, 255, 255, 0.2);
+        color: #000;
+        outline: none;
+      }
+
+      .error {
+        color: #ff4d4f;
+        font-size: 0.85rem;
+        margin-top: 0.2rem;
+      }
+    }
+
+    button {
+      width: 100%;
+      padding: 0.8rem;
+      border: none;
+      border-radius: 10px;
+      background-color: #4a90e2;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s ease;
+
+      &:hover {
+        background-color: #357ab8;
+      }
+    }
+  }
+}
