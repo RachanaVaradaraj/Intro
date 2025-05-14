@@ -1,73 +1,47 @@
-<div class="container">
-  <div class="carousel">
-    <div class="slide" *ngFor="let slide of slides; let i = index" [class.active]="i === activeSlide">
-      <h2>{{ slide.title }}</h2>
-      <p>{{ slide.description }}</p>
-    </div>
-  </div>
-
-  <div class="login-card glass">
-    <h2>Login</h2>
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-      <div class="form-group">
-        <input type="text" formControlName="username" placeholder="Username" />
-        <div *ngIf="loginForm.controls.username.invalid && loginForm.controls.username.touched" class="error">
-          Username is required
-        </div>
-      </div>
-      <div class="form-group">
-        <input type="password" formControlName="password" placeholder="Password" />
-        <div *ngIf="loginForm.controls.password.invalid && loginForm.controls.password.touched" class="error">
-          Password is required
-        </div>
-      </div>
-      <button type="submit" [disabled]="loginForm.invalid">Login</button>
-    </form>
-  </div>
-</div>
-
-
-
-
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Component, effect, signal } from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-login',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.scss']
+  styleUrls: ['./login.component.css']
 })
-export class LoginComponent implements OnInit {
+export class LoginComponent {
   loginForm: FormGroup;
   slides = [
     {
       title: 'Online Documentation',
-      description: 'Access full documentation on how to upload, exclude, and reconcile CSV files with ease.'
+      description: 'Access complete docs on uploading and reconciling CSV files easily.'
     },
     {
       title: 'Reconciliation Process',
-      description: 'Understand how excluded and non-excluded rows are matched across datasets automatically.'
+      description: 'Automatic matching of excluded and non-excluded rows across files.'
+    },
+    {
+      title: 'Secure Access',
+      description: 'Login credentials are encrypted and stored securely.'
     }
   ];
-  activeSlide = 0;
+  activeSlide = signal(0);
 
-  constructor(private fb: FormBuilder) {}
-
-  ngOnInit(): void {
+  constructor(private fb: FormBuilder) {
     this.loginForm = this.fb.group({
       username: ['', Validators.required],
       password: ['', Validators.required]
     });
 
     setInterval(() => {
-      this.activeSlide = (this.activeSlide + 1) % this.slides.length;
+      this.activeSlide.update(value => (value + 1) % this.slides.length);
     }, 4000);
   }
 
   onSubmit(): void {
     if (this.loginForm.valid) {
       console.log('Login submitted:', this.loginForm.value);
-      // Add actual login logic
+      // Redirect or handle login
     }
   }
 }
@@ -76,6 +50,40 @@ export class LoginComponent implements OnInit {
 
 
 
+<div class="container-fluid vh-100 d-flex align-items-center justify-content-center glassmorphism">
+  <div class="row w-100 shadow-lg rounded-5 overflow-hidden" style="max-width: 1000px; background: rgba(255, 255, 255, 0.1);">
+    
+    <!-- Carousel Section -->
+    <div class="col-md-6 bg-dark text-white p-5 d-flex flex-column justify-content-center">
+      <h3>{{ slides[activeSlide()]?.title }}</h3>
+      <p class="mt-3">{{ slides[activeSlide()]?.description }}</p>
+    </div>
+
+    <!-- Login Form Section -->
+    <div class="col-md-6 bg-white p-5 d-flex flex-column justify-content-center">
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
+        <h2 class="mb-4 text-center">Login</h2>
+        <div class="mb-3">
+          <label for="username" class="form-label">Username</label>
+          <input id="username" formControlName="username" class="form-control" type="text" />
+          <div *ngIf="loginForm.controls['username'].invalid && loginForm.controls['username'].touched" class="text-danger">
+            Username is required
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="password" class="form-label">Password</label>
+          <input id="password" formControlName="password" class="form-control" type="password" />
+          <div *ngIf="loginForm.controls['password'].invalid && loginForm.controls['password'].touched" class="text-danger">
+            Password is required
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100" [disabled]="loginForm.invalid">Login</button>
+      </form>
+    </div>
+  </div>
+</div>
 
 
 
@@ -84,102 +92,16 @@ export class LoginComponent implements OnInit {
 
 
 
-.container {
-  display: flex;
-  height: 100vh;
-  background: linear-gradient(to right, #e0eafc, #cfdef3);
+body, html {
+  height: 100%;
+  margin: 0;
   font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(120deg, #74ebd5 0%, #ACB6E5 100%);
 }
 
-.carousel {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #1a1a2e;
-  color: #ffffff;
-  position: relative;
-  overflow: hidden;
-  padding: 2rem;
-
-  .slide {
-    opacity: 0;
-    position: absolute;
-    transition: opacity 0.8s ease-in-out;
-    text-align: center;
-    max-width: 400px;
-
-    &.active {
-      opacity: 1;
-    }
-
-    h2 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-    }
-
-    p {
-      font-size: 1.1rem;
-    }
-  }
-}
-
-.login-card {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-
-  .glass {
-    background: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    padding: 2rem;
-    width: 350px;
-    color: #000;
-
-    h2 {
-      text-align: center;
-      margin-bottom: 1.5rem;
-    }
-
-    .form-group {
-      margin-bottom: 1.2rem;
-
-      input {
-        width: 100%;
-        padding: 0.7rem;
-        border: none;
-        border-radius: 10px;
-        font-size: 1rem;
-        background: rgba(255, 255, 255, 0.2);
-        color: #000;
-        outline: none;
-      }
-
-      .error {
-        color: #ff4d4f;
-        font-size: 0.85rem;
-        margin-top: 0.2rem;
-      }
-    }
-
-    button {
-      width: 100%;
-      padding: 0.8rem;
-      border: none;
-      border-radius: 10px;
-      background-color: #4a90e2;
-      color: white;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background 0.3s ease;
-
-      &:hover {
-        background-color: #357ab8;
-      }
-    }
-  }
+.glassmorphism {
+  backdrop-filter: blur(10px);
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
 }
