@@ -6,8 +6,8 @@ import { Component } from '@angular/core';
   styleUrls: ['./discrepancy-review.component.css']
 })
 export class DiscrepancyReviewComponent {
-  foFileName: string = '';
-  boFileName: string = '';
+  foFileName = '';
+  boFileName = '';
   foColumns: string[] = [];
   boColumns: string[] = [];
   selectedFoColumn = '';
@@ -26,8 +26,7 @@ export class DiscrepancyReviewComponent {
     const file = event.target.files[0];
     if (file) {
       this.foFileName = file.name;
-      // simulate column extraction
-      this.foColumns = ['Trade ID', 'Amount', 'Date', 'Client Name'];
+      this.extractColumns(file, 'fo');
     }
   }
 
@@ -35,13 +34,27 @@ export class DiscrepancyReviewComponent {
     const file = event.target.files[0];
     if (file) {
       this.boFileName = file.name;
-      // simulate column extraction
-      this.boColumns = ['Trade ID', 'Amount', 'Settlement Date', 'Client'];
+      this.extractColumns(file, 'bo');
     }
   }
 
+  extractColumns(file: File, type: 'fo' | 'bo') {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = reader.result as string;
+      const lines = text.split(/\r?\n/);
+      const header = lines[0];
+      const columns = header.split(',').map(col => col.trim());
+      if (type === 'fo') {
+        this.foColumns = columns;
+      } else {
+        this.boColumns = columns;
+      }
+    };
+    reader.readAsText(file);
+  }
+
   checkDiscrepancies() {
-    // dummy discrepancy logic
     if (this.selectedFoColumn && this.selectedBoColumn) {
       this.discrepancies = [
         {
@@ -55,157 +68,4 @@ export class DiscrepancyReviewComponent {
       ];
     }
   }
-}
-
-
-
-
-
-
-<div class="container">
-  <h2>Discrepancy Review</h2>
-
-  <div class="upload-section">
-    <label class="upload-label">
-      Upload FO File
-      <input type="file" (change)="handleFoUpload($event)" />
-    </label>
-    <label class="upload-label">
-      Upload BO File
-      <input type="file" (change)="handleBoUpload($event)" />
-    </label>
-  </div>
-
-  <div class="selection-row">
-    <div class="dropdown-block">
-      <label>FO Column</label>
-      <select [(ngModel)]="selectedFoColumn">
-        <option *ngFor="let col of foColumns">{{ col }}</option>
-      </select>
-    </div>
-    <div class="dropdown-block">
-      <label>BO Column</label>
-      <select [(ngModel)]="selectedBoColumn">
-        <option *ngFor="let col of boColumns">{{ col }}</option>
-      </select>
-    </div>
-    <button (click)="checkDiscrepancies()">Check Discrepancies</button>
-  </div>
-
-  <table *ngIf="discrepancies.length" class="discrepancy-table">
-    <thead>
-      <tr>
-        <th>FO File</th>
-        <th>BO File</th>
-        <th>FO Column</th>
-        <th>BO Column</th>
-        <th># of Discrepancies</th>
-        <th>Comments</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let row of discrepancies">
-        <td>{{ row.foFile }}</td>
-        <td>{{ row.boFile }}</td>
-        <td>{{ row.foColumn }}</td>
-        <td>{{ row.boColumn }}</td>
-        <td>{{ row.discrepancyCount }}</td>
-        <td><input [(ngModel)]="row.comment" placeholder="Add comment" /></td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-
-
-
-
-.container {
-  max-width: 1000px;
-  margin: auto;
-  font-family: 'Segoe UI', sans-serif;
-  padding: 2rem;
-  background: #f8f9fa;
-  border-radius: 12px;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-}
-
-h2 {
-  color: #003366;
-  font-weight: 500;
-  margin-bottom: 20px;
-}
-
-.upload-section {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-.upload-label {
-  display: flex;
-  flex-direction: column;
-  font-weight: 500;
-  color: #444;
-}
-
-input[type="file"] {
-  margin-top: 8px;
-}
-
-.selection-row {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.dropdown-block {
-  display: flex;
-  flex-direction: column;
-}
-
-select {
-  padding: 6px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  margin-top: 4px;
-}
-
-button {
-  padding: 8px 16px;
-  background-color: #003366;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #005aa7;
-}
-
-.discrepancy-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.discrepancy-table th,
-.discrepancy-table td {
-  border: 1px solid #ccc;
-  padding: 10px;
-  text-align: center;
-}
-
-.discrepancy-table th {
-  background-color: #003366;
-  color: white;
-}
-
-input[type="text"],
-input[placeholder] {
-  padding: 5px;
-  width: 90%;
-  border: 1px solid #ccc;
-  border-radius: 5px;
 }
