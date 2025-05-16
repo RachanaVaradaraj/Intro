@@ -1,71 +1,46 @@
-import { Component } from '@angular/core';
+Absolutely! Here's a refined 1.5-minute version that keeps the tone balanced and professional, while including the limitations, challenges, goals, and deliverables:
 
-@Component({
-  selector: 'app-discrepancy-review',
-  templateUrl: './discrepancy-review.component.html',
-  styleUrls: ['./discrepancy-review.component.css']
-})
-export class DiscrepancyReviewComponent {
-  foFileName = '';
-  boFileName = '';
-  foColumns: string[] = [];
-  boColumns: string[] = [];
-  selectedFoColumn = '';
-  selectedBoColumn = '';
 
-  discrepancies: {
-    foFile: string;
-    boFile: string;
-    foColumn: string;
-    boColumn: string;
-    discrepancyCount: number;
-    comment: string;
-  }[] = [];
+---
 
-  handleFoUpload(event: any) {
-    const file = event.target.files[0];
-    if (file) {
-      this.foFileName = file.name;
-      this.extractColumns(file, 'fo');
-    }
-  }
+Opening (10s):
+“Hello everyone, I’ll be giving a quick overview of the CEP-IT RECON NEXTGEN initiative, which is focused on modernizing our bank’s reconciliation platform.”
 
-  handleBoUpload(event: any) {
-    const file = event.target.files[0];
-    if (file) {
-      this.boFileName = file.name;
-      this.extractColumns(file, 'bo');
-    }
-  }
 
-  extractColumns(file: File, type: 'fo' | 'bo') {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = reader.result as string;
-      const lines = text.split(/\r?\n/);
-      const header = lines[0];
-      const columns = header.split(',').map(col => col.trim());
-      if (type === 'fo') {
-        this.foColumns = columns;
-      } else {
-        this.boColumns = columns;
-      }
-    };
-    reader.readAsText(file);
-  }
+---
 
-  checkDiscrepancies() {
-    if (this.selectedFoColumn && this.selectedBoColumn) {
-      this.discrepancies = [
-        {
-          foFile: this.foFileName,
-          boFile: this.boFileName,
-          foColumn: this.selectedFoColumn,
-          boColumn: this.selectedBoColumn,
-          discrepancyCount: Math.floor(Math.random() * 10),
-          comment: ''
-        }
-      ];
-    }
-  }
-}
+Current Landscape & Limitations (20s):
+“Our current system has been reliable, but it’s built on a legacy monolithic architecture with limited scalability. It primarily supports batch processing, which limits our ability to perform real-time or intra-day reconciliation. There’s also a need for improved support for many-to-many transaction matching, flexible integration, and stronger analytics capabilities.”
+
+
+---
+
+Key Challenges (20s):
+“Some of the main challenges include performance constraints during high-volume periods, lack of advanced matching logic, and a rigid integration framework. These factors can make it harder to scale, respond quickly, and support evolving digital banking needs.”
+
+
+---
+
+Objective (15s):
+“To address this, RECON NEXTGEN aims to deliver a scalable, cloud-native solution that enables real-time processing, advanced matching logic, and better visibility for both users and stakeholders.”
+
+
+---
+
+Solution & Deliverables (25s):
+“The architecture includes a modular reconciliation engine built with Spring Boot microservices, covering data ingestion, matching, discrepancy detection, and auto-allocation.
+Frontend is powered by Angular and integrates with Power BI for rich visual analytics.
+The backend uses relational databases for transactions and non-relational ones for metadata and audit trails.
+We’re also integrating an AI-Fix layer using LLMs like Mistral to provide suggestions and automated resolutions.”
+
+
+---
+
+Current Status (10s):
+“We’ve completed the feasibility study and POC, and we’re on track toward delivering a modern, intelligent reconciliation platform aligned with the future of banking.”
+
+
+---
+
+Would you like a version formatted for a slide or visual reference?
+
