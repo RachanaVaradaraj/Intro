@@ -1,230 +1,211 @@
-<div class="login-container">
-  <!-- Carousel Section -->
-  <div class="carousel-section">
-    <div class="carousel">
-      <div
-        class="carousel-slide"
-        *ngFor="let slide of slides; let i = index"
-        [class.active]="i === currentSlide"
-      >
-        <h2>{{ slide.title }}</h2>
-        <p>{{ slide.description }}</p>
-      </div>
-    </div>
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-discrepancy-review',
+  templateUrl: './discrepancy-review.component.html',
+  styleUrls: ['./discrepancy-review.component.css']
+})
+export class DiscrepancyReviewComponent {
+  foFileName: string = '';
+  boFileName: string = '';
+  foColumns: string[] = [];
+  boColumns: string[] = [];
+  selectedFoColumn = '';
+  selectedBoColumn = '';
+
+  discrepancies: {
+    foFile: string;
+    boFile: string;
+    foColumn: string;
+    boColumn: string;
+    discrepancyCount: number;
+    comment: string;
+  }[] = [];
+
+  handleFoUpload(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.foFileName = file.name;
+      // simulate column extraction
+      this.foColumns = ['Trade ID', 'Amount', 'Date', 'Client Name'];
+    }
+  }
+
+  handleBoUpload(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.boFileName = file.name;
+      // simulate column extraction
+      this.boColumns = ['Trade ID', 'Amount', 'Settlement Date', 'Client'];
+    }
+  }
+
+  checkDiscrepancies() {
+    // dummy discrepancy logic
+    if (this.selectedFoColumn && this.selectedBoColumn) {
+      this.discrepancies = [
+        {
+          foFile: this.foFileName,
+          boFile: this.boFileName,
+          foColumn: this.selectedFoColumn,
+          boColumn: this.selectedBoColumn,
+          discrepancyCount: Math.floor(Math.random() * 10),
+          comment: ''
+        }
+      ];
+    }
+  }
+}
+
+
+
+
+
+
+<div class="container">
+  <h2>Discrepancy Review</h2>
+
+  <div class="upload-section">
+    <label class="upload-label">
+      Upload FO File
+      <input type="file" (change)="handleFoUpload($event)" />
+    </label>
+    <label class="upload-label">
+      Upload BO File
+      <input type="file" (change)="handleBoUpload($event)" />
+    </label>
   </div>
 
-  <!-- Login Card Section -->
-  <div class="glass-card">
-    <div class="logo">
-      <img src="assets/LOGO.png" alt="BNP Paribas Logo" />
+  <div class="selection-row">
+    <div class="dropdown-block">
+      <label>FO Column</label>
+      <select [(ngModel)]="selectedFoColumn">
+        <option *ngFor="let col of foColumns">{{ col }}</option>
+      </select>
     </div>
-    <h2>Recon Nextgen Login</h2>
-
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-      <div class="form-group">
-        <input
-          type="text"
-          formControlName="username"
-          placeholder="Username"
-          [class.invalid]="submitted && f['username'].errors"
-        />
-        <div *ngIf="submitted && f['username'].errors" class="error">
-          Username is required.
-        </div>
-      </div>
-
-      <div class="form-group">
-        <input
-          type="password"
-          formControlName="password"
-          placeholder="Password"
-          [class.invalid]="submitted && f['password'].errors"
-        />
-        <div *ngIf="submitted && f['password'].errors" class="error">
-          Password is required (min 6 chars).
-        </div>
-      </div>
-
-      <button type="submit">Login</button>
-      <span>or</span>
-      <span>Login with SSO</span>
-    </form>
+    <div class="dropdown-block">
+      <label>BO Column</label>
+      <select [(ngModel)]="selectedBoColumn">
+        <option *ngFor="let col of boColumns">{{ col }}</option>
+      </select>
+    </div>
+    <button (click)="checkDiscrepancies()">Check Discrepancies</button>
   </div>
+
+  <table *ngIf="discrepancies.length" class="discrepancy-table">
+    <thead>
+      <tr>
+        <th>FO File</th>
+        <th>BO File</th>
+        <th>FO Column</th>
+        <th>BO Column</th>
+        <th># of Discrepancies</th>
+        <th>Comments</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of discrepancies">
+        <td>{{ row.foFile }}</td>
+        <td>{{ row.boFile }}</td>
+        <td>{{ row.foColumn }}</td>
+        <td>{{ row.boColumn }}</td>
+        <td>{{ row.discrepancyCount }}</td>
+        <td><input [(ngModel)]="row.comment" placeholder="Add comment" /></td>
+      </tr>
+    </tbody>
+  </table>
 </div>
 
 
 
 
 
-
-
-
-
-
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-
-@Component({
-  selector: 'app-login',
-  templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css']
-})
-export class LoginComponent implements OnInit {
-  loginForm!: FormGroup;
-  submitted = false;
-
-  slides = [
-    { title: 'Welcome to Recon', description: 'Reconcile your data with accuracy and speed.' },
-    { title: 'Secure & Fast', description: 'Your data is protected with advanced security.' },
-    { title: 'Nextgen UI', description: 'Experience a modern, responsive design.' }
-  ];
-  currentSlide = 0;
-
-  constructor(private fb: FormBuilder) {}
-
-  ngOnInit(): void {
-    this.loginForm = this.fb.group({
-      username: ['', Validators.required],
-      password: ['', [Validators.required, Validators.minLength(6)]]
-    });
-
-    setInterval(() => {
-      this.currentSlide = (this.currentSlide + 1) % this.slides.length;
-    }, 3000); // Slide every 3 seconds
-  }
-
-  get f() {
-    return this.loginForm.controls;
-  }
-
-  onSubmit(): void {
-    this.submitted = true;
-    if (this.loginForm.invalid) return;
-    console.log('Login successful', this.loginForm.value);
-    // Add login logic here
-  }
-}
-
-
-
-
-
-
-
-
-
-.login-container {
-  display: flex;
-  height: 100vh;
-  width: 100%;
-  overflow: hidden;
-  background: linear-gradient(to right, #e0f7fa, #e0f2f1);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* Carousel Section */
-.carousel-section {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #00796b;
-  color: white;
-  padding: 2rem;
-  position: relative;
-}
-
-.carousel {
-  width: 100%;
-  max-width: 400px;
-  height: 200px;
-  overflow: hidden;
-  position: relative;
-}
-
-.carousel-slide {
-  opacity: 0;
-  transition: opacity 0.5s ease-in-out;
-  position: absolute;
-  text-align: center;
-  width: 100%;
-}
-
-.carousel-slide.active {
-  opacity: 1;
-}
-
-/* Login Card */
-.glass-card {
-  flex: 1;
-  backdrop-filter: blur(12px);
-  background: rgba(255, 255, 255, 0.15);
-  padding: 40px;
+.container {
+  max-width: 1000px;
   margin: auto;
-  border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  max-width: 400px;
-}
-
-.logo {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1rem;
-}
-
-.logo img {
-  height: 60px;
+  font-family: 'Segoe UI', sans-serif;
+  padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
 }
 
 h2 {
-  text-align: center;
-  color: #00796b;
-  margin-bottom: 2rem;
-}
-
-.form-group {
+  color: #003366;
+  font-weight: 500;
   margin-bottom: 20px;
 }
 
-input {
-  width: 100%;
-  padding: 12px;
-  border-radius: 8px;
+.upload-section {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.upload-label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 500;
+  color: #444;
+}
+
+input[type="file"] {
+  margin-top: 8px;
+}
+
+.selection-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.dropdown-block {
+  display: flex;
+  flex-direction: column;
+}
+
+select {
+  padding: 6px;
+  border-radius: 6px;
   border: 1px solid #ccc;
-  font-size: 14px;
-  transition: 0.3s;
-}
-
-input.invalid {
-  border-color: red;
-}
-
-.error {
-  color: red;
-  font-size: 12px;
-  margin-top: 5px;
+  margin-top: 4px;
 }
 
 button {
-  width: 100%;
-  padding: 12px;
-  background-color: #00796b;
+  padding: 8px 16px;
+  background-color: #003366;
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: 6px;
   cursor: pointer;
-  margin-bottom: 10px;
-  transition: background 0.3s;
 }
 
 button:hover {
-  background-color: #004d40;
+  background-color: #005aa7;
 }
 
-span {
-  display: block;
+.discrepancy-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.discrepancy-table th,
+.discrepancy-table td {
+  border: 1px solid #ccc;
+  padding: 10px;
   text-align: center;
-  margin-top: 10px;
-  color: #333;
+}
+
+.discrepancy-table th {
+  background-color: #003366;
+  color: white;
+}
+
+input[type="text"],
+input[placeholder] {
+  padding: 5px;
+  width: 90%;
+  border: 1px solid #ccc;
+  border-radius: 5px;
 }
