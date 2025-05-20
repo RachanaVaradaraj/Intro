@@ -1,11 +1,58 @@
-import org.bson.Document;
+package com.example.demo.service.impl;
 
-@Override
-public List<Map<String, Object>> getAllDocuments(String collectionName) {
-    List<Document> documents = mongoTemplate.findAll(Document.class, collectionName);
-    List<Map<String, Object>> result = new ArrayList<>();
-    for (Document doc : documents) {
-        result.add(new HashMap<>(doc));
+import com.example.demo.service.DiscrepancyService;
+import org.bson.Document;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+
+@Service
+public class DiscrepancyServiceImpl implements DiscrepancyService {
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
+
+    @Override
+    public List<Map<String, Object>> getAllDocuments(String collectionName) {
+        List<Document> documents = mongoTemplate.findAll(Document.class, collectionName);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Document doc : documents) {
+            result.add(new HashMap<>(doc));
+        }
+        return result;
     }
-    return result;
+
+    @Override
+    public Set<String> getAllFieldNames(String collectionName) {
+        List<Map<String, Object>> documents = getAllDocuments(collectionName);
+        Set<String> fieldNames = new HashSet<>();
+        for (Map<String, Object> doc : documents) {
+            fieldNames.addAll(doc.keySet());
+        }
+        fieldNames.remove("_id"); // optional: exclude MongoDB's ID field
+        return fieldNames;
+    }
+
+    @Override
+    public List<Map<String, Object>> checkDiscrepancies(List<Map<String, Object>> dataA, List<Map<String, Object>> dataB, String columnName) {
+        List<Map<String, Object>> discrepancies = new ArrayList<>();
+        int size = Math.min(dataA.size(), dataB.size());
+
+        for (int i = 0; i < size; i++) {
+            Object valueA = dataA.get(i).get(columnName);
+            Object valueB = dataB.get(i).get(columnName);
+
+            if (!Objects.equals(valueA, valueB)) {
+                Map<String, Object> diff = new HashMap<>();
+                diff.put("index", i);
+                diff.put("INITIAL_MARGIN", valueA);
+                diff.put("Staralgonew", valueB);
+                discrepancies.add(diff);
+            }
+        }
+
+        return discrepancies;
+    }
 }
