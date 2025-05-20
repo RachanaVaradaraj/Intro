@@ -1,91 +1,97 @@
-:host {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f5f7fa;
+@RestController
+@RequestMapping("/api/discrepancy")
+@CrossOrigin(origins = "*")
+public class DiscrepancyController {
+
+    @PostMapping("/compare")
+    public ResponseEntity<List<String>> compareColumns(
+            @RequestParam("file1") MultipartFile file1,
+            @RequestParam("file2") MultipartFile file2,
+            @RequestParam("column1") String column1,
+            @RequestParam("column2") String column2
+    ) throws IOException {
+        List<String> discrepancies = DiscrepancyService.findDiscrepancies(file1, file2, column1, column2);
+        return ResponseEntity.ok(discrepancies);
+    }
 }
 
-/* HEADER */
-.header {
-  position: absolute;
-  top: 0;
-  width: 100%;
-  background-color: #009540;
-  padding: 16px 24px;
+
+
+
+
+
+
+
+@Service
+public class DiscrepancyService {
+
+    public static List<String> findDiscrepancies(MultipartFile file1, MultipartFile file2, String column1, String column2) throws IOException {
+        List<String> list1 = extractColumn(file1, column1);
+        List<String> list2 = extractColumn(file2, column2);
+
+        Set<String> set1 = new HashSet<>(list1);
+        Set<String> set2 = new HashSet<>(list2);
+
+        // Find items in set1 not in set2 (discrepancies)
+        return set1.stream().filter(val -> !set2.contains(val)).collect(Collectors.toList());
+    }
+
+    private static List<String> extractColumn(MultipartFile file, String columnName) throws IOException {
+        List<String> columnValues = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
+            String line;
+            String[] headers = reader.readLine().split(",");
+            int colIndex = -1;
+
+            for (int i = 0; i < headers.length; i++) {
+                if (headers[i].trim().equalsIgnoreCase(columnName.trim())) {
+                    colIndex = i;
+                    break;
+                }
+            }
+
+            if (colIndex == -1) {
+                throw new IllegalArgumentException("Column not found: " + columnName);
+            }
+
+            while ((line = reader.readLine()) != null) {
+                String[] fields = line.split(",");
+                if (fields.length > colIndex) {
+                    columnValues.add(fields[colIndex].trim());
+                }
+            }
+        }
+        return columnValues;
+    }
 }
 
-.header-title {
-  text-align: center;
-  color: white;
-  font-size: 22px;
-  font-weight: bold;
+
+
+
+
+
+compareColumns() {
+  const formData = new FormData();
+  formData.append('file1', this.foFile);
+  formData.append('file2', this.boFile);
+  formData.append('column1', this.selectedFoColumn);
+  formData.append('column2', this.selectedBoColumn);
+
+  this.http.post<string[]>('http://localhost:8080/api/discrepancy/compare', formData)
+    .subscribe(discrepancies => {
+      this.discrepancies = discrepancies;
+    });
 }
 
-/* MAIN CONTAINER */
-.container {
-  margin-top: 80px;
-  width: 100%;
-  max-width: 500px;
-  background-color: white;
-  padding: 40px 50px;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  text-align: center;
-}
 
-/* LABELS */
-.upload-label {
-  font-weight: 600;
-  display: block;
-  margin-bottom: 8px;
-  text-align: left;
-}
 
-/* FILE INPUTS */
-input[type="file"] {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background-color: #f1f5f9;
-  margin-bottom: 24px;
-  cursor: pointer;
-}
 
-/* SELECTS */
-select {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 24px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background-color: #f1f5f9;
-  font-size: 14px;
-  cursor: pointer;
-}
 
-/* BUTTON */
-button {
-  background-color: #009540;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  font-weight: 600;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
 
-button:hover {
-  background-color: #007a34;
-}
-
-/* RESPONSIVE */
-@media (max-width: 600px) {
-  .container {
-    padding: 24px;
-    max-width: 90%;
-  }
+@Configuration
+public class WebConfig implements WebMvcConfigurer {
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**").allowedOrigins("*").allowedMethods("*");
+    }
 }
