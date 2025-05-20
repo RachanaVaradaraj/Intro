@@ -13,6 +13,8 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
 export class DiscrepancyReviewComponent {
   fileFO!: File;
   fileBO!: File;
+  foColumns: string[] = [];
+  boColumns: string[] = [];
   columnFO: string = '';
   columnBO: string = '';
   discrepancyCount: number = 0;
@@ -24,10 +26,23 @@ export class DiscrepancyReviewComponent {
 
   onFOFileChange(event: any) {
     this.fileFO = event.target.files[0];
+    this.extractHeaders(this.fileFO, 'fo');
   }
 
   onBOFileChange(event: any) {
     this.fileBO = event.target.files[0];
+    this.extractHeaders(this.fileBO, 'bo');
+  }
+
+  extractHeaders(file: File, type: 'fo' | 'bo') {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const lines = (reader.result as string).split(/\r?\n/);
+      const headers = lines[0].split(',').map(h => h.trim());
+      if (type === 'fo') this.foColumns = headers;
+      else this.boColumns = headers;
+    };
+    reader.readAsText(file);
   }
 
   checkDiscrepancies() {
@@ -41,17 +56,16 @@ export class DiscrepancyReviewComponent {
       .subscribe({
         next: (res) => {
           this.discrepancies = res;
-          this.discrepancyCount = res.filter(row => row.discrepancy === 'true').length;
+          this.discrepancyCount = res.length;
           this.showResult = true;
         },
         error: (err) => {
           console.error('Error:', err);
-          alert('Error processing files. Please check console for details.');
+          alert('Error processing files.');
         }
       });
   }
 }
-
 
 
 
@@ -67,15 +81,19 @@ export class DiscrepancyReviewComponent {
     <input type="file" (change)="onBOFileChange($event)" />
 
     <label>Select FO Column:</label>
-    <input type="text" [(ngModel)]="columnFO" />
+    <select [(ngModel)]="columnFO">
+      <option *ngFor="let col of foColumns" [value]="col">{{ col }}</option>
+    </select>
 
     <label>Select BO Column:</label>
-    <input type="text" [(ngModel)]="columnBO" />
+    <select [(ngModel)]="columnBO">
+      <option *ngFor="let col of boColumns" [value]="col">{{ col }}</option>
+    </select>
 
     <button class="check-btn" (click)="checkDiscrepancies()">Check Discrepancies</button>
   </div>
 
-  <table *ngIf="showResult" class="summary-table">
+  <table *ngIf="showResult" class="result-table">
     <thead>
       <tr>
         <th>FO File</th>
@@ -98,26 +116,25 @@ export class DiscrepancyReviewComponent {
     </tbody>
   </table>
 
-  <table *ngIf="showResult && discrepancies.length > 0" class="result-table">
-    <thead>
-      <tr>
-        <th>Row</th>
-        <th>FO Value</th>
-        <th>BO Value</th>
-        <th>Discrepancy</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let row of discrepancies" [class.discrepant]="row.discrepancy === 'true'">
-        <td>{{ row.row }}</td>
-        <td>{{ row.foValue }}</td>
-        <td>{{ row.boValue }}</td>
-        <td>{{ row.discrepancy === 'true' ? 'Yes' : 'No' }}</td>
-      </tr>
-    </tbody>
-  </table>
+  <div *ngIf="showResult && discrepancies.length > 0" class="scrollable-table">
+    <table class="result-table">
+      <thead>
+        <tr>
+          <th>Row</th>
+          <th>FO Value</th>
+          <th>BO Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of discrepancies.slice(0, 10)">
+          <td>{{ row.row }}</td>
+          <td>{{ row.foValue }}</td>
+          <td>{{ row.boValue }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
-
 
 
 
@@ -151,7 +168,8 @@ export class DiscrepancyReviewComponent {
 }
 
 input[type="file"],
-input[type="text"] {
+input[type="text"],
+select {
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -167,15 +185,12 @@ input[type="text"] {
   border-radius: 4px;
 }
 
-.summary-table,
 .result-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
 }
 
-.summary-table th,
-.summary-table td,
 .result-table th,
 .result-table td {
   border: 1px solid #ccc;
@@ -183,7 +198,6 @@ input[type="text"] {
   text-align: center;
 }
 
-.summary-table th,
 .result-table th {
   background-color: #007a33;
   color: white;
@@ -196,8 +210,8 @@ input[type="text"] {
   border-radius: 4px;
 }
 
-.result-table tr.discrepant {
-  background-color: #ffdede;
-  font-weight: bold;
-  color: #a94442;
+.scrollable-table {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 20px;
 }
