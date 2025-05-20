@@ -1,200 +1,130 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+package com.example.demo.service;
 
-@Component({
-  selector: 'app-discrepancy-review',
-  standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule],
-  templateUrl: './discrepancy-review.component.html',
-  styleUrl: './discrepancy-review.component.css'
-})
-export class DiscrepancyReviewComponent {
-  fileFO!: File;
-  fileBO!: File;
-  columnFO: string = '';
-  columnBO: string = '';
-  discrepancyCount: number = 0;
-  comment: string = '';
-  showResult = false;
-  discrepancies: any[] = [];
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-  constructor(private http: HttpClient) {}
+public interface DiscrepancyService {
+    List<Map<String, Object>> getAllDocuments(String collectionName);
+    Set<String> getAllFieldNames(String collectionName);
+    List<Map<String, Object>> checkDiscrepancies(
+        List<Map<String, Object>> dataA,
+        List<Map<String, Object>> dataB,
+        String columnName
+    );
+}
 
-  onFOFileChange(event: any) {
-    this.fileFO = event.target.files[0];
-  }
 
-  onBOFileChange(event: any) {
-    this.fileBO = event.target.files[0];
-  }
 
-  checkDiscrepancies() {
-    const formData = new FormData();
-    formData.append('file1', this.fileFO);
-    formData.append('file2', this.fileBO);
-    formData.append('column1', this.columnFO);
-    formData.append('column2', this.columnBO);
 
-    this.http.post<any[]>('http://localhost:8080/api/discrepancy/compare', formData)
-      .subscribe({
-        next: (res) => {
-          this.discrepancies = res;
-          this.discrepancyCount = res.filter(row => row.discrepancy === 'true').length;
-          this.showResult = true;
-        },
-        error: (err) => {
-          console.error('Error:', err);
-          alert('Error processing files. Please check console for details.');
+package com.example.demo.service.impl;
+
+import com.example.demo.service.DiscrepancyService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+
+@Service
+public class DiscrepancyServiceImpl implements DiscrepancyService {
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
+
+    @Override
+    public List<Map<String, Object>> getAllDocuments(String collectionName) {
+        return mongoTemplate.findAll(Map.class, collectionName);
+    }
+
+    @Override
+    public Set<String> getAllFieldNames(String collectionName) {
+        List<Map<String, Object>> documents = getAllDocuments(collectionName);
+        Set<String> fieldNames = new HashSet<>();
+        for (Map<String, Object> doc : documents) {
+            fieldNames.addAll(doc.keySet());
         }
-      });
-  }
+        fieldNames.remove("_id");
+        return fieldNames;
+    }
+
+    @Override
+    public List<Map<String, Object>> checkDiscrepancies(List<Map<String, Object>> dataA, List<Map<String, Object>> dataB, String columnName) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        int size = Math.min(dataA.size(), dataB.size());
+
+        for (int i = 0; i < size; i++) {
+            Object valA = dataA.get(i).get(columnName);
+            Object valB = dataB.get(i).get(columnName);
+            if (!Objects.equals(valA, valB)) {
+                Map<String, Object> diff = new HashMap<>();
+                diff.put("index", i);
+                diff.put("INITIAL_MARGIN", valA);
+                diff.put("Staralgonew", valB);
+                result.add(diff);
+            }
+        }
+
+        return result;
+    }
 }
 
 
 
 
-<div class="container">
-  <div class="header">BNP PARIBAS Discrepancy Review</div>
 
-  <div class="form-section">
-    <label>Upload FO File:</label>
-    <input type="file" (change)="onFOFileChange($event)" />
+package com.example.demo.controller;
 
-    <label>Upload BO File:</label>
-    <input type="file" (change)="onBOFileChange($event)" />
+import com.example.demo.service.DiscrepancyService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 
-    <label>Select FO Column:</label>
-    <input type="text" [(ngModel)]="columnFO" />
+import java.util.*;
 
-    <label>Select BO Column:</label>
-    <input type="text" [(ngModel)]="columnBO" />
+@RestController
+@RequestMapping("/api/discrepancy")
+@CrossOrigin(origins = "*")
+public class DiscrepancyController {
 
-    <button class="check-btn" (click)="checkDiscrepancies()">Check Discrepancies</button>
-  </div>
+    @Autowired
+    private DiscrepancyService discrepancyService;
 
-  <table *ngIf="showResult" class="summary-table">
-    <thead>
-      <tr>
-        <th>FO File</th>
-        <th>BO File</th>
-        <th>FO Column</th>
-        <th>BO Column</th>
-        <th>Discrepancy Count</th>
-        <th>Comment</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>{{ fileFO?.name }}</td>
-        <td>{{ fileBO?.name }}</td>
-        <td>{{ columnFO }}</td>
-        <td>{{ columnBO }}</td>
-        <td>{{ discrepancyCount }}</td>
-        <td><input type="text" [(ngModel)]="comment" placeholder="Add comment" /></td>
-      </tr>
-    </tbody>
-  </table>
+    @GetMapping("/fields/{collection}")
+    public Set<String> getFieldNames(@PathVariable String collection) {
+        return discrepancyService.getAllFieldNames(collection);
+    }
 
-  <table *ngIf="showResult && discrepancies.length > 0" class="result-table">
-    <thead>
-      <tr>
-        <th>Row</th>
-        <th>FO Value</th>
-        <th>BO Value</th>
-        <th>Discrepancy</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let row of discrepancies" [class.discrepant]="row.discrepancy === 'true'">
-        <td>{{ row.row }}</td>
-        <td>{{ row.foValue }}</td>
-        <td>{{ row.boValue }}</td>
-        <td>{{ row.discrepancy === 'true' ? 'Yes' : 'No' }}</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+    @GetMapping("/data/{collection}")
+    public List<Map<String, Object>> getCollectionData(@PathVariable String collection) {
+        return discrepancyService.getAllDocuments(collection);
+    }
 
+    @PostMapping("/check")
+    public List<Map<String, Object>> checkDiscrepancy(
+        @RequestParam String column,
+        @RequestBody Map<String, List<Map<String, Object>>> dataMap
+    ) {
+        List<Map<String, Object>> dataA = dataMap.get("INITIAL_MARGIN");
+        List<Map<String, Object>> dataB = dataMap.get("Staralgonew");
+        return discrepancyService.checkDiscrepancies(dataA, dataB, column);
+    }
 
-
-.container {
-  padding: 40px;
-  font-family: 'Segoe UI', sans-serif;
+    @GetMapping("/collections")
+    public List<String> getCollectionNames() {
+        return Arrays.asList("INITIAL_MARGIN", "Staralgonew");
+    }
 }
 
-.header {
-  font-size: 28px;
-  font-weight: bold;
-  background-color: #007a33;
-  color: white;
-  padding: 15px;
-  text-align: left;
-  margin-bottom: 30px;
-  border-radius: 5px 5px 0 0;
-}
 
-.form-section {
-  display: flex;
-  flex-direction: column;
-  width: 400px;
-  gap: 12px;
-  background: #f5f5f5;
-  padding: 25px;
-  border-radius: 8px;
-  box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
-  margin-bottom: 30px;
-}
 
-input[type="file"],
-input[type="text"] {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
+package com.example.demo;
 
-.check-btn {
-  background-color: #007a33;
-  color: white;
-  border: none;
-  padding: 10px;
-  cursor: pointer;
-  font-weight: bold;
-  border-radius: 4px;
-}
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-.summary-table,
-.result-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-
-.summary-table th,
-.summary-table td,
-.result-table th,
-.result-table td {
-  border: 1px solid #ccc;
-  padding: 10px;
-  text-align: center;
-}
-
-.summary-table th,
-.result-table th {
-  background-color: #007a33;
-  color: white;
-}
-
-.result-table input {
-  width: 90%;
-  padding: 6px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.result-table tr.discrepant {
-  background-color: #ffdede;
-  font-weight: bold;
-  color: #a94442;
+@SpringBootApplication
+public class DemoApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(DemoApplication.class, args);
+    }
 }
