@@ -1,128 +1,149 @@
-package com.example.demo;
+import { Component } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+@Component({
+  selector: 'app-discrepancy-review',
+  templateUrl: './discrepancy-review.component.html',
+  styleUrls: ['./discrepancy-review.component.css']
+})
+export class DiscrepancyReviewComponent {
+  foFile!: File;
+  boFile!: File;
+  foColumns: string[] = [];
+  boColumns: string[] = [];
+  selectedFOColumn = '';
+  selectedBOColumn = '';
+  discrepancies: string[] = [];
 
-@SpringBootApplication
-public class DemoApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(DemoApplication.class, args);
-    }
-}
+  constructor(private http: HttpClient) {}
 
+  onFOFileSelected(event: any) {
+    this.foFile = event.target.files[0];
+    this.extractColumns(this.foFile, 'fo');
+  }
 
+  onBOFileSelected(event: any) {
+    this.boFile = event.target.files[0];
+    this.extractColumns(this.boFile, 'bo');
+  }
 
-package com.example.demo.controller;
+  extractColumns(file: File, type: 'fo' | 'bo') {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = reader.result as string;
+      const lines = text.split('\n');
+      const headers = lines[0].split(',').map(h => h.trim());
+      if (type === 'fo') this.foColumns = headers;
+      else this.boColumns = headers;
+    };
+    reader.readAsText(file);
+  }
 
-import com.example.demo.service.DiscrepancyService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+  checkDiscrepancies() {
+    if (!this.foFile || !this.boFile || !this.selectedFOColumn || !this.selectedBOColumn) return;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+    const formData = new FormData();
+    formData.append('file1', this.foFile);
+    formData.append('file2', this.boFile);
+    formData.append('column1', this.selectedFOColumn);
+    formData.append('column2', this.selectedBOColumn);
 
-@RestController
-@RequestMapping("/api/discrepancy")
-@CrossOrigin(origins = "*")
-public class DiscrepancyController {
-
-    @Autowired
-    private DiscrepancyService discrepancyService;
-
-    @PostMapping("/compare")
-    public ResponseEntity<List<Map<String, String>>> compareColumns(
-            @RequestParam("file1") MultipartFile file1,
-            @RequestParam("file2") MultipartFile file2,
-            @RequestParam("column1") String column1,
-            @RequestParam("column2") String column2
-    ) throws IOException {
-        List<Map<String, String>> discrepancies = discrepancyService.findDiscrepancies(file1, file2, column1, column2);
-        return ResponseEntity.ok(discrepancies);
-    }
-}
-
-
-
-
-
-
-package com.example.demo.service;
-
-import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
-public interface DiscrepancyService {
-    List<Map<String, String>> findDiscrepancies(MultipartFile file1, MultipartFile file2, String column1, String column2) throws IOException;
+    this.http.post<string[]>('http://localhost:8080/api/discrepancy/compare', formData)
+      .subscribe(data => {
+        this.discrepancies = data;
+      });
+  }
 }
 
 
 
 
 
-package com.example.demo.service.impl;
 
-import com.example.demo.service.DiscrepancyService;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+<div class="container">
+  <div class="header">
+    <img src="assets/bnp-logo.png" alt="BNP Logo" class="logo" />
+    <h1>Discrepancy Review</h1>
+  </div>
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.util.*;
+  <div class="form-group">
+    <label>Upload FO File</label>
+    <input type="file" (change)="onFOFileSelected($event)" />
+  </div>
 
-@Service
-public class DiscrepancyServiceImpl implements DiscrepancyService {
+  <div class="form-group">
+    <label>Upload BO File</label>
+    <input type="file" (change)="onBOFileSelected($event)" />
+  </div>
 
-    @Override
-    public List<Map<String, String>> findDiscrepancies(MultipartFile file1, MultipartFile file2, String column1, String column2) throws IOException {
-        List<Map<String, String>> result = new ArrayList<>();
+  <div class="form-group">
+    <label>Select FO Column</label>
+    <select [(ngModel)]="selectedFOColumn">
+      <option *ngFor="let col of foColumns" [value]="col">{{ col }}</option>
+    </select>
+  </div>
 
-        try (
-            Reader reader1 = new BufferedReader(new InputStreamReader(file1.getInputStream()));
-            Reader reader2 = new BufferedReader(new InputStreamReader(file2.getInputStream()));
+  <div class="form-group">
+    <label>Select BO Column</label>
+    <select [(ngModel)]="selectedBOColumn">
+      <option *ngFor="let col of boColumns" [value]="col">{{ col }}</option>
+    </select>
+  </div>
 
-            CSVParser parser1 = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(reader1);
-            CSVParser parser2 = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(reader2)
-        ) {
-            List<String> list1 = new ArrayList<>();
-            for (CSVRecord record : parser1) {
-                list1.add(record.get(column1).trim());
-            }
+  <button (click)="checkDiscrepancies()">Check Discrepancies</button>
 
-            List<String> list2 = new ArrayList<>();
-            for (CSVRecord record : parser2) {
-                list2.add(record.get(column2).trim());
-            }
+  <div *ngIf="discrepancies.length > 0">
+    <h2>Discrepancies</h2>
+    <ul>
+      <li *ngFor="let d of discrepancies">{{ d }}</li>
+    </ul>
+  </div>
+</div>
 
-            int max = Math.max(list1.size(), list2.size());
 
-            for (int i = 0; i < max; i++) {
-                String val1 = i < list1.size() ? list1.get(i) : "MISSING";
-                String val2 = i < list2.size() ? list2.get(i) : "MISSING";
 
-                if (!val1.equals(val2)) {
-                    Map<String, String> map = new HashMap<>();
-                    map.put("row", String.valueOf(i + 1));
-                    map.put("foValue", val1);
-                    map.put("boValue", val2);
-                    result.add(map);
-                }
-            }
-        }
 
-        return result;
-    }
+
+
+.container {
+  max-width: 600px;
+  margin: auto;
+  padding: 20px;
+  text-align: center;
 }
 
+.header {
+  background-color: #2ecc71;
+  color: white;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
+.logo {
+  width: 40px;
+  margin-right: 10px;
+}
 
+.form-group {
+  margin: 20px 0;
+}
 
+input[type="file"], select {
+  width: 100%;
+  padding: 5px;
+  margin-top: 5px;
+}
+
+button {
+  background-color: #2ecc71;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #27ae60;
+}
