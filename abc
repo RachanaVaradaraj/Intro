@@ -1,172 +1,59 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+package com.example.demo.service.impl;
 
-@Component({
-  selector: 'app-discrepancy-review',
-  standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule],
-  templateUrl: './discrepancy-review.component.html',
-  styleUrl: './discrepancy-review.component.css'
-})
-export class DiscrepancyReviewComponent {
-  fileFO!: File;
-  fileBO!: File;
-  columnFO: string = '';
-  columnBO: string = '';
-  discrepancyCount: number = 0;
-  showResult = false;
-  comment: string = '';
+import com.example.demo.service.DiscrepancyService;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-  constructor(private http: HttpClient) {}
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.util.*;
 
-  onFOFileChange(event: any) {
-    this.fileFO = event.target.files[0];
-  }
+@Service
+public class DiscrepancyServiceImpl implements DiscrepancyService {
 
-  onBOFileChange(event: any) {
-    this.fileBO = event.target.files[0];
-  }
+    @Override
+    public List<Map<String, String>> findDiscrepancies(MultipartFile file1, MultipartFile file2, String column1, String column2) throws IOException {
+        List<Map<String, String>> result = new ArrayList<>();
 
-  checkDiscrepancies() {
-    const formData = new FormData();
-    formData.append('file1', this.fileFO);
-    formData.append('file2', this.fileBO);
-    formData.append('column1', this.columnFO);
-    formData.append('column2', this.columnBO);
+        try (
+            Reader reader1 = new BufferedReader(new InputStreamReader(file1.getInputStream()));
+            Reader reader2 = new BufferedReader(new InputStreamReader(file2.getInputStream()));
 
-    this.http.post<string[]>('http://localhost:8080/api/discrepancy/compare', formData)
-      .subscribe({
-        next: (res) => {
-          this.discrepancyCount = res.length;
-          this.showResult = true;
-        },
-        error: (err) => {
-          console.error('Error:', err);
+            CSVParser parser1 = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(reader1);
+            CSVParser parser2 = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(reader2)
+        ) {
+            List<String> list1 = new ArrayList<>();
+            for (CSVRecord record : parser1) {
+                list1.add(record.get(column1).trim());
+            }
+
+            List<String> list2 = new ArrayList<>();
+            for (CSVRecord record : parser2) {
+                list2.add(record.get(column2).trim());
+            }
+
+            int max = Math.max(list1.size(), list2.size());
+
+            for (int i = 0; i < max; i++) {
+                String val1 = i < list1.size() ? list1.get(i) : "MISSING";
+                String val2 = i < list2.size() ? list2.get(i) : "MISSING";
+
+                Map<String, String> map = new HashMap<>();
+                map.put("row", String.valueOf(i + 1));
+                map.put("foValue", val1);
+                map.put("boValue", val2);
+
+                // New field to indicate if discrepancy exists
+                map.put("discrepancy", String.valueOf(!val1.equals(val2)));
+
+                result.add(map);
+            }
         }
-      });
-  }
-}
 
-
-
-
-
-
-<div class="container">
-  <div class="header">BNP PARIBAS Discrepancy Review</div>
-
-  <div class="form-section">
-    <label>Upload FO File:</label>
-    <input type="file" (change)="onFOFileChange($event)">
-
-    <label>Upload BO File:</label>
-    <input type="file" (change)="onBOFileChange($event)">
-
-    <label>Select FO Column:</label>
-    <input type="text" [(ngModel)]="columnFO">
-
-    <label>Select BO Column:</label>
-    <input type="text" [(ngModel)]="columnBO">
-
-    <button class="check-btn" (click)="checkDiscrepancies()">Check Discrepancies</button>
-  </div>
-
-  <table *ngIf="showResult" class="result-table">
-    <thead>
-      <tr>
-        <th>FO File</th>
-        <th>BO File</th>
-        <th>FO Column</th>
-        <th>BO Column</th>
-        <th>Discrepancy Count</th>
-        <th>Comment</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>{{ fileFO?.name }}</td>
-        <td>{{ fileBO?.name }}</td>
-        <td>{{ columnFO }}</td>
-        <td>{{ columnBO }}</td>
-        <td>{{ discrepancyCount }}</td>
-        <td><input type="text" [(ngModel)]="comment" placeholder="Add comment" /></td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-
-
-
-
-.container {
-  padding: 40px;
-  font-family: 'Segoe UI', sans-serif;
-}
-
-.header {
-  font-size: 28px;
-  font-weight: bold;
-  background-color: #007a33;
-  color: white;
-  padding: 15px;
-  text-align: left;
-  margin-bottom: 30px;
-  border-radius: 5px 5px 0 0;
-}
-
-.form-section {
-  display: flex;
-  flex-direction: column;
-  width: 400px;
-  gap: 12px;
-  background: #f5f5f5;
-  padding: 25px;
-  border-radius: 8px;
-  box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
-  margin-bottom: 30px;
-}
-
-input[type="file"],
-input[type="text"] {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.check-btn {
-  background-color: #007a33;
-  color: white;
-  border: none;
-  padding: 10px;
-  cursor: pointer;
-  font-weight: bold;
-  border-radius: 4px;
-}
-
-.result-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-
-.result-table th,
-.result-table td {
-  border: 1px solid #ccc;
-  padding: 10px;
-  text-align: center;
-}
-
-.result-table th {
-  background-color: #007a33;
-  color: white;
-}
-
-.result-table input {
-  width: 90%;
-  padding: 6px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+        return result;
+    }
 }
