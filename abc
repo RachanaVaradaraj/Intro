@@ -1,55 +1,54 @@
 import { Component } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
 
 @Component({
-  selector: 'app-discrepancy',
-  templateUrl: './discrepancy.component.html',
-  styleUrls: ['./discrepancy.component.css']
+  selector: 'app-discrepancy-review',
+  standalone: true,
+  imports: [CommonModule, FormsModule, HttpClientModule],
+  templateUrl: './discrepancy-review.component.html',
+  styleUrl: './discrepancy-review.component.css'
 })
-export class DiscrepancyComponent {
-  file1?: File;
-  file2?: File;
-  column1: string = '';
-  column2: string = '';
+export class DiscrepancyReviewComponent {
+  fileFO!: File;
+  fileBO!: File;
+  columnFO: string = '';
+  columnBO: string = '';
+  discrepancyCount: number = 0;
+  comment: string = '';
+  showResult = false;
   discrepancies: any[] = [];
-  errorMessage: string = '';
-  loading: boolean = false;
 
   constructor(private http: HttpClient) {}
 
-  onFile1Selected(event: any) {
-    this.file1 = event.target.files[0];
+  onFOFileChange(event: any) {
+    this.fileFO = event.target.files[0];
   }
 
-  onFile2Selected(event: any) {
-    this.file2 = event.target.files[0];
+  onBOFileChange(event: any) {
+    this.fileBO = event.target.files[0];
   }
 
-  compare() {
-    if (!this.file1 || !this.file2 || !this.column1 || !this.column2) {
-      this.errorMessage = 'Please select both files and specify columns';
-      return;
-    }
-
-    this.errorMessage = '';
-    this.loading = true;
-
+  checkDiscrepancies() {
     const formData = new FormData();
-    formData.append('file1', this.file1);
-    formData.append('file2', this.file2);
-    formData.append('column1', this.column1);
-    formData.append('column2', this.column2);
+    formData.append('file1', this.fileFO);
+    formData.append('file2', this.fileBO);
+    formData.append('column1', this.columnFO);
+    formData.append('column2', this.columnBO);
 
-    this.http.post<any[]>('http://localhost:8080/api/discrepancy/compare', formData).subscribe({
-      next: (data) => {
-        this.discrepancies = data;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.errorMessage = 'Error processing files';
-        this.loading = false;
-      }
-    });
+    this.http.post<any[]>('http://localhost:8080/api/discrepancy/compare', formData)
+      .subscribe({
+        next: (res) => {
+          this.discrepancies = res;
+          this.discrepancyCount = res.filter(row => row.discrepancy === 'true').length;
+          this.showResult = true;
+        },
+        error: (err) => {
+          console.error('Error:', err);
+          alert('Error processing files. Please check console for details.');
+        }
+      });
   }
 }
 
@@ -58,34 +57,48 @@ export class DiscrepancyComponent {
 
 
 <div class="container">
-  <h2>Discrepancy Comparison</h2>
+  <div class="header">BNP PARIBAS Discrepancy Review</div>
 
-  <div class="input-group">
-    <label>File 1 (FO):</label>
-    <input type="file" (change)="onFile1Selected($event)" />
+  <div class="form-section">
+    <label>Upload FO File:</label>
+    <input type="file" (change)="onFOFileChange($event)" />
+
+    <label>Upload BO File:</label>
+    <input type="file" (change)="onBOFileChange($event)" />
+
+    <label>Select FO Column:</label>
+    <input type="text" [(ngModel)]="columnFO" />
+
+    <label>Select BO Column:</label>
+    <input type="text" [(ngModel)]="columnBO" />
+
+    <button class="check-btn" (click)="checkDiscrepancies()">Check Discrepancies</button>
   </div>
 
-  <div class="input-group">
-    <label>File 2 (BO):</label>
-    <input type="file" (change)="onFile2Selected($event)" />
-  </div>
+  <table *ngIf="showResult" class="summary-table">
+    <thead>
+      <tr>
+        <th>FO File</th>
+        <th>BO File</th>
+        <th>FO Column</th>
+        <th>BO Column</th>
+        <th>Discrepancy Count</th>
+        <th>Comment</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ fileFO?.name }}</td>
+        <td>{{ fileBO?.name }}</td>
+        <td>{{ columnFO }}</td>
+        <td>{{ columnBO }}</td>
+        <td>{{ discrepancyCount }}</td>
+        <td><input type="text" [(ngModel)]="comment" placeholder="Add comment" /></td>
+      </tr>
+    </tbody>
+  </table>
 
-  <div class="input-group">
-    <label>Column FO:</label>
-    <input type="text" [(ngModel)]="column1" placeholder="Enter column name from File 1" />
-  </div>
-
-  <div class="input-group">
-    <label>Column BO:</label>
-    <input type="text" [(ngModel)]="column2" placeholder="Enter column name from File 2" />
-  </div>
-
-  <button (click)="compare()" [disabled]="loading">Compare</button>
-
-  <div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
-  <div *ngIf="loading" class="loading">Comparing files, please wait...</div>
-
-  <table *ngIf="discrepancies.length > 0">
+  <table *ngIf="showResult && discrepancies.length > 0" class="result-table">
     <thead>
       <tr>
         <th>Row</th>
@@ -110,88 +123,81 @@ export class DiscrepancyComponent {
 
 
 .container {
-  max-width: 700px;
-  margin: 30px auto;
-  font-family: Arial, sans-serif;
+  padding: 40px;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.header {
+  font-size: 28px;
+  font-weight: bold;
+  background-color: #007a33;
+  color: white;
   padding: 15px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  background-color: #fafafa;
+  text-align: left;
+  margin-bottom: 30px;
+  border-radius: 5px 5px 0 0;
 }
 
-h2 {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.input-group {
-  margin-bottom: 12px;
+.form-section {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  width: 400px;
+  gap: 12px;
+  background: #f5f5f5;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
 }
 
-.input-group label {
-  width: 110px;
-  font-weight: 600;
-}
-
-.input-group input[type="file"],
-.input-group input[type="text"] {
-  flex: 1;
-  padding: 6px 8px;
+input[type="file"],
+input[type="text"] {
+  padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
 
-button {
-  display: block;
-  width: 100%;
-  padding: 10px;
-  font-size: 1rem;
-  background-color: #007bff;
+.check-btn {
+  background-color: #007a33;
   color: white;
   border: none;
-  border-radius: 4px;
+  padding: 10px;
   cursor: pointer;
+  font-weight: bold;
+  border-radius: 4px;
 }
 
-button:disabled {
-  background-color: #aaa;
-  cursor: not-allowed;
-}
-
-.error {
-  color: #d9534f;
-  margin-top: 10px;
-  font-weight: 600;
-  text-align: center;
-}
-
-.loading {
-  text-align: center;
-  font-style: italic;
-  margin-top: 10px;
-  color: #555;
-}
-
-table {
+.summary-table,
+.result-table {
   width: 100%;
-  margin-top: 20px;
   border-collapse: collapse;
+  margin-top: 20px;
 }
 
-th, td {
+.summary-table th,
+.summary-table td,
+.result-table th,
+.result-table td {
   border: 1px solid #ccc;
-  padding: 8px 10px;
+  padding: 10px;
   text-align: center;
 }
 
-th {
-  background-color: #f0f0f0;
+.summary-table th,
+.result-table th {
+  background-color: #007a33;
+  color: white;
 }
 
-tr.discrepant {
+.result-table input {
+  width: 90%;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.result-table tr.discrepant {
   background-color: #ffdede;
-  font-weight: 700;
+  font-weight: bold;
   color: #a94442;
 }
