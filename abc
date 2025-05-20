@@ -1,125 +1,120 @@
-import { Component, OnInit } from '@angular/core';
-import { DiscrepancyReviewService } from './discrepancy-review.service';
+<project xmlns="http://maven.apache.org/POM/4.0.0" ...>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.example</groupId>
+  <artifactId>oracle-table-list</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>oracle-table-list</name>
+  <description>Spring Boot App to list Oracle DB tables</description>
 
-@Component({
-  selector: 'app-discrepancy-review',
-  templateUrl: './discrepancy-review.component.html',
-  styleUrls: ['./discrepancy-review.component.css']
-})
-export class DiscrepancyReviewComponent implements OnInit {
+  <properties>
+    <java.version>17</java.version>
+  </properties>
 
-  columnsA: string[] = [];
-  columnsB: string[] = [];
-  selectedColumn: string = '';
-  discrepancies: any[] = [];
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.oracle.database.jdbc</groupId>
+      <artifactId>ojdbc8</artifactId>
+      <version>19.3.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-devtools</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+  </dependencies>
 
-  constructor(private reviewService: DiscrepancyReviewService) {}
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>
 
-  ngOnInit(): void {
-    this.loadFieldNames();
-  }
 
-  loadFieldNames(): void {
-    this.reviewService.getFieldNames('INITIAL_MARGIN').subscribe({
-      next: (data: string[]) => this.columnsA = data,
-      error: (err) => console.error('Error fetching INITIAL_MARGIN fields', err)
-    });
 
-    this.reviewService.getFieldNames('Staralgonew').subscribe({
-      next: (data: string[]) => this.columnsB = data,
-      error: (err) => console.error('Error fetching Staralgonew fields', err)
-    });
-  }
 
-  compareDiscrepancy(): void {
-    if (!this.selectedColumn) return;
 
-    this.reviewService.getDocuments('INITIAL_MARGIN').subscribe({
-      next: (dataA: any[]) => {
-        this.reviewService.getDocuments('Staralgonew').subscribe({
-          next: (dataB: any[]) => {
-            this.reviewService.checkDiscrepancy(dataA, dataB, this.selectedColumn).subscribe({
-              next: (result: any[]) => this.discrepancies = result,
-              error: (err) => console.error('Error comparing data', err)
-            });
-          },
-          error: (err) => console.error('Error loading Staralgonew docs', err)
-        });
-      },
-      error: (err) => console.error('Error loading INITIAL_MARGIN docs', err)
-    });
-  }
+# Oracle DB Configuration
+spring.datasource.url=jdbc:oracle:thin:@localhost:1521:XE
+spring.datasource.username=RECON_USER
+spring.datasource.password=your_password
+spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
+
+# Optional JPA config
+spring.jpa.show-sql=true
+spring.jpa.hibernate.ddl-auto=none
+spring.jpa.database-platform=org.hibernate.dialect.Oracle10gDialect
+
+# Enable CORS (if calling from Angular)
+spring.mvc.cors.allowed-origins=http://localhost:4200
+
+
+
+package com.example.oracletablelist;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class OracleTableListApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(OracleTableListApplication.class, args);
+    }
 }
 
 
 
 
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+package com.example.oracletablelist.controller;
 
-@Injectable({ providedIn: 'root' })
-export class DiscrepancyReviewService {
-  private baseUrl = 'http://localhost:8080/api/discrepancy';
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 
-  constructor(private http: HttpClient) {}
+import javax.sql.DataSource;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
-  getFieldNames(collection: string): Observable<string[]> {
-    return this.http.get<string[]>(`${this.baseUrl}/fields/${collection}`);
-  }
+@RestController
+@RequestMapping("/api/tables")
+@CrossOrigin(origins = "http://localhost:4200")  // Allow Angular access
+public class TableController {
 
-  getDocuments(collection: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}/documents/${collection}`);
-  }
+    @Autowired
+    private DataSource dataSource;
 
-  checkDiscrepancy(dataA: any[], dataB: any[], column: string): Observable<any[]> {
-    const body = { dataA, dataB };
-    return this.http.post<any[]>(`${this.baseUrl}/check?column=${column}`, body);
-  }
+    @GetMapping
+    public List<String> getAllTableNames() {
+        List<String> tableNames = new ArrayList<>();
+        String sql = "SELECT table_name FROM user_tables ORDER BY table_name";
+
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                tableNames.add(rs.getString("table_name"));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error retrieving table names from Oracle", e);
+        }
+
+        return tableNames;
+    }
 }
-
-
-
-
-
-
-
-<div class="container">
-  <div class="card">
-    <h2>Discrepancy Review</h2>
-
-    <div class="form-group">
-      <label for="column">Select Column to Compare:</label>
-      <select id="column" [(ngModel)]="selectedColumn" class="dropdown">
-        <option *ngFor="let col of columnsA" [value]="col">{{ col }}</option>
-      </select>
-    </div>
-
-    <button class="btn" (click)="compareDiscrepancy()">Compare</button>
-
-    <div class="table-wrapper" *ngIf="discrepancies.length > 0">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>INITIAL_MARGIN</th>
-            <th>Staralgonew</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let d of discrepancies">
-            <td>{{ d.index }}</td>
-            <td>{{ d.INITIAL_MARGIN }}</td>
-            <td>{{ d.Staralgonew }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-
-
 
 
 
