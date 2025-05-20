@@ -1,58 +1,225 @@
-package com.example.demo.service.impl;
+import { Component, OnInit } from '@angular/core';
+import { DiscrepancyReviewService } from './discrepancy-review.service';
 
-import com.example.demo.service.DiscrepancyService;
-import org.bson.Document;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.stereotype.Service;
+@Component({
+  selector: 'app-discrepancy-review',
+  templateUrl: './discrepancy-review.component.html',
+  styleUrls: ['./discrepancy-review.component.css']
+})
+export class DiscrepancyReviewComponent implements OnInit {
+  columnsA: string[] = [];
+  columnsB: string[] = [];
+  selectedColumn: string = '';
+  discrepancies: any[] = [];
 
-import java.util.*;
+  constructor(private reviewService: DiscrepancyReviewService) {}
 
-@Service
-public class DiscrepancyServiceImpl implements DiscrepancyService {
+  ngOnInit(): void {
+    this.getFieldNames();
+  }
 
-    @Autowired
-    private MongoTemplate mongoTemplate;
+  getFieldNames(): void {
+    this.reviewService.getFieldNames('INITIAL_MARGIN').subscribe(data => this.columnsA = data);
+    this.reviewService.getFieldNames('Staralgonew').subscribe(data => this.columnsB = data);
+  }
 
-    @Override
-    public List<Map<String, Object>> getAllDocuments(String collectionName) {
-        List<Document> documents = mongoTemplate.findAll(Document.class, collectionName);
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (Document doc : documents) {
-            result.add(new HashMap<>(doc));
-        }
-        return result;
-    }
+  compare(): void {
+    this.reviewService.getDocuments('INITIAL_MARGIN').subscribe(dataA => {
+      this.reviewService.getDocuments('Staralgonew').subscribe(dataB => {
+        this.reviewService.checkDiscrepancy(dataA, dataB, this.selectedColumn).subscribe(result => {
+          this.discrepancies = result;
+        });
+      });
+    });
+  }
+}
 
-    @Override
-    public Set<String> getAllFieldNames(String collectionName) {
-        List<Map<String, Object>> documents = getAllDocuments(collectionName);
-        Set<String> fieldNames = new HashSet<>();
-        for (Map<String, Object> doc : documents) {
-            fieldNames.addAll(doc.keySet());
-        }
-        fieldNames.remove("_id"); // optional: exclude MongoDB's ID field
-        return fieldNames;
-    }
 
-    @Override
-    public List<Map<String, Object>> checkDiscrepancies(List<Map<String, Object>> dataA, List<Map<String, Object>> dataB, String columnName) {
-        List<Map<String, Object>> discrepancies = new ArrayList<>();
-        int size = Math.min(dataA.size(), dataB.size());
 
-        for (int i = 0; i < size; i++) {
-            Object valueA = dataA.get(i).get(columnName);
-            Object valueB = dataB.get(i).get(columnName);
 
-            if (!Objects.equals(valueA, valueB)) {
-                Map<String, Object> diff = new HashMap<>();
-                diff.put("index", i);
-                diff.put("INITIAL_MARGIN", valueA);
-                diff.put("Staralgonew", valueB);
-                discrepancies.add(diff);
-            }
-        }
 
-        return discrepancies;
-    }
+
+<div class="card">
+  <h2>Discrepancy Review</h2>
+
+  <label for="column">Select Column:</label>
+  <select [(ngModel)]="selectedColumn" id="column">
+    <option *ngFor="let col of columnsA" [value]="col">{{ col }}</option>
+  </select>
+
+  <button (click)="compare()">Compare</button>
+
+  <table *ngIf="discrepancies.length">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>INITIAL_MARGIN</th>
+        <th>Staralgonew</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let d of discrepancies">
+        <td>{{ d.index }}</td>
+        <td>{{ d.INITIAL_MARGIN }}</td>
+        <td>{{ d.Staralgonew }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+
+
+
+
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class DiscrepancyReviewService {
+  private baseUrl = 'http://localhost:8080/api/discrepancy';
+
+  constructor(private http: HttpClient) {}
+
+  getFieldNames(collection: string): Observable<string[]> {
+    return this.http.get<string[]>(`${this.baseUrl}/fields/${collection}`);
+  }
+
+  getDocuments(collection: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/documents/${collection}`);
+  }
+
+  checkDiscrepancy(dataA: any[], dataB: any[], column: string): Observable<any[]> {
+    return this.http.post<any[]>(`${this.baseUrl}/check?column=${column}`, { dataA, dataB });
+  }
+}
+
+
+
+
+<div class="container">
+  <div class="card">
+    <h2>Discrepancy Review</h2>
+
+    <div class="form-group">
+      <label for="column">Select Column to Compare:</label>
+      <select [(ngModel)]="selectedColumn" id="column" class="dropdown">
+        <option *ngFor="let col of columnsA" [value]="col">{{ col }}</option>
+      </select>
+    </div>
+
+    <button (click)="compare()" class="btn">Compare</button>
+
+    <div class="table-wrapper" *ngIf="discrepancies.length">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>INITIAL_MARGIN</th>
+            <th>Staralgonew</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let d of discrepancies">
+            <td>{{ d.index }}</td>
+            <td>{{ d.INITIAL_MARGIN }}</td>
+            <td>{{ d.Staralgonew }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+
+
+/* BNP Glassmorphism & Professional Theme */
+
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: start;
+  padding: 3rem;
+  background: linear-gradient(to right, #e9eef2, #f5f8fa);
+  min-height: 100vh;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
+  width: 100%;
+  max-width: 800px;
+  border: 1px solid #cdd5dc;
+}
+
+h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  color: #004b7c;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+label {
+  font-weight: 500;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.dropdown {
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #ccc;
+  width: 100%;
+  font-size: 1rem;
+}
+
+.btn {
+  background-color: #007b8a;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.btn:hover {
+  background-color: #005f6b;
+}
+
+.table-wrapper {
+  margin-top: 2rem;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+thead {
+  background-color: #004b7c;
+  color: white;
+}
+
+th, td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+tr:hover {
+  background-color: #f1f9ff;
 }
