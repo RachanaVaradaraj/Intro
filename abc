@@ -1,46 +1,219 @@
-Absolutely! Here's a refined 1.5-minute version that keeps the tone balanced and professional, while including the limitations, challenges, goals, and deliverables:
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+
+@Component({
+  selector: 'app-discrepancy-review',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './discrepancy-review.component.html',
+  styleUrls: ['./discrepancy-review.component.css']
+})
+export class DiscrepancyReviewComponent {
+  foFileName = '';
+  boFileName = '';
+  foColumns: string[] = [];
+  boColumns: string[] = [];
+  selectedFoColumn = '';
+  selectedBoColumn = '';
+
+  discrepancies: {
+    foFile: string;
+    boFile: string;
+    foColumn: string;
+    boColumn: string;
+    discrepancyCount: number;
+    comment: string;
+  }[] = [];
+
+  handleFoUpload(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.foFileName = file.name;
+      this.extractColumns(file, 'fo');
+    }
+  }
+
+  handleBoUpload(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.boFileName = file.name;
+      this.extractColumns(file, 'bo');
+    }
+  }
+
+  extractColumns(file: File, type: 'fo' | 'bo') {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = reader.result as string;
+      const lines = text.split(/\r?\n/);
+      const header = lines[0];
+      const columns = header.split(',').map(col => col.trim());
+      if (type === 'fo') {
+        this.foColumns = columns;
+      } else {
+        this.boColumns = columns;
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  checkDiscrepancies() {
+    if (this.selectedFoColumn && this.selectedBoColumn) {
+      this.discrepancies = [
+        {
+          foFile: this.foFileName,
+          boFile: this.boFileName,
+          foColumn: this.selectedFoColumn,
+          boColumn: this.selectedBoColumn,
+          discrepancyCount: Math.floor(Math.random() * 10),
+          comment: ''
+        }
+      ];
+    }
+  }
+}
 
 
----
-
-Opening (10s):
-“Hello everyone, I’ll be giving a quick overview of the CEP-IT RECON NEXTGEN initiative, which is focused on modernizing our bank’s reconciliation platform.”
 
 
----
-
-Current Landscape & Limitations (20s):
-“Our current system has been reliable, but it’s built on a legacy monolithic architecture with limited scalability. It primarily supports batch processing, which limits our ability to perform real-time or intra-day reconciliation. There’s also a need for improved support for many-to-many transaction matching, flexible integration, and stronger analytics capabilities.”
 
 
----
-
-Key Challenges (20s):
-“Some of the main challenges include performance constraints during high-volume periods, lack of advanced matching logic, and a rigid integration framework. These factors can make it harder to scale, respond quickly, and support evolving digital banking needs.”
 
 
----
 
-Objective (15s):
-“To address this, RECON NEXTGEN aims to deliver a scalable, cloud-native solution that enables real-time processing, advanced matching logic, and better visibility for both users and stakeholders.”
+<div class="max-w-6xl mx-auto p-6 bg-white rounded-2xl shadow-md mt-10 space-y-6">
+  <h2 class="text-2xl font-semibold text-[#004C97] border-b pb-2">Discrepancy Review</h2>
+
+  <!-- Upload Section -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label class="block mb-1 font-medium text-gray-700">Upload FO File</label>
+      <input type="file" (change)="handleFoUpload($event)" class="border border-gray-300 rounded px-3 py-2 w-full" />
+    </div>
+    <div>
+      <label class="block mb-1 font-medium text-gray-700">Upload BO File</label>
+      <input type="file" (change)="handleBoUpload($event)" class="border border-gray-300 rounded px-3 py-2 w-full" />
+    </div>
+  </div>
+
+  <!-- Column Selection -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label class="block mb-1 font-medium text-gray-700">Select FO Column</label>
+      <select [(ngModel)]="selectedFoColumn" class="border border-gray-300 rounded px-3 py-2 w-full">
+        <option *ngFor="let col of foColumns" [value]="col">{{ col }}</option>
+      </select>
+    </div>
+    <div>
+      <label class="block mb-1 font-medium text-gray-700">Select BO Column</label>
+      <select [(ngModel)]="selectedBoColumn" class="border border-gray-300 rounded px-3 py-2 w-full">
+        <option *ngFor="let col of boColumns" [value]="col">{{ col }}</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Check Discrepancies -->
+  <button (click)="checkDiscrepancies()"
+          class="bg-[#004C97] text-white px-6 py-2 rounded-md shadow hover:bg-[#003366] transition w-full md:w-auto">
+    Check Discrepancies
+  </button>
+
+  <!-- Results Table -->
+  <div *ngIf="discrepancies.length > 0" class="overflow-x-auto">
+    <table class="min-w-full mt-4 border border-gray-200 text-sm">
+      <thead class="bg-gray-100">
+        <tr class="text-left">
+          <th class="p-3 border">FO File</th>
+          <th class="p-3 border">BO File</th>
+          <th class="p-3 border">FO Column</th>
+          <th class="p-3 border">BO Column</th>
+          <th class="p-3 border">Discrepancy Count</th>
+          <th class="p-3 border">Comment</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of discrepancies" class="border-t">
+          <td class="p-3 border">{{ row.foFile }}</td>
+          <td class="p-3 border">{{ row.boFile }}</td>
+          <td class="p-3 border">{{ row.foColumn }}</td>
+          <td class="p-3 border">{{ row.boColumn }}</td>
+          <td class="p-3 border text-center">{{ row.discrepancyCount }}</td>
+          <td class="p-3 border">
+            <input [(ngModel)]="row.comment" placeholder="Add comment"
+                   class="w-full border px-2 py-1 rounded" />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 
 
----
-
-Solution & Deliverables (25s):
-“The architecture includes a modular reconciliation engine built with Spring Boot microservices, covering data ingestion, matching, discrepancy detection, and auto-allocation.
-Frontend is powered by Angular and integrates with Power BI for rich visual analytics.
-The backend uses relational databases for transactions and non-relational ones for metadata and audit trails.
-We’re also integrating an AI-Fix layer using LLMs like Mistral to provide suggestions and automated resolutions.”
 
 
----
-
-Current Status (10s):
-“We’ve completed the feasibility study and POC, and we’re on track toward delivering a modern, intelligent reconciliation platform aligned with the future of banking.”
 
 
----
 
-Would you like a version formatted for a slide or visual reference?
 
+
+
+
+
+:host {
+  display: block;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #1a1a1a;
+  background-color: #f9f9f9;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+}
+
+th, td {
+  border: 1px solid #e2e8f0;
+  padding: 12px 16px;
+  text-align: left;
+}
+
+th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+td input {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 10px;
+  width: 100%;
+  font-size: 14px;
+}
+
+td input:focus {
+  outline: none;
+  border-color: #004C97;
+  box-shadow: 0 0 0 2px rgba(0, 76, 151, 0.2);
+}
+
+button {
+  font-weight: 500;
+}
+
+input[type="file"] {
+  cursor: pointer;
+}
+
+select {
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  th, td {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+}
