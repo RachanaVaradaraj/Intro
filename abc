@@ -7,6 +7,7 @@ import { DiscrepancyReviewService } from './discrepancy-review.service';
   styleUrls: ['./discrepancy-review.component.css']
 })
 export class DiscrepancyReviewComponent implements OnInit {
+
   columnsA: string[] = [];
   columnsB: string[] = [];
   selectedColumn: string = '';
@@ -15,58 +16,40 @@ export class DiscrepancyReviewComponent implements OnInit {
   constructor(private reviewService: DiscrepancyReviewService) {}
 
   ngOnInit(): void {
-    this.getFieldNames();
+    this.loadFieldNames();
   }
 
-  getFieldNames(): void {
-    this.reviewService.getFieldNames('INITIAL_MARGIN').subscribe(data => this.columnsA = data);
-    this.reviewService.getFieldNames('Staralgonew').subscribe(data => this.columnsB = data);
+  loadFieldNames(): void {
+    this.reviewService.getFieldNames('INITIAL_MARGIN').subscribe({
+      next: (data: string[]) => this.columnsA = data,
+      error: (err) => console.error('Error fetching INITIAL_MARGIN fields', err)
+    });
+
+    this.reviewService.getFieldNames('Staralgonew').subscribe({
+      next: (data: string[]) => this.columnsB = data,
+      error: (err) => console.error('Error fetching Staralgonew fields', err)
+    });
   }
 
-  compare(): void {
-    this.reviewService.getDocuments('INITIAL_MARGIN').subscribe(dataA => {
-      this.reviewService.getDocuments('Staralgonew').subscribe(dataB => {
-        this.reviewService.checkDiscrepancy(dataA, dataB, this.selectedColumn).subscribe(result => {
-          this.discrepancies = result;
+  compareDiscrepancy(): void {
+    if (!this.selectedColumn) return;
+
+    this.reviewService.getDocuments('INITIAL_MARGIN').subscribe({
+      next: (dataA: any[]) => {
+        this.reviewService.getDocuments('Staralgonew').subscribe({
+          next: (dataB: any[]) => {
+            this.reviewService.checkDiscrepancy(dataA, dataB, this.selectedColumn).subscribe({
+              next: (result: any[]) => this.discrepancies = result,
+              error: (err) => console.error('Error comparing data', err)
+            });
+          },
+          error: (err) => console.error('Error loading Staralgonew docs', err)
         });
-      });
+      },
+      error: (err) => console.error('Error loading INITIAL_MARGIN docs', err)
     });
   }
 }
-
-
-
-
-
-
-<div class="card">
-  <h2>Discrepancy Review</h2>
-
-  <label for="column">Select Column:</label>
-  <select [(ngModel)]="selectedColumn" id="column">
-    <option *ngFor="let col of columnsA" [value]="col">{{ col }}</option>
-  </select>
-
-  <button (click)="compare()">Compare</button>
-
-  <table *ngIf="discrepancies.length">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>INITIAL_MARGIN</th>
-        <th>Staralgonew</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let d of discrepancies">
-        <td>{{ d.index }}</td>
-        <td>{{ d.INITIAL_MARGIN }}</td>
-        <td>{{ d.Staralgonew }}</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
 
 
 
@@ -90,9 +73,13 @@ export class DiscrepancyReviewService {
   }
 
   checkDiscrepancy(dataA: any[], dataB: any[], column: string): Observable<any[]> {
-    return this.http.post<any[]>(`${this.baseUrl}/check?column=${column}`, { dataA, dataB });
+    const body = { dataA, dataB };
+    return this.http.post<any[]>(`${this.baseUrl}/check?column=${column}`, body);
   }
 }
+
+
+
 
 
 
@@ -103,14 +90,14 @@ export class DiscrepancyReviewService {
 
     <div class="form-group">
       <label for="column">Select Column to Compare:</label>
-      <select [(ngModel)]="selectedColumn" id="column" class="dropdown">
+      <select id="column" [(ngModel)]="selectedColumn" class="dropdown">
         <option *ngFor="let col of columnsA" [value]="col">{{ col }}</option>
       </select>
     </div>
 
-    <button (click)="compare()" class="btn">Compare</button>
+    <button class="btn" (click)="compareDiscrepancy()">Compare</button>
 
-    <div class="table-wrapper" *ngIf="discrepancies.length">
+    <div class="table-wrapper" *ngIf="discrepancies.length > 0">
       <table>
         <thead>
           <tr>
@@ -134,92 +121,5 @@ export class DiscrepancyReviewService {
 
 
 
-/* BNP Glassmorphism & Professional Theme */
 
-.container {
-  display: flex;
-  justify-content: center;
-  align-items: start;
-  padding: 3rem;
-  background: linear-gradient(to right, #e9eef2, #f5f8fa);
-  min-height: 100vh;
-}
 
-.card {
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 1.5rem;
-  padding: 2rem;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(15px);
-  width: 100%;
-  max-width: 800px;
-  border: 1px solid #cdd5dc;
-}
-
-h2 {
-  font-size: 1.8rem;
-  margin-bottom: 1.5rem;
-  font-weight: 600;
-  color: #004b7c;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-label {
-  font-weight: 500;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.dropdown {
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  border: 1px solid #ccc;
-  width: 100%;
-  font-size: 1rem;
-}
-
-.btn {
-  background-color: #007b8a;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.btn:hover {
-  background-color: #005f6b;
-}
-
-.table-wrapper {
-  margin-top: 2rem;
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  border-radius: 0.5rem;
-  overflow: hidden;
-}
-
-thead {
-  background-color: #004b7c;
-  color: white;
-}
-
-th, td {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #eee;
-  text-align: left;
-}
-
-tr:hover {
-  background-color: #f1f9ff;
-}
