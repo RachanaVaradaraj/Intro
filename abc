@@ -1,31 +1,56 @@
-// discrepancy-review.component.ts import { Component } from '@angular/core'; import { CommonModule } from '@angular/common'; import { FormsModule } from '@angular/forms'; import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
 
-@Component({ selector: 'app-discrepancy-review', standalone: true, imports: [CommonModule, FormsModule, HttpClientModule], templateUrl: './discrepancy-review.component.html', styleUrls: ['./discrepancy-review.component.css'] }) export class DiscrepancyReviewComponent { fileFO!: File; fileBO!: File; columnFO = ''; columnBO = ''; columnsFO: string[] = []; columnsBO: string[] = []; discrepancies: any[] = []; showResult = false; comment = '';
+@Component({
+  selector: 'app-discrepancy-review',
+  standalone: true,
+  imports: [CommonModule, FormsModule, HttpClientModule],
+  templateUrl: './discrepancy-review.component.html',
+  styleUrl: './discrepancy-review.component.css'
+})
+export class DiscrepancyReviewComponent {
+  fileFO!: File;
+  fileBO!: File;
+  columnFO: string = '';
+  columnBO: string = '';
+  discrepancyCount: number = 0;
+  comment: string = '';
+  showResult = false;
+  discrepancies: any[] = [];
 
-constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {}
 
-onFOFileChange(event: any) { this.fileFO = event.target.files[0]; this.extractHeaders(this.fileFO, 'FO'); }
+  onFOFileChange(event: any) {
+    this.fileFO = event.target.files[0];
+  }
 
-onBOFileChange(event: any) { this.fileBO = event.target.files[0]; this.extractHeaders(this.fileBO, 'BO'); }
+  onBOFileChange(event: any) {
+    this.fileBO = event.target.files[0];
+  }
 
-extractHeaders(file: File, type: 'FO' | 'BO') { const reader = new FileReader(); reader.onload = (e: any) => { const text = e.target.result; const lines = text.split('\n'); const headers = lines[0].split(',').map(h => h.trim()); if (type === 'FO') this.columnsFO = headers; else this.columnsBO = headers; }; reader.readAsText(file); }
+  checkDiscrepancies() {
+    const formData = new FormData();
+    formData.append('file1', this.fileFO);
+    formData.append('file2', this.fileBO);
+    formData.append('column1', this.columnFO);
+    formData.append('column2', this.columnBO);
 
-checkDiscrepancies() { const formData = new FormData(); formData.append('file1', this.fileFO); formData.append('file2', this.fileBO); formData.append('column1', this.columnFO); formData.append('column2', this.columnBO);
-
-this.http.post<any[]>('http://localhost:8080/api/discrepancy/compare', formData)
-  .subscribe({
-    next: (res) => {
-      this.discrepancies = res;
-      this.showResult = true;
-    },
-    error: (err) => {
-      console.error('Error:', err);
-    }
-  });
-
-} }
-
-
+    this.http.post<any[]>('http://localhost:8080/api/discrepancy/compare', formData)
+      .subscribe({
+        next: (res) => {
+          this.discrepancies = res;
+          this.discrepancyCount = res.filter(row => row.discrepancy === 'true').length;
+          this.showResult = true;
+        },
+        error: (err) => {
+          console.error('Error:', err);
+          alert('Error processing files. Please check console for details.');
+        }
+      });
+  }
+}
 
 
 
@@ -41,41 +66,56 @@ this.http.post<any[]>('http://localhost:8080/api/discrepancy/compare', formData)
     <input type="file" (change)="onBOFileChange($event)" />
 
     <label>Select FO Column:</label>
-    <select [(ngModel)]="columnFO">
-      <option *ngFor="let col of columnsFO" [value]="col">{{ col }}</option>
-    </select>
+    <input type="text" [(ngModel)]="columnFO" />
 
     <label>Select BO Column:</label>
-    <select [(ngModel)]="columnBO">
-      <option *ngFor="let col of columnsBO" [value]="col">{{ col }}</option>
-    </select>
+    <input type="text" [(ngModel)]="columnBO" />
 
     <button class="check-btn" (click)="checkDiscrepancies()">Check Discrepancies</button>
   </div>
 
-  <div *ngIf="showResult" class="result-section">
-    <table class="result-table">
-      <thead>
-        <tr>
-          <th>Row</th>
-          <th>FO Value</th>
-          <th>BO Value</th>
-          <th>Comment</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let row of discrepancies">
-          <td>{{ row.row }}</td>
-          <td>{{ row.foValue }}</td>
-          <td>{{ row.boValue }}</td>
-          <td><input type="text" [(ngModel)]="row.comment" placeholder="Add comment" /></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  <table *ngIf="showResult" class="summary-table">
+    <thead>
+      <tr>
+        <th>FO File</th>
+        <th>BO File</th>
+        <th>FO Column</th>
+        <th>BO Column</th>
+        <th>Discrepancy Count</th>
+        <th>Comment</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ fileFO?.name }}</td>
+        <td>{{ fileBO?.name }}</td>
+        <td>{{ columnFO }}</td>
+        <td>{{ columnBO }}</td>
+        <td>{{ discrepancyCount }}</td>
+        <td><input type="text" [(ngModel)]="comment" placeholder="Add comment" /></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <table *ngIf="showResult && discrepancies.length > 0" class="result-table">
+    <thead>
+      <tr>
+        <th>Row</th>
+        <th>FO Value</th>
+        <th>BO Value</th>
+        <th>Discrepancy</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of discrepancies" [class.discrepant]="row.discrepancy === 'true'">
+        <td>{{ row.row }}</td>
+        <td>{{ row.foValue }}</td>
+        <td>{{ row.boValue }}</td>
+        <td>{{ row.discrepancy === 'true' ? 'Yes' : 'No' }}</td>
+      </tr>
+    </tbody>
+  </table>
 </div>
-
-
 
 
 
@@ -108,8 +148,7 @@ this.http.post<any[]>('http://localhost:8080/api/discrepancy/compare', formData)
 }
 
 input[type="file"],
-input[type="text"],
-select {
+input[type="text"] {
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -125,18 +164,15 @@ select {
   border-radius: 4px;
 }
 
-.result-section {
-  max-height: 500px;
-  overflow-y: auto;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
+.summary-table,
 .result-table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 20px;
 }
 
+.summary-table th,
+.summary-table td,
 .result-table th,
 .result-table td {
   border: 1px solid #ccc;
@@ -144,6 +180,7 @@ select {
   text-align: center;
 }
 
+.summary-table th,
 .result-table th {
   background-color: #007a33;
   color: white;
@@ -154,4 +191,10 @@ select {
   padding: 6px;
   border: 1px solid #ccc;
   border-radius: 4px;
+}
+
+.result-table tr.discrepant {
+  background-color: #ffdede;
+  font-weight: bold;
+  color: #a94442;
 }
