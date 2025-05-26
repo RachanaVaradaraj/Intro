@@ -1,35 +1,67 @@
-import { Routes } from '@angular/router';
-import { provideRouter } from '@angular/router';
-import { PieChartComponent } from './pie-chart/pie-chart.component';
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { NgxChartsModule } from '@swimlane/ngx-charts';
 
-export const appRoutes: Routes = [
-  {
-    path: '',
-    redirectTo: 'chart',
-    pathMatch: 'full'
-  },
-  {
-    path: 'chart',
-    component: PieChartComponent
-  }
-];
+@Component({
+  selector: 'app-pie-chart',
+  standalone: true,
+  imports: [CommonModule, NgxChartsModule],
+  templateUrl: './pie-chart.component.html',
+  styleUrls: ['./pie-chart.component.css']
+})
+export class PieChartComponent {
+  // Chart dimensions
+  view: [number, number] = [500, 400];
 
-export const appRouter = provideRouter(appRoutes);
+  // Chart display options
+  showLegend: boolean = true;
+  showLabels: boolean = true;
+  isDoughnut: boolean = false;
+
+  // Colors
+  colorScheme = {
+    domain: ['#FF6384', '#36A2EB', '#FFCE56']
+  };
+
+  // Data
+  data = [
+    { name: 'Red', value: 30 },
+    { name: 'Blue', value: 50 },
+    { name: 'Yellow', value: 20 }
+  ];
+}
 
 
 
 
-<h1 style="text-align: center; font-family: sans-serif;">
-  Angular 17 Pie Chart Example
-</h1>
 
-<nav style="text-align: center; margin-bottom: 20px;">
-  <a routerLink="/chart" routerLinkActive="active" style="margin: 0 10px;">
-    View Pie Chart
-  </a>
-</nav>
+<div class="chart-wrapper">
+  <ngx-charts-pie-chart
+    [view]="view"
+    [scheme]="colorScheme"
+    [results]="data"
+    [legend]="showLegend"
+    [labels]="showLabels"
+    [doughnut]="isDoughnut"
+    [explodeSlices]="true"
+    [gradient]="false">
+  </ngx-charts-pie-chart>
+</div>
 
-<router-outlet></router-outlet>
+
+
+
+
+
+.chart-wrapper {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
 
 
 
