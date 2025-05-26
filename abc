@@ -1,50 +1,35 @@
-import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Chart } from 'chart.js';
+import { Routes } from '@angular/router';
+import { provideRouter } from '@angular/router';
+import { PieChartComponent } from './pie-chart/pie-chart.component';
 
-@Component({
-  selector: 'app-pie-chart',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './pie-chart.component.html',
-})
-export class PieChartComponent implements AfterViewInit {
-  @ViewChild('pieCanvas') pieCanvas!: ElementRef<HTMLCanvasElement>;
-
-  ngAfterViewInit() {
-    new Chart(this.pieCanvas.nativeElement, {
-      type: 'pie',
-      data: {
-        labels: ['Completed', 'Pending', 'In Progress'],
-        datasets: [
-          {
-            data: [40, 30, 30],
-            backgroundColor: ['#36A2EB', '#FF6384', '#FFCE56'],
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'top',
-          },
-          title: {
-            display: true,
-            text: 'Status Overview',
-          },
-        },
-      },
-    });
+export const appRoutes: Routes = [
+  {
+    path: '',
+    redirectTo: 'chart',
+    pathMatch: 'full'
+  },
+  {
+    path: 'chart',
+    component: PieChartComponent
   }
-}
+];
+
+export const appRouter = provideRouter(appRoutes);
 
 
 
 
+<h1 style="text-align: center; font-family: sans-serif;">
+  Angular 17 Pie Chart Example
+</h1>
 
+<nav style="text-align: center; margin-bottom: 20px;">
+  <a routerLink="/chart" routerLinkActive="active" style="margin: 0 10px;">
+    View Pie Chart
+  </a>
+</nav>
 
-<canvas #pieCanvas width="400" height="400"></canvas>
+<router-outlet></router-outlet>
 
 
 
