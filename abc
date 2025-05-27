@@ -118,3 +118,96 @@ You can adjust placement of the toggle button as needed.
 
 Let me know if you want an animation or transition effect.
 
+Thanks for the clarification! You want to use the menu icon already present in the bottom-bar of your header to completely hide/show the sidebar, not add a new button.
+
+Here’s how to do it properly:
+
+
+---
+
+Step 1: Modify Sidebar to Listen to External Toggle
+
+In your sidebar.component.ts:
+
+import { Component, Input } from '@angular/core';
+
+@Component({
+  selector: 'app-sidebar',
+  templateUrl: './sidebar.component.html',
+  styleUrls: ['./sidebar.component.css']
+})
+export class SidebarComponent {
+  @Input() showSidebar = true;
+
+  referenceDataExpanded = false;
+
+  toggleReferenceData() {
+    this.referenceDataExpanded = !this.referenceDataExpanded;
+  }
+}
+
+
+---
+
+Step 2: Wrap Sidebar with *ngIf Based on showSidebar
+
+In sidebar.component.html, wrap the entire sidebar content:
+
+<div *ngIf="showSidebar" class="sidebar-container">
+  <!-- sidebar content here exactly as before -->
+</div>
+
+
+---
+
+Step 3: Emit Toggle From Header (app.component.html / wherever the header is)
+
+In the file where your bottom-bar is located (probably app.component.html), change this:
+
+<!-- Before -->
+<button class="icon-btn" (click)="toggleSidebar.emit()">
+  <span class="material-icons">menu</span>
+</button>
+
+To this (trigger a method):
+
+<button class="icon-btn" (click)="toggleSidebar()">
+  <span class="material-icons">menu</span>
+</button>
+
+
+---
+
+Step 4: Control Sidebar Visibility in app.component.ts
+
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent {
+  showSidebar = true;
+
+  toggleSidebar() {
+    this.showSidebar = !this.showSidebar;
+  }
+}
+
+
+---
+
+Step 5: Bind showSidebar to <app-sidebar>
+
+In app.component.html, pass the showSidebar variable:
+
+<app-sidebar [showSidebar]="showSidebar"></app-sidebar>
+
+
+---
+
+Now, clicking the menu icon in the header will completely hide or show the entire sidebar component.
+
+Let me know if you also want a smooth slide-out animation!
+
