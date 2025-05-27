@@ -1,8 +1,8 @@
-import { Component, Input } from '@angular/core';
+import { Component } from '@angular/core';
+import { NgIf, NgClass, NgFor } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatExpansionModule } from '@angular/material/expansion';
-import { NgIf, NgClass, NgFor } from '@angular/common';
 
 @Component({
   selector: 'app-sidebar',
@@ -12,34 +12,25 @@ import { NgIf, NgClass, NgFor } from '@angular/common';
   styleUrls: ['./sidebar.component.css']
 })
 export class SidebarComponent {
-  @Input() collapsed = false;
+  collapsed = false;
 
   menus = [
-    { icon: 'apartment', label: 'Manage Company', route: '/company' },
-    { icon: 'description', label: 'Recon Master', route: '/recon', children: [] },
-    { icon: 'category', label: 'Context Type', route: '/context' },
+    { icon: 'apartment', label: 'Manage Company' },
+    { icon: 'description', label: 'Recon Master', children: [] },
+    { icon: 'category', label: 'Context Type' },
     {
-      icon: 'inventory_2',
-      label: 'Reference Data',
-      children: [
-        'Accounting Period Groups',
-        'Calendars',
-        'Counterparties',
-        'Currencies',
-        'Exchange Rates',
-        'Item Types',
-        'Reason Codes',
-        'Securities',
-        'Tags'
+      icon: 'inventory_2', label: 'Reference Data', children: [
+        'Accounting Period Groups', 'Calendars', 'Counterparties', 'Currencies',
+        'Exchange Rates', 'Item Types', 'Reason Codes', 'Securities', 'Tags'
       ]
     },
-    { icon: 'search', label: 'Audit', route: '/audit' },
-    {
-      icon: 'article',
-      label: 'Logs',
-      children: []
-    }
+    { icon: 'search', label: 'Audit' },
+    { icon: 'article', label: 'Logs', children: [] }
   ];
+
+  toggleSidebar() {
+    this.collapsed = !this.collapsed;
+  }
 }
 
 
@@ -47,6 +38,12 @@ export class SidebarComponent {
 
 
 <div class="sidebar" [ngClass]="{ 'collapsed': collapsed }">
+  <div class="toggle-wrapper">
+    <button mat-icon-button (click)="toggleSidebar()">
+      <mat-icon>{{ collapsed ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+    </button>
+  </div>
+
   <mat-nav-list>
     <ng-container *ngFor="let item of menus">
       <ng-container *ngIf="!item.children?.length">
@@ -57,7 +54,7 @@ export class SidebarComponent {
       </ng-container>
 
       <ng-container *ngIf="item.children?.length">
-        <mat-expansion-panel class="expansion" [hideToggle]="collapsed">
+        <mat-expansion-panel [hideToggle]="collapsed" [expanded]="!collapsed" class="expansion">
           <mat-expansion-panel-header>
             <mat-panel-title>
               <mat-icon>{{ item.icon }}</mat-icon>
@@ -80,23 +77,28 @@ export class SidebarComponent {
 
 
 .sidebar {
-  background-color: #144a64; /* FIS sidebar color */
+  background-color: #144a64; /* Matches FIS sidebar */
   color: white;
   width: 260px;
   transition: width 0.3s ease;
-  padding: 8px;
   overflow-y: auto;
-  height: 100%;
+  height: calc(100vh - 64px); /* assuming header is 64px */
+  padding-top: 8px;
+  font-family: "Segoe UI", sans-serif;
 }
 
 .sidebar.collapsed {
   width: 70px;
-  padding: 8px 4px;
+}
+
+.toggle-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 8px;
 }
 
 mat-icon {
   color: white;
-  margin-right: 16px;
 }
 
 a.mat-list-item {
