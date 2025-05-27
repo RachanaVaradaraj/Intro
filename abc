@@ -1,14 +1,168 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
-import { MatExpansionModule } from '@angular/material/expansion';
+import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatButtonModule } from '@angular/material/button';
 
 @Component({
+  selector: 'app-layout',
   standalone: true,
-  selector: 'app-sidebar',
-  imports: [CommonModule, MatIconModule, MatExpansionModule, MatListModule],
-  templateUrl: './sidebar.component.html',
-  styleUrls: ['./sidebar.component.css']
+  imports: [
+    CommonModule,
+    MatToolbarModule,
+    MatIconModule,
+    MatSidenavModule,
+    MatListModule,
+    MatExpansionModule,
+    MatButtonModule
+  ],
+  templateUrl: './layout.component.html',
+  styleUrls: ['./layout.component.css']
 })
-export class SidebarComponent {}
+export class LayoutComponent {
+  sidebarOpen = true;
+}
+
+
+
+
+
+<mat-toolbar class="header-toolbar" color="primary">
+  <img src="assets/fis-logo.png" alt="Logo" class="logo" />
+  <span class="title">Data Integrity Manager</span>
+  <span class="spacer"></span>
+  <span>H70435 | Dockme</span>
+</mat-toolbar>
+
+<mat-toolbar class="menu-toolbar">
+  <button mat-icon-button (click)="sidebarOpen = !sidebarOpen">
+    <mat-icon>menu</mat-icon>
+  </button>
+  <button mat-icon-button><mat-icon>home</mat-icon></button>
+  <button mat-icon-button><mat-icon>folder</mat-icon></button>
+  <button mat-icon-button><mat-icon>search</mat-icon></button>
+</mat-toolbar>
+
+<div class="main-layout">
+  <mat-sidenav-container class="sidenav-container">
+    <mat-sidenav #sidenav [mode]="'side'" [(opened)]="sidebarOpen" class="sidenav">
+      <mat-nav-list>
+        <mat-list-item>
+          <mat-icon>apartment</mat-icon>
+          <span>Manage Company</span>
+        </mat-list-item>
+
+        <mat-list-item>
+          <mat-icon>dashboard</mat-icon>
+          <span>Recon Master</span>
+        </mat-list-item>
+
+        <mat-list-item>
+          <mat-icon>category</mat-icon>
+          <span>Context Type</span>
+        </mat-list-item>
+
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon>folder_open</mat-icon>
+              Reference Data
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <mat-action-list>
+            <button mat-button>Accounting Period Groups</button>
+            <button mat-button>Calendars</button>
+            <button mat-button>Counterparties</button>
+            <button mat-button>Currencies</button>
+            <button mat-button>Exchange Rates</button>
+            <button mat-button>Item Types</button>
+            <button mat-button>Reason Codes</button>
+            <button mat-button>Securities</button>
+            <button mat-button>Tags</button>
+          </mat-action-list>
+        </mat-expansion-panel>
+
+        <mat-list-item>
+          <mat-icon>search</mat-icon>
+          <span>Audit</span>
+        </mat-list-item>
+
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon>description</mat-icon>
+              Logs
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <mat-action-list>
+            <button mat-button>System Logs</button>
+            <button mat-button>User Logs</button>
+          </mat-action-list>
+        </mat-expansion-panel>
+      </mat-nav-list>
+    </mat-sidenav>
+
+    <mat-sidenav-content class="content">
+      <ng-content></ng-content>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>
+
+
+
+
+
+
+.header-toolbar {
+  background-color: white;
+  color: black;
+  padding: 0 16px;
+}
+
+.logo {
+  height: 32px;
+  margin-right: 8px;
+}
+
+.title {
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.menu-toolbar {
+  background-color: #007e8a;
+  color: white;
+  padding-left: 8px;
+}
+
+.main-layout {
+  display: flex;
+  height: calc(100vh - 112px); /* adjust if header height changes */
+}
+
+.sidenav-container {
+  height: 100%;
+}
+
+.sidenav {
+  width: 250px;
+  background-color: #004d60;
+  color: white;
+}
+
+.sidenav mat-list-item,
+.sidenav mat-expansion-panel-header {
+  color: white;
+}
+
+.content {
+  padding: 16px;
+  background-color: #f4f4f4;
+}
