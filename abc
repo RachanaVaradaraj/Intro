@@ -1,15 +1,53 @@
-Here is the complete code setup for making the sidebar toggle open/close when clicking the menu icon in the header — using Angular 17 with standalone components:
+To ensure your sidebar opens when you click the menu icon in the header, you need a proper connection between header.component, app.component, and sidebar.component.
+
+Here is the complete working solution with all necessary parts:
 
 
 ---
 
-✅ 1. header.component.ts
+1. app.component.ts
 
-import { Component, EventEmitter, Output } from '@angular/core';
+This is the main controller of the sidebar state.
+
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent {
+  sidebarCollapsed = false;
+
+  toggleSidebar() {
+    this.sidebarCollapsed = !this.sidebarCollapsed;
+  }
+}
+
+
+---
+
+2. app.component.html
+
+Connect header and sidebar using @Output and [Input]:
+
+<app-header (toggleSidebar)="toggleSidebar()"></app-header>
+<div class="main-layout">
+  <app-sidebar [isCollapsed]="sidebarCollapsed"></app-sidebar>
+  <router-outlet></router-outlet>
+</div>
+
+
+---
+
+3. header.component.ts
+
+Emits the toggle event:
+
+import { Component, Output, EventEmitter } from '@angular/core';
 
 @Component({
   selector: 'app-header',
-  standalone: true,
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.css']
 })
@@ -20,14 +58,16 @@ export class HeaderComponent {
 
 ---
 
-✅ 2. header.component.html
+4. header.component.html
+
+Your updated version with toggle:
 
 <!-- Top bar: white background -->
 <div class="top-bar">
   <img src="assets/LOGO.png" alt="Logo" class="logo" />
   <span class="app-title">Recon NextGen</span>
   <div class="spacer"></div>
-  <span class="user-info">#H70435 | Dockmee</span>
+  <span class="user-info">H700435 | Dockme</span>
 </div>
 
 <!-- Middle bar: dark teal strip -->
@@ -52,72 +92,75 @@ export class HeaderComponent {
 
 ---
 
-✅ 3. sidebar.component.ts
+5. sidebar.component.ts
 
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
 
 @Component({
   selector: 'app-sidebar',
-  standalone: true,
   templateUrl: './sidebar.component.html',
   styleUrls: ['./sidebar.component.css']
 })
 export class SidebarComponent {
-  isOpen = true;
+  @Input() isCollapsed = false;
 
-  toggle() {
-    this.isOpen = !this.isOpen;
+  referenceDataExpanded = false;
+
+  toggleReferenceData() {
+    this.referenceDataExpanded = !this.referenceDataExpanded;
   }
 }
 
 
 ---
 
-✅ 4. sidebar.component.html
+6. sidebar.component.html (Important part)
 
-<div class="sidebar" *ngIf="isOpen">
-  <!-- Sidebar content goes here -->
-  <p>Sidebar Content</p>
+Make sure you bind the class and visibility:
+
+<div class="sidebar-container" [class.collapsed]="isCollapsed">
+  <ul class="menu">
+    <li>
+      <mat-icon>apartment</mat-icon>
+      <span>Manage Company</span>
+    </li>
+    <li>
+      <mat-icon>description</mat-icon>
+      <span>Recon Master</span>
+    </li>
+    <li>
+      <mat-icon>category</mat-icon>
+      <span>Context Type</span>
+    </li>
+    <li (click)="toggleReferenceData()" class="expandable">
+      <mat-icon>inventory_2</mat-icon>
+      <span>Reference Data</span>
+      <mat-icon class="expand-icon">{{ referenceDataExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+      <ul class="submenu" *ngIf="referenceDataExpanded">
+        <li>Accounting Period Groups</li>
+        <li>Calendars</li>
+        <li>Counterparties</li>
+        <li>Currencies</li>
+        <li>Exchange Rates</li>
+        <li>Item Types</li>
+        <li>Reason Codes</li>
+        <li>Securities</li>
+        <li>Tags</li>
+      </ul>
+    </li>
+    <li>
+      <mat-icon>search</mat-icon>
+      <span>Audit</span>
+    </li>
+  </ul>
 </div>
 
 
 ---
 
-✅ 5. layout.component.ts
+Final Note:
 
-import { Component, ViewChild } from '@angular/core';
-import { SidebarComponent } from '../sidebar/sidebar.component';
-import { HeaderComponent } from '../header/header.component';
+Now when you click the menu icon in the header, it will toggle the sidebar open and close properly via parent-child communication.
 
-@Component({
-  selector: 'app-layout',
-  standalone: true,
-  imports: [HeaderComponent, SidebarComponent],
-  templateUrl: './layout.component.html',
-  styleUrls: ['./layout.component.css']
-})
-export class LayoutComponent {
-  @ViewChild(SidebarComponent) sidebar!: SidebarComponent;
-
-  toggleSidebar() {
-    this.sidebar.toggle();
-  }
-}
-
-
----
-
-✅ 6. layout.component.html
-
-<app-header (toggleSidebar)="toggleSidebar()"></app-header>
-<app-sidebar></app-sidebar>
-
-<div class="main-content">
-  <!-- Other router content or components -->
-</div>
-
-
----
-
-Let me know if you also want a sliding sidebar effect instead of using *ngIf, and I’ll provide CSS for that too.
+Let me know if you also want an animated collapse effect or a sliding sidebar.
 
