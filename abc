@@ -1,130 +1,110 @@
 import { Component } from '@angular/core';
-import { NgIf, NgClass, NgFor } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
-import { MatListModule } from '@angular/material/list';
-import { MatExpansionModule } from '@angular/material/expansion';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [NgIf, NgClass, NgFor, MatIconModule, MatListModule, MatExpansionModule],
+  imports: [],
   templateUrl: './sidebar.component.html',
-  styleUrls: ['./sidebar.component.css']
+  styleUrls: ['./sidebar.component.css'],
 })
 export class SidebarComponent {
-  collapsed = false;
-
-  menus = [
-    { icon: 'apartment', label: 'Manage Company' },
-    { icon: 'description', label: 'Recon Master', children: [] },
-    { icon: 'category', label: 'Context Type' },
-    {
-      icon: 'inventory_2', label: 'Reference Data', children: [
-        'Accounting Period Groups', 'Calendars', 'Counterparties', 'Currencies',
-        'Exchange Rates', 'Item Types', 'Reason Codes', 'Securities', 'Tags'
-      ]
-    },
-    { icon: 'search', label: 'Audit' },
-    { icon: 'article', label: 'Logs', children: [] }
-  ];
+  isCollapsed = false;
 
   toggleSidebar() {
-    this.collapsed = !this.collapsed;
+    this.isCollapsed = !this.isCollapsed;
   }
 }
 
 
 
+<div class="sidebar-container" [class.collapsed]="isCollapsed">
+  <button class="toggle-button" (click)="toggleSidebar()">
+    <mat-icon>{{ isCollapsed ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+  </button>
 
-
-<div class="sidebar" [ngClass]="{ 'collapsed': collapsed }">
-  <div class="toggle-wrapper">
-    <button mat-icon-button (click)="toggleSidebar()">
-      <mat-icon>{{ collapsed ? 'chevron_right' : 'chevron_left' }}</mat-icon>
-    </button>
-  </div>
-
-  <mat-nav-list>
-    <ng-container *ngFor="let item of menus">
-      <ng-container *ngIf="!item.children?.length">
-        <a mat-list-item>
-          <mat-icon>{{ item.icon }}</mat-icon>
-          <span *ngIf="!collapsed">{{ item.label }}</span>
-        </a>
-      </ng-container>
-
-      <ng-container *ngIf="item.children?.length">
-        <mat-expansion-panel [hideToggle]="collapsed" [expanded]="!collapsed" class="expansion">
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              <mat-icon>{{ item.icon }}</mat-icon>
-              <span *ngIf="!collapsed">{{ item.label }}</span>
-            </mat-panel-title>
-          </mat-expansion-panel-header>
-          <ng-container *ngIf="!collapsed">
-            <mat-nav-list>
-              <a mat-list-item *ngFor="let child of item.children">{{ child }}</a>
-            </mat-nav-list>
-          </ng-container>
-        </mat-expansion-panel>
-      </ng-container>
-    </ng-container>
-  </mat-nav-list>
+  <ng-container *ngIf="!isCollapsed">
+    <ul class="menu">
+      <li><mat-icon>apartment</mat-icon> Manage Company</li>
+      <li><mat-icon>description</mat-icon> Recon Master</li>
+      <li><mat-icon>category</mat-icon> Context Type</li>
+      <li class="expansion-header">
+        <mat-icon>inventory_2</mat-icon> Reference Data
+      </li>
+      <ul class="submenu">
+        <li>Accounting Period Groups</li>
+        <li>Calendars</li>
+        <li>Counterparties</li>
+        <li>Currencies</li>
+        <li>Exchange Rates</li>
+        <li>Item Types</li>
+        <li>Reason Codes</li>
+        <li>Securities</li>
+        <li>Tags</li>
+      </ul>
+      <li><mat-icon>search</mat-icon> Audit</li>
+      <li><mat-icon>list_alt</mat-icon> Logs</li>
+    </ul>
+  </ng-container>
 </div>
 
 
 
 
 
-.sidebar {
-  background-color: #144a64; /* Matches FIS sidebar */
+.sidebar-container {
+  background: linear-gradient(to bottom, #0f525b, #0a3b47);
   color: white;
   width: 260px;
-  transition: width 0.3s ease;
-  overflow-y: auto;
-  height: calc(100vh - 64px); /* assuming header is 64px */
-  padding-top: 8px;
-  font-family: "Segoe UI", sans-serif;
+  padding-top: 56px; /* header height */
+  transition: width 0.3s ease, opacity 0.3s ease;
+  overflow: hidden;
+  height: 100vh;
+  position: relative;
 }
 
-.sidebar.collapsed {
-  width: 70px;
+.sidebar-container.collapsed {
+  width: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
-.toggle-wrapper {
-  display: flex;
-  justify-content: flex-end;
-  padding: 0 8px;
-}
-
-mat-icon {
+.toggle-button {
+  position: absolute;
+  top: 60px;
+  right: -15px;
+  background: #0a3b47;
+  border: none;
+  border-radius: 0 5px 5px 0;
+  padding: 4px;
   color: white;
+  cursor: pointer;
+  z-index: 1;
 }
 
-a.mat-list-item {
-  color: white;
-  padding-left: 16px;
-}
-
-a.mat-list-item:hover {
-  background-color: #0e3a50;
-}
-
-mat-expansion-panel {
-  background-color: transparent !important;
-  color: white;
-  box-shadow: none;
-}
-
-mat-expansion-panel-header {
-  padding-left: 16px;
-}
-
-.mat-expansion-panel-body a {
-  padding-left: 32px;
+.menu {
+  list-style: none;
+  padding: 0 16px;
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
   font-size: 14px;
 }
 
-.mat-expansion-panel-body a:hover {
-  background-color: #0e3a50;
+.menu li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+.submenu {
+  list-style: none;
+  padding-left: 28px;
+  margin: 0;
+  font-size: 13px;
+  color: #c0c0c0;
+}
+
+.submenu li {
+  padding: 4px 0;
 }
