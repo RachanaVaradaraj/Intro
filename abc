@@ -3,7 +3,111 @@ import { Component, EventEmitter, Output } from '@angular/core';
 @Component({
   selector: 'app-header',
   standalone: true,
-  templateUrl: './header.component.html',
+  templateUrl: './import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatListModule } from '@angular/material/list';
+
+@Component({
+  standalone: true,
+  selector: 'app-sidebar',
+  imports: [CommonModule, MatIconModule, MatExpansionModule, MatListModule],
+  templateUrl: './sidebar.component.html',
+  styleUrls: ['./sidebar.component.css']
+})
+export class SidebarComponent {}
+
+
+
+
+
+<div class="sidebar">
+  <mat-nav-list>
+
+    <mat-list-item>
+      <mat-icon>business</mat-icon>
+      <span>Manage Company</span>
+    </mat-list-item>
+
+    <mat-list-item>
+      <mat-icon>folder</mat-icon>
+      <span>Recon Master</span>
+    </mat-list-item>
+
+    <mat-list-item>
+      <mat-icon>category</mat-icon>
+      <span>Context Type</span>
+    </mat-list-item>
+
+    <mat-expansion-panel class="submenu">
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <mat-icon>dataset</mat-icon>
+          Reference Data
+        </mat-panel-title>
+      </mat-expansion-panel-header>
+      <mat-action-list>
+        <button mat-list-item>Accounting Period Groups</button>
+        <button mat-list-item>Calendars</button>
+        <button mat-list-item>Counterparties</button>
+        <button mat-list-item>Currencies</button>
+        <button mat-list-item>Exchange Rates</button>
+        <button mat-list-item>Item Types</button>
+        <button mat-list-item>Reason Codes</button>
+        <button mat-list-item>Securities</button>
+        <button mat-list-item>Tags</button>
+      </mat-action-list>
+    </mat-expansion-panel>
+
+    <mat-list-item>
+      <mat-icon>search</mat-icon>
+      <span>Audit</span>
+    </mat-list-item>
+
+    <mat-list-item>
+      <mat-icon>description</mat-icon>
+      <span>Logs</span>
+    </mat-list-item>
+
+  </mat-nav-list>
+</div>
+
+
+
+
+
+.sidebar {
+  width: 250px;
+  height: 100vh;
+  background-color: #0D3C55;
+  color: white;
+  padding-top: 20px;
+}
+
+mat-list-item, mat-expansion-panel {
+  color: white;
+}
+
+mat-icon {
+  margin-right: 10px;
+  color: white;
+}
+
+mat-expansion-panel-header {
+  background-color: #0D3C55;
+  color: white;
+}
+
+mat-action-list button {
+  color: white;
+  text-align: left;
+}
+
+
+
+
+',
   styleUrls: ['./header.component.css']
 })
 export class HeaderComponent {
