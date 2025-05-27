@@ -1,11 +1,13 @@
 import { Component } from '@angular/core';
+import { NgIf, NgFor } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [],
+  imports: [NgIf, NgFor, MatIconModule],
   templateUrl: './sidebar.component.html',
-  styleUrls: ['./sidebar.component.css'],
+  styleUrls: ['./sidebar.component.css']
 })
 export class SidebarComponent {
   isCollapsed = false;
@@ -13,98 +15,10 @@ export class SidebarComponent {
   toggleSidebar() {
     this.isCollapsed = !this.isCollapsed;
   }
-}
 
+  referenceDataExpanded = true;
 
-
-<div class="sidebar-container" [class.collapsed]="isCollapsed">
-  <button class="toggle-button" (click)="toggleSidebar()">
-    <mat-icon>{{ isCollapsed ? 'chevron_right' : 'chevron_left' }}</mat-icon>
-  </button>
-
-  <ng-container *ngIf="!isCollapsed">
-    <ul class="menu">
-      <li><mat-icon>apartment</mat-icon> Manage Company</li>
-      <li><mat-icon>description</mat-icon> Recon Master</li>
-      <li><mat-icon>category</mat-icon> Context Type</li>
-      <li class="expansion-header">
-        <mat-icon>inventory_2</mat-icon> Reference Data
-      </li>
-      <ul class="submenu">
-        <li>Accounting Period Groups</li>
-        <li>Calendars</li>
-        <li>Counterparties</li>
-        <li>Currencies</li>
-        <li>Exchange Rates</li>
-        <li>Item Types</li>
-        <li>Reason Codes</li>
-        <li>Securities</li>
-        <li>Tags</li>
-      </ul>
-      <li><mat-icon>search</mat-icon> Audit</li>
-      <li><mat-icon>list_alt</mat-icon> Logs</li>
-    </ul>
-  </ng-container>
-</div>
-
-
-
-
-
-.sidebar-container {
-  background: linear-gradient(to bottom, #0f525b, #0a3b47);
-  color: white;
-  width: 260px;
-  padding-top: 56px; /* header height */
-  transition: width 0.3s ease, opacity 0.3s ease;
-  overflow: hidden;
-  height: 100vh;
-  position: relative;
-}
-
-.sidebar-container.collapsed {
-  width: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.toggle-button {
-  position: absolute;
-  top: 60px;
-  right: -15px;
-  background: #0a3b47;
-  border: none;
-  border-radius: 0 5px 5px 0;
-  padding: 4px;
-  color: white;
-  cursor: pointer;
-  z-index: 1;
-}
-
-.menu {
-  list-style: none;
-  padding: 0 16px;
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  font-size: 14px;
-}
-
-.menu li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 0;
-  cursor: pointer;
-}
-
-.submenu {
-  list-style: none;
-  padding-left: 28px;
-  margin: 0;
-  font-size: 13px;
-  color: #c0c0c0;
-}
-
-.submenu li {
-  padding: 4px 0;
+  toggleReferenceData() {
+    this.referenceDataExpanded = !this.referenceDataExpanded;
+  }
 }
