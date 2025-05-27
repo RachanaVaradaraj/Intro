@@ -1,4 +1,11 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+Here is the complete Angular 17 standalone sidebar component, updated based on your screenshots and files. This includes the .ts, .html, and .css files, with a collapsible sidebar and expandable menu item (Reference Data):
+
+
+---
+
+sidebar.component.ts
+
+import { Component } from '@angular/core';
 import { NgIf, NgFor } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 
@@ -10,35 +17,46 @@ import { MatIconModule } from '@angular/material/icon';
   styleUrls: ['./sidebar.component.css']
 })
 export class SidebarComponent {
-  @Input() isOpen = true;
-  @Output() toggle = new EventEmitter<void>();
-
+  isCollapsed = true;
   referenceDataExpanded = false;
+
+  toggleSidebar() {
+    this.isCollapsed = !this.isCollapsed;
+  }
 
   toggleReferenceData() {
     this.referenceDataExpanded = !this.referenceDataExpanded;
   }
-
-  toggleSidebar() {
-    this.toggle.emit(); // Notifies layout to toggle
-  }
 }
 
 
+---
 
+sidebar.component.html
 
-<div class="sidebar" [class.closed]="!isOpen">
-  <ng-container *ngIf="isOpen">
+<div class="sidebar-container" [class.collapsed]="isCollapsed">
+  <button class="toggle-button" (click)="toggleSidebar()">
+    <mat-icon>{{ isCollapsed ? 'menu' : 'chevron_left' }}</mat-icon>
+  </button>
+
+  <ng-container *ngIf="!isCollapsed">
     <ul class="menu">
-      <li><mat-icon>apartment</mat-icon> <span>Manage Company</span></li>
-      <li><mat-icon>description</mat-icon> <span>Recon Master</span></li>
-      <li><mat-icon>category</mat-icon> <span>Context Type</span></li>
+      <li>
+        <mat-icon>apartment</mat-icon>
+        <span>Manage Company</span>
+      </li>
+      <li>
+        <mat-icon>description</mat-icon>
+        <span>Recon Master</span>
+      </li>
+      <li>
+        <mat-icon>category</mat-icon>
+        <span>Context Type</span>
+      </li>
       <li (click)="toggleReferenceData()" class="expandable">
         <mat-icon>inventory_2</mat-icon>
         <span>Reference Data</span>
-        <mat-icon class="expand-icon">
-          {{ referenceDataExpanded ? 'expand_less' : 'expand_more' }}
-        </mat-icon>
+        <mat-icon class="expand-icon">{{ referenceDataExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
       </li>
       <ul class="submenu" *ngIf="referenceDataExpanded">
         <li>Accounting Period Groups</li>
@@ -51,69 +69,115 @@ export class SidebarComponent {
         <li>Securities</li>
         <li>Tags</li>
       </ul>
-      <li><mat-icon>search</mat-icon> <span>Audit</span></li>
-      <li><mat-icon>list_alt</mat-icon> <span>Logs</span></li>
+      <li>
+        <mat-icon>search</mat-icon>
+        <span>Audit</span>
+      </li>
+      <li>
+        <mat-icon>list_alt</mat-icon>
+        <span>Logs</span>
+      </li>
     </ul>
   </ng-container>
 
-  <!-- Bottom toggle -->
-  <div class="bottom-toggle" (click)="toggleSidebar()">
-    <mat-icon>{{ isOpen ? 'chevron_left' : 'chevron_right' }}</mat-icon>
+  <div class="bottom-toggle">
+    <mat-icon>chevron_left</mat-icon>
   </div>
 </div>
 
 
+---
 
+sidebar.component.css
 
-export class LayoutComponent {
-  isSidebarOpen = true;
-
-  toggleSidebar() {
-    this.isSidebarOpen = !this.isSidebarOpen;
-  }
-}
-export class LayoutComponent {
-  isSidebarOpen = true;
-
-  toggleSidebar() {
-    this.isSidebarOpen = !this.isSidebarOpen;
-  }
+.sidebar-container {
+  width: 250px;
+  transition: all 0.3s ease;
+  height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  padding-top: 56px;
+  background: white;
+  color: #333;
 }
 
+.sidebar-container.collapsed {
+  width: 60px;
+}
 
+.toggle-button {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 8px;
+  cursor: pointer;
+  z-index: 10;
+}
 
+.sidebar-container.collapsed .toggle-button {
+  background: white;
+  color: #333;
+}
 
-<app-header (menuClick)="toggleSidebar()"></app-header>
-<app-sidebar [isOpen]="isSidebarOpen" (toggle)="toggleSidebar()"></app-sidebar>
+.menu {
+  list-style: none;
+  padding: 0 10px;
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 14px;
+}
 
-<main class="content-area">
-  <!-- Main content here -->
-</main>
+.menu li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  cursor: pointer;
+}
 
+.submenu {
+  list-style: none;
+  padding-left: 40px;
+  font-size: 13px;
+  color: #c0c0c0;
+}
 
+.submenu li {
+  padding: 4px 0;
+}
 
+.expandable {
+  justify-content: space-between;
+  display: flex;
+  align-items: center;
+}
 
-import { Component, Output, EventEmitter } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
+.expand-icon {
+  margin-left: auto;
+}
 
-@Component({
-  selector: 'app-header',
-  standalone: true,
-  imports: [MatIconModule],
-  templateUrl: './header.component.html',
-  styleUrls: ['./header.component.css']
-})
-export class HeaderComponent {
-  @Output() menuClick = new EventEmitter<void>();
-
-  toggleMenu() {
-    this.menuClick.emit();
-  }
+.bottom-toggle {
+  position: absolute;
+  bottom: 10px;
+  left: 16px;
 }
 
 
+---
 
-<header class="app-header">
-  <mat-icon (click)="toggleMenu()">menu</mat-icon>
-  <!-- other icons/content -->
-</header>
+This code gives you:
+
+A collapsible sidebar.
+
+Icons with menu items.
+
+Expandable Reference Data section.
+
+Clean, professional design styled similar to FIS Data Integrity Manager.
+
+
+Let me know if you want routing/navigation integrated next.
+
