@@ -1,48 +1,30 @@
-To replicate the FIS Data Integrity Manager layout in Angular 17 using reusable components and your provided structure, here is the complete standalone implementation:
+To resolve the "app-sidebar is not a known element" error and replicate the FIS-like layout from your screenshot exactly — including:
+
+A reusable collapsible sidebar with icons (Home, Folder, Search),
+
+A header with a logo (bnp-logo.gif as per your assets),
+
+And using Angular 17 standalone components,
+
+
+Here’s the complete and corrected setup based on your code structure:
 
 
 ---
 
-Project Structure (based on your screenshot):
+✅ 1. Register Sidebar & Header in layout.component.ts
 
-src/
-└── app/
-    ├── components/
-    │   ├── home/
-    │   │   ├── home.component.ts / html / css
-    │   ├── layout/
-    │   │   ├── header/
-    │   │   ├── sidebar/
-    │   │   ├── layout.component.ts / html / css
-    ├── app.component.ts / html / css
-    ├── app.routes.ts
-
-
----
-
-1. app.routes.ts
-
-import { Routes } from '@angular/router';
-import { HomeComponent } from './components/home/home.component';
-
-export const routes: Routes = [
-  {
-    path: '',
-    component: HomeComponent,
-  },
-];
-
-
----
-
-2. layout.component.ts
+Update layout.component.ts to explicitly import the standalone sidebar and header:
 
 import { Component } from '@angular/core';
+import { SidebarComponent } from './sidebar/sidebar.component';
+import { HeaderComponent } from './header/header.component';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [],
+  imports: [SidebarComponent, HeaderComponent, RouterOutlet],
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.css']
 })
@@ -57,11 +39,11 @@ export class LayoutComponent {
 
 ---
 
-3. layout.component.html
+✅ 2. layout.component.html
 
-<div class="layout">
+<div class="layout-container">
   <app-sidebar [collapsed]="isSidebarCollapsed"></app-sidebar>
-  <div class="main-content">
+  <div class="main">
     <app-header (toggleSidebar)="toggleSidebar()"></app-header>
     <router-outlet></router-outlet>
   </div>
@@ -70,82 +52,23 @@ export class LayoutComponent {
 
 ---
 
-4. layout.component.css
+✅ 3. layout.component.css
 
-.layout {
+.layout-container {
   display: flex;
   height: 100vh;
-  overflow: hidden;
 }
 
-.main-content {
+.main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #f8f9fa;
 }
 
 
 ---
 
-5. header.component.ts
-
-import { Component, Output, EventEmitter } from '@angular/core';
-
-@Component({
-  selector: 'app-header',
-  standalone: true,
-  templateUrl: './header.component.html',
-  styleUrls: ['./header.component.css']
-})
-export class HeaderComponent {
-  @Output() toggleSidebar = new EventEmitter<void>();
-}
-
-
----
-
-6. header.component.html
-
-<header class="header">
-  <button class="menu-btn" (click)="toggleSidebar.emit()">
-    &#9776;
-  </button>
-  <span class="title">Data Integrity Manager</span>
-</header>
-
-
----
-
-7. header.component.css
-
-.header {
-  height: 60px;
-  background: #007c91;
-  color: white;
-  display: flex;
-  align-items: center;
-  padding: 0 1rem;
-}
-
-.menu-btn {
-  background: transparent;
-  color: white;
-  font-size: 24px;
-  border: none;
-  cursor: pointer;
-}
-
-.title {
-  margin-left: 1rem;
-  font-weight: bold;
-  font-size: 18px;
-}
-
-
----
-
-8. sidebar.component.ts
+✅ 4. sidebar.component.ts
 
 import { Component, Input } from '@angular/core';
 
@@ -162,90 +85,125 @@ export class SidebarComponent {
 
 ---
 
-9. sidebar.component.html
+✅ 5. sidebar.component.html
 
-<aside [class.collapsed]="collapsed">
-  <nav>
-    <ul>
-      <li><i class="material-icons">home</i> <span *ngIf="!collapsed">Home</span></li>
-      <li><i class="material-icons">folder</i> <span *ngIf="!collapsed">Folder</span></li>
-      <li><i class="material-icons">search</i> <span *ngIf="!collapsed">Search</span></li>
-    </ul>
-  </nav>
-</aside>
-
-
----
-
-10. sidebar.component.css
-
-aside {
-  width: 220px;
-  background-color: #1e3d59;
-  color: white;
-  height: 100%;
-  transition: width 0.3s;
-}
-
-aside.collapsed {
-  width: 60px;
-}
-
-nav ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-nav li {
-  display: flex;
-  align-items: center;
-  padding: 15px;
-  cursor: pointer;
-}
-
-nav i {
-  margin-right: 10px;
-  font-size: 20px;
-}
-
-
----
-
-11. home.component.ts
-
-import { Component } from '@angular/core';
-
-@Component({
-  selector: 'app-home',
-  standalone: true,
-  templateUrl: './home.component.html',
-  styleUrls: ['./home.component.css']
-})
-export class HomeComponent {}
-
-
----
-
-12. home.component.html
-
-<div class="home-container">
-  <h2>Welcome to the FIS Data Integrity Manager UI</h2>
+<div [class.collapsed]="collapsed" class="sidebar">
+  <ul>
+    <li><i class="material-icons">home</i> <span *ngIf="!collapsed">Home</span></li>
+    <li><i class="material-icons">folder</i> <span *ngIf="!collapsed">Folder</span></li>
+    <li><i class="material-icons">search</i> <span *ngIf="!collapsed">Search</span></li>
+  </ul>
 </div>
 
 
 ---
 
-13. Add Material Icons (index.html)
+✅ 6. sidebar.component.css
 
-In src/index.html, add:
+.sidebar {
+  background-color: #12344d;
+  color: white;
+  width: 220px;
+  height: 100vh;
+  transition: width 0.3s ease;
+  padding-top: 10px;
+}
+
+.sidebar.collapsed {
+  width: 60px;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar li {
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.sidebar i {
+  font-size: 20px;
+  margin-right: 10px;
+}
+
+
+---
+
+✅ 7. header.component.ts
+
+import { Component, EventEmitter, Output } from '@angular/core';
+
+@Component({
+  selector: 'app-header',
+  standalone: true,
+  templateUrl: './header.component.html',
+  styleUrls: ['./header.component.css']
+})
+export class HeaderComponent {
+  @Output() toggleSidebar = new EventEmitter<void>();
+}
+
+
+---
+
+✅ 8. header.component.html
+
+<header class="header">
+  <button (click)="toggleSidebar.emit()" class="menu-btn">&#9776;</button>
+  <img src="assets/bnp-logo.gif" alt="Logo" class="logo" />
+  <span class="title">Data Integrity Manager</span>
+</header>
+
+
+---
+
+✅ 9. header.component.css
+
+.header {
+  height: 60px;
+  background: #007c91;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.menu-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: white;
+  cursor: pointer;
+}
+
+.logo {
+  height: 30px;
+  margin: 0 10px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+
+---
+
+✅ 10. Use Material Icons in index.html
+
+In src/index.html, ensure you add:
 
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
 
 ---
 
-14. app.component.ts
+✅ 11. Use Layout in app.component.ts
 
 import { Component } from '@angular/core';
 import { LayoutComponent } from './components/layout/layout.component';
@@ -254,17 +212,30 @@ import { LayoutComponent } from './components/layout/layout.component';
   selector: 'app-root',
   standalone: true,
   imports: [LayoutComponent],
-  template: '<app-layout></app-layout>',
+  template: `<app-layout></app-layout>`,
 })
 export class AppComponent {}
 
 
 ---
 
-Would you also like:
+With this setup:
 
-Lazy-loaded feature modules for each sidebar item?
+app-sidebar will now be recognized correctly.
 
-Routing animations or additional glassmorphism styling? Let me know, and I can expand this further.
+Sidebar is collapsible.
+
+Header includes logo and toggle button.
+
+Layout uses only standalone components, consistent with Angular 17 best practices.
+
+
+Let me know if you’d like:
+
+Routing for individual sidebar items
+
+Active state highlighting
+
+Dynamic icons or nested sidebar sections like in FIS
 
 
