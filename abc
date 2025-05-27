@@ -1,53 +1,34 @@
-<div class="sidebar" [class.closed]="!isOpen">
-  <ng-container *ngIf="isOpen">
-    <ul class="menu">
-      <li><mat-icon>apartment</mat-icon> <span>Manage Company</span></li>
-      <li><mat-icon>description</mat-icon> <span>Recon Master</span></li>
-      <li><mat-icon>category</mat-icon> <span>Context Type</span></li>
-      <li (click)="toggleReferenceData()" class="expandable">
-        <mat-icon>inventory_2</mat-icon>
-        <span>Reference Data</span>
-        <mat-icon class="expand-icon">
-          {{ referenceDataExpanded ? 'expand_less' : 'expand_more' }}
-        </mat-icon>
-      </li>
-      <ul class="submenu" *ngIf="referenceDataExpanded">
-        <li>Accounting Period Groups</li>
-        <li>Calendars</li>
-        <li>Counterparties</li>
-        <li>Currencies</li>
-        <li>Exchange Rates</li>
-        <li>Item Types</li>
-        <li>Reason Codes</li>
-        <li>Securities</li>
-        <li>Tags</li>
-      </ul>
-      <li><mat-icon>search</mat-icon> <span>Audit</span></li>
-      <li><mat-icon>list_alt</mat-icon> <span>Logs</span></li>
-    </ul>
-  </ng-container>
-
-  <!-- Bottom toggle collapse/expand icon -->
-  <div class="bottom-toggle">
-    <mat-icon>chevron_left</mat-icon>
-  </div>
-</div>
-
-
-
-
-.sidebar {
+.sidebar-container {
   background: linear-gradient(to bottom, #0f525b, #0a3b47);
   color: white;
   width: 260px;
-  height: 100vh;
   padding-top: 56px;
   transition: all 0.3s ease;
+  height: 100vh;
   position: relative;
+  overflow-x: hidden;
 }
 
-.sidebar.closed {
+.sidebar-container.collapsed {
   width: 60px;
+  background: white;
+  color: #333;
+  padding-top: 56px;
+}
+
+.toggle-button {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 8px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.sidebar-container.collapsed .toggle-button {
   background: white;
   color: #333;
 }
@@ -75,15 +56,64 @@
   color: #c0c0c0;
 }
 
+.submenu li {
+  padding: 4px 0;
+}
+
 .expandable {
   justify-content: space-between;
   display: flex;
   align-items: center;
 }
 
-.bottom-toggle {
-  position: absolute;
-  bottom: 10px;
-  left: 16px;
-  cursor: pointer;
+.expand-icon {
+  margin-left: auto;
 }
+<div class="sidebar-container" [class.collapsed]="isCollapsed">
+  <button class="toggle-button" (click)="toggleSidebar()">
+    <mat-icon>{{ isCollapsed ? 'menu' : 'chevron_left' }}</mat-icon>
+  </button>
+
+  <ng-container *ngIf="!isCollapsed">
+    <ul class="menu">
+      <li>
+        <mat-icon>apartment</mat-icon>
+        <span>Manage Company</span>
+      </li>
+      <li>
+        <mat-icon>description</mat-icon>
+        <span>Recon Master</span>
+      </li>
+      <li>
+        <mat-icon>category</mat-icon>
+        <span>Context Type</span>
+      </li>
+      <li (click)="toggleReferenceData()" class="expandable">
+        <mat-icon>inventory_2</mat-icon>
+        <span>Reference Data</span>
+        <mat-icon class="expand-icon">
+          {{ referenceDataExpanded ? 'expand_less' : 'expand_more' }}
+        </mat-icon>
+      </li>
+      <ul class="submenu" *ngIf="referenceDataExpanded">
+        <li>Accounting Period Groups</li>
+        <li>Calendars</li>
+        <li>Counterparties</li>
+        <li>Currencies</li>
+        <li>Exchange Rates</li>
+        <li>Item Types</li>
+        <li>Reason Codes</li>
+        <li>Securities</li>
+        <li>Tags</li>
+      </ul>
+      <li>
+        <mat-icon>search</mat-icon>
+        <span>Audit</span>
+      </li>
+      <li>
+        <mat-icon>list_alt</mat-icon>
+        <span>Logs</span>
+      </li>
+    </ul>
+  </ng-container>
+</div>
