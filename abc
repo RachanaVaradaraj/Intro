@@ -1,183 +1,123 @@
-Here is the complete Angular 17 standalone sidebar component, updated based on your screenshots and files. This includes the .ts, .html, and .css files, with a collapsible sidebar and expandable menu item (Reference Data):
+Here is the complete code setup for making the sidebar toggle open/close when clicking the menu icon in the header — using Angular 17 with standalone components:
 
 
 ---
 
-sidebar.component.ts
+✅ 1. header.component.ts
 
-import { Component } from '@angular/core';
-import { NgIf, NgFor } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
+import { Component, EventEmitter, Output } from '@angular/core';
 
 @Component({
-  selector: 'app-sidebar',
+  selector: 'app-header',
   standalone: true,
-  imports: [NgIf, NgFor, MatIconModule],
-  templateUrl: './sidebar.component.html',
-  styleUrls: ['./sidebar.component.css']
+  templateUrl: './header.component.html',
+  styleUrls: ['./header.component.css']
 })
-export class SidebarComponent {
-  isCollapsed = true;
-  referenceDataExpanded = false;
-
-  toggleSidebar() {
-    this.isCollapsed = !this.isCollapsed;
-  }
-
-  toggleReferenceData() {
-    this.referenceDataExpanded = !this.referenceDataExpanded;
-  }
+export class HeaderComponent {
+  @Output() toggleSidebar = new EventEmitter<void>();
 }
 
 
 ---
 
-sidebar.component.html
+✅ 2. header.component.html
 
-<div class="sidebar-container" [class.collapsed]="isCollapsed">
-  <button class="toggle-button" (click)="toggleSidebar()">
-    <mat-icon>{{ isCollapsed ? 'menu' : 'chevron_left' }}</mat-icon>
+<!-- Top bar: white background -->
+<div class="top-bar">
+  <img src="assets/LOGO.png" alt="Logo" class="logo" />
+  <span class="app-title">Recon NextGen</span>
+  <div class="spacer"></div>
+  <span class="user-info">#H70435 | Dockmee</span>
+</div>
+
+<!-- Middle bar: dark teal strip -->
+<div class="middle-bar"></div>
+
+<!-- Bottom bar: icon section -->
+<div class="bottom-bar">
+  <button class="icon-btn" (click)="toggleSidebar.emit()">
+    <span class="material-icons">menu</span>
   </button>
-
-  <ng-container *ngIf="!isCollapsed">
-    <ul class="menu">
-      <li>
-        <mat-icon>apartment</mat-icon>
-        <span>Manage Company</span>
-      </li>
-      <li>
-        <mat-icon>description</mat-icon>
-        <span>Recon Master</span>
-      </li>
-      <li>
-        <mat-icon>category</mat-icon>
-        <span>Context Type</span>
-      </li>
-      <li (click)="toggleReferenceData()" class="expandable">
-        <mat-icon>inventory_2</mat-icon>
-        <span>Reference Data</span>
-        <mat-icon class="expand-icon">{{ referenceDataExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
-      </li>
-      <ul class="submenu" *ngIf="referenceDataExpanded">
-        <li>Accounting Period Groups</li>
-        <li>Calendars</li>
-        <li>Counterparties</li>
-        <li>Currencies</li>
-        <li>Exchange Rates</li>
-        <li>Item Types</li>
-        <li>Reason Codes</li>
-        <li>Securities</li>
-        <li>Tags</li>
-      </ul>
-      <li>
-        <mat-icon>search</mat-icon>
-        <span>Audit</span>
-      </li>
-      <li>
-        <mat-icon>list_alt</mat-icon>
-        <span>Logs</span>
-      </li>
-    </ul>
-  </ng-container>
-
-  <div class="bottom-toggle">
-    <mat-icon>chevron_left</mat-icon>
-  </div>
+  <button class="icon-btn">
+    <span class="material-icons">home</span>
+  </button>
+  <button class="icon-btn">
+    <span class="material-icons">folder</span>
+  </button>
+  <button class="icon-btn">
+    <span class="material-icons">search</span>
+  </button>
 </div>
 
 
 ---
 
-sidebar.component.css
+✅ 3. sidebar.component.ts
 
-.sidebar-container {
-  width: 250px;
-  transition: all 0.3s ease;
-  height: 100vh;
-  position: relative;
-  overflow-x: hidden;
-  padding-top: 56px;
-  background: white;
-  color: #333;
-}
+import { Component } from '@angular/core';
 
-.sidebar-container.collapsed {
-  width: 60px;
-}
+@Component({
+  selector: 'app-sidebar',
+  standalone: true,
+  templateUrl: './sidebar.component.html',
+  styleUrls: ['./sidebar.component.css']
+})
+export class SidebarComponent {
+  isOpen = true;
 
-.toggle-button {
-  position: absolute;
-  top: 60px;
-  left: 0;
-  background: transparent;
-  border: none;
-  color: inherit;
-  padding: 8px;
-  cursor: pointer;
-  z-index: 10;
-}
-
-.sidebar-container.collapsed .toggle-button {
-  background: white;
-  color: #333;
-}
-
-.menu {
-  list-style: none;
-  padding: 0 10px;
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  font-size: 14px;
-}
-
-.menu li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  cursor: pointer;
-}
-
-.submenu {
-  list-style: none;
-  padding-left: 40px;
-  font-size: 13px;
-  color: #c0c0c0;
-}
-
-.submenu li {
-  padding: 4px 0;
-}
-
-.expandable {
-  justify-content: space-between;
-  display: flex;
-  align-items: center;
-}
-
-.expand-icon {
-  margin-left: auto;
-}
-
-.bottom-toggle {
-  position: absolute;
-  bottom: 10px;
-  left: 16px;
+  toggle() {
+    this.isOpen = !this.isOpen;
+  }
 }
 
 
 ---
 
-This code gives you:
+✅ 4. sidebar.component.html
 
-A collapsible sidebar.
-
-Icons with menu items.
-
-Expandable Reference Data section.
-
-Clean, professional design styled similar to FIS Data Integrity Manager.
+<div class="sidebar" *ngIf="isOpen">
+  <!-- Sidebar content goes here -->
+  <p>Sidebar Content</p>
+</div>
 
 
-Let me know if you want routing/navigation integrated next.
+---
+
+✅ 5. layout.component.ts
+
+import { Component, ViewChild } from '@angular/core';
+import { SidebarComponent } from '../sidebar/sidebar.component';
+import { HeaderComponent } from '../header/header.component';
+
+@Component({
+  selector: 'app-layout',
+  standalone: true,
+  imports: [HeaderComponent, SidebarComponent],
+  templateUrl: './layout.component.html',
+  styleUrls: ['./layout.component.css']
+})
+export class LayoutComponent {
+  @ViewChild(SidebarComponent) sidebar!: SidebarComponent;
+
+  toggleSidebar() {
+    this.sidebar.toggle();
+  }
+}
+
+
+---
+
+✅ 6. layout.component.html
+
+<app-header (toggleSidebar)="toggleSidebar()"></app-header>
+<app-sidebar></app-sidebar>
+
+<div class="main-content">
+  <!-- Other router content or components -->
+</div>
+
+
+---
+
+Let me know if you also want a sliding sidebar effect instead of using *ngIf, and I’ll provide CSS for that too.
 
