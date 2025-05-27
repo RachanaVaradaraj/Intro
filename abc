@@ -1,97 +1,270 @@
-<div class="app-container">
-  <app-header (toggleSidebar)="sidebarCollapsed = !sidebarCollapsed"></app-header>
-  <div class="main-body">
-    <app-sidebar [collapsed]="sidebarCollapsed"></app-sidebar>
-    <div class="content">
-      <router-outlet></router-outlet>
-    </div>
-  </div>
-</div>
+To replicate the FIS Data Integrity Manager layout in Angular 17 using reusable components and your provided structure, here is the complete standalone implementation:
 
 
+---
+
+Project Structure (based on your screenshot):
+
+src/
+└── app/
+    ├── components/
+    │   ├── home/
+    │   │   ├── home.component.ts / html / css
+    │   ├── layout/
+    │   │   ├── header/
+    │   │   ├── sidebar/
+    │   │   ├── layout.component.ts / html / css
+    ├── app.component.ts / html / css
+    ├── app.routes.ts
 
 
-<header class="header">
-  <div class="left-icons">
-    <button (click)="toggleSidebar.emit()">
-      <i class="material-icons">menu</i>
-    </button>
-    <i class="material-icons">home</i>
-    <i class="material-icons">folder</i>
-  </div>
-  <div class="right-icons">
-    <i class="material-icons">search</i>
-  </div>
-</header>
+---
+
+1. app.routes.ts
+
+import { Routes } from '@angular/router';
+import { HomeComponent } from './components/home/home.component';
+
+export const routes: Routes = [
+  {
+    path: '',
+    component: HomeComponent,
+  },
+];
 
 
+---
 
+2. layout.component.ts
 
-<aside class="sidebar" [class.collapsed]="collapsed">
-  <nav>
-    <ul>
-      <li>
-        <a routerLink="/manage-company">
-          <i class="material-icons">business</i> <span *ngIf="!collapsed">Manage Company</span>
-        </a>
-      </li>
-      <li>
-        <a (click)="toggleSubMenu('recon')">
-          <i class="material-icons">settings</i> <span *ngIf="!collapsed">Recon Master</span>
-        </a>
-        <ul *ngIf="expanded.recon && !collapsed">
-          <li><a routerLink="/recon-master/config">Recon Config</a></li>
-        </ul>
-      </li>
-      <li>
-        <a routerLink="/context-type">
-          <i class="material-icons">category</i> <span *ngIf="!collapsed">Context Type</span>
-        </a>
-      </li>
-      <li>
-        <a (click)="toggleSubMenu('refData')">
-          <i class="material-icons">folder_open</i> <span *ngIf="!collapsed">Reference Data</span>
-        </a>
-        <ul *ngIf="expanded.refData && !collapsed">
-          <li><a routerLink="/reference-data/accounting-period-groups">Accounting Period Groups</a></li>
-          <li><a routerLink="/reference-data/calendars">Calendars</a></li>
-          <li><a routerLink="/reference-data/counterparties">Counterparties</a></li>
-          <!-- Add others similarly -->
-        </ul>
-      </li>
-    </ul>
-  </nav>
-  <button class="collapse-btn" (click)="toggleCollapsed()">
-    <i class="material-icons">{{ collapsed ? 'chevron_right' : 'chevron_left' }}</i>
-  </button>
-</aside>
-
-
-
-
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component } from '@angular/core';
 
 @Component({
-  selector: 'app-sidebar',
-  templateUrl: './sidebar.component.html',
-  styleUrls: ['./sidebar.component.css'],
+  selector: 'app-layout',
+  standalone: true,
+  imports: [],
+  templateUrl: './layout.component.html',
+  styleUrls: ['./layout.component.css']
 })
-export class SidebarComponent {
-  @Input() collapsed = false;
-  expanded: any = {
-    recon: false,
-    refData: false,
-  };
+export class LayoutComponent {
+  isSidebarCollapsed = false;
 
-  toggleSubMenu(menu: string) {
-    this.expanded[menu] = !this.expanded[menu];
-  }
-
-  toggleCollapsed() {
-    this.collapsed = !this.collapsed;
+  toggleSidebar(): void {
+    this.isSidebarCollapsed = !this.isSidebarCollapsed;
   }
 }
 
 
+---
+
+3. layout.component.html
+
+<div class="layout">
+  <app-sidebar [collapsed]="isSidebarCollapsed"></app-sidebar>
+  <div class="main-content">
+    <app-header (toggleSidebar)="toggleSidebar()"></app-header>
+    <router-outlet></router-outlet>
+  </div>
+</div>
+
+
+---
+
+4. layout.component.css
+
+.layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa;
+}
+
+
+---
+
+5. header.component.ts
+
+import { Component, Output, EventEmitter } from '@angular/core';
+
+@Component({
+  selector: 'app-header',
+  standalone: true,
+  templateUrl: './header.component.html',
+  styleUrls: ['./header.component.css']
+})
+export class HeaderComponent {
+  @Output() toggleSidebar = new EventEmitter<void>();
+}
+
+
+---
+
+6. header.component.html
+
+<header class="header">
+  <button class="menu-btn" (click)="toggleSidebar.emit()">
+    &#9776;
+  </button>
+  <span class="title">Data Integrity Manager</span>
+</header>
+
+
+---
+
+7. header.component.css
+
+.header {
+  height: 60px;
+  background: #007c91;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+}
+
+.menu-btn {
+  background: transparent;
+  color: white;
+  font-size: 24px;
+  border: none;
+  cursor: pointer;
+}
+
+.title {
+  margin-left: 1rem;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+
+---
+
+8. sidebar.component.ts
+
+import { Component, Input } from '@angular/core';
+
+@Component({
+  selector: 'app-sidebar',
+  standalone: true,
+  templateUrl: './sidebar.component.html',
+  styleUrls: ['./sidebar.component.css']
+})
+export class SidebarComponent {
+  @Input() collapsed = false;
+}
+
+
+---
+
+9. sidebar.component.html
+
+<aside [class.collapsed]="collapsed">
+  <nav>
+    <ul>
+      <li><i class="material-icons">home</i> <span *ngIf="!collapsed">Home</span></li>
+      <li><i class="material-icons">folder</i> <span *ngIf="!collapsed">Folder</span></li>
+      <li><i class="material-icons">search</i> <span *ngIf="!collapsed">Search</span></li>
+    </ul>
+  </nav>
+</aside>
+
+
+---
+
+10. sidebar.component.css
+
+aside {
+  width: 220px;
+  background-color: #1e3d59;
+  color: white;
+  height: 100%;
+  transition: width 0.3s;
+}
+
+aside.collapsed {
+  width: 60px;
+}
+
+nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+nav li {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  cursor: pointer;
+}
+
+nav i {
+  margin-right: 10px;
+  font-size: 20px;
+}
+
+
+---
+
+11. home.component.ts
+
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-home',
+  standalone: true,
+  templateUrl: './home.component.html',
+  styleUrls: ['./home.component.css']
+})
+export class HomeComponent {}
+
+
+---
+
+12. home.component.html
+
+<div class="home-container">
+  <h2>Welcome to the FIS Data Integrity Manager UI</h2>
+</div>
+
+
+---
+
+13. Add Material Icons (index.html)
+
+In src/index.html, add:
+
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+
+---
+
+14. app.component.ts
+
+import { Component } from '@angular/core';
+import { LayoutComponent } from './components/layout/layout.component';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [LayoutComponent],
+  template: '<app-layout></app-layout>',
+})
+export class AppComponent {}
+
+
+---
+
+Would you also like:
+
+Lazy-loaded feature modules for each sidebar item?
+
+Routing animations or additional glassmorphism styling? Let me know, and I can expand this further.
 
 
