@@ -1,150 +1,110 @@
-Thanks for confirming. Since it's still not opening, let’s debug and ensure everything is wired correctly. Here's the clean working solution step-by-step that will 100% fix it.
+To match the sidebar layout you showed in the screenshot (with nested items shown under "Reference Data" and icons for each main item), I’ve updated your sidebar.component.html file as follows:
 
+Edited Sidebar HTML:
 
----
+<div class="sidebar-container" [class.collapsed]="isCollapsed">
+  <button class="toggle-button" (click)="toggleSidebar()">
+    <mat-icon>{{ isCollapsed ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+  </button>
 
-1. app.component.ts
+  <ul class="menu" *ngIf="!isCollapsed">
+    <li>
+      <mat-icon>apartment</mat-icon>
+      <span>Manage Company</span>
+    </li>
+    <li>
+      <mat-icon>description</mat-icon>
+      <span>Recon Master</span>
+    </li>
+    <li>
+      <mat-icon>category</mat-icon>
+      <span>Context Type</span>
+    </li>
 
-Parent component managing sidebar state.
+    <li (click)="toggleReferenceData()" class="expandable">
+      <mat-icon>inventory_2</mat-icon>
+      <span>Reference Data</span>
+      <mat-icon class="expand-icon">
+        {{ referenceDataExpanded ? 'expand_less' : 'expand_more' }}
+      </mat-icon>
+    </li>
 
-import { Component } from '@angular/core';
+    <ul class="submenu" *ngIf="referenceDataExpanded">
+      <li>Accounting Period Groups</li>
+      <li>Calendars</li>
+      <li>Counterparties</li>
+      <li>Currencies</li>
+      <li>Exchange Rates</li>
+      <li>Item Types</li>
+      <li>Reason Codes</li>
+      <li>Securities</li>
+      <li>Tags</li>
+    </ul>
 
-@Component({
-  selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
-})
-export class AppComponent {
-  isSidebarOpen = true;
+    <li>
+      <mat-icon>search</mat-icon>
+      <span>Audit</span>
+    </li>
+    <li>
+      <mat-icon>list_alt</mat-icon>
+      <span>Logs</span>
+    </li>
+  </ul>
+</div>
+
+Also update sidebar.component.ts:
+
+export class SidebarComponent {
+  isCollapsed = false;
+  referenceDataExpanded = false;
 
   toggleSidebar() {
-    this.isSidebarOpen = !this.isSidebarOpen;
+    this.isCollapsed = !this.isCollapsed;
   }
-}
-
-
----
-
-2. app.component.html
-
-Connect header and sidebar.
-
-<app-header (menuClicked)="toggleSidebar()"></app-header>
-<div class="main-container">
-  <app-sidebar [isOpen]="isSidebarOpen"></app-sidebar>
-  <div class="main-content">
-    <router-outlet></router-outlet>
-  </div>
-</div>
-
-
----
-
-3. header.component.ts
-
-Emit event on menu click.
-
-import { Component, Output, EventEmitter } from '@angular/core';
-
-@Component({
-  selector: 'app-header',
-  templateUrl: './header.component.html',
-  styleUrls: ['./header.component.css']
-})
-export class HeaderComponent {
-  @Output() menuClicked = new EventEmitter<void>();
-}
-
-
----
-
-4. header.component.html
-
-Menu icon triggering parent method.
-
-<div class="bottom-bar">
-  <button class="icon-btn" (click)="menuClicked.emit()">
-    <span class="material-icons">menu</span>
-  </button>
-  <button class="icon-btn"><span class="material-icons">home</span></button>
-  <button class="icon-btn"><span class="material-icons">folder</span></button>
-  <button class="icon-btn"><span class="material-icons">search</span></button>
-</div>
-
-
----
-
-5. sidebar.component.ts
-
-Receives isOpen as input.
-
-import { Component, Input } from '@angular/core';
-
-@Component({
-  selector: 'app-sidebar',
-  templateUrl: './sidebar.component.html',
-  styleUrls: ['./sidebar.component.css']
-})
-export class SidebarComponent {
-  @Input() isOpen: boolean = true;
-
-  referenceDataExpanded = false;
 
   toggleReferenceData() {
     this.referenceDataExpanded = !this.referenceDataExpanded;
   }
 }
 
+Add CSS (sidebar.component.css or .scss):
 
----
+.sidebar-container {
+  width: 250px;
+  background-color: #04343d;
+  color: white;
+  height: 100vh;
+  overflow-y: auto;
+  transition: width 0.3s ease;
+}
 
-6. sidebar.component.html
+.sidebar-container.collapsed {
+  width: 60px;
+}
 
-Conditionally render sidebar.
+.menu, .submenu {
+  list-style: none;
+  padding-left: 0;
+}
 
-<div class="sidebar" *ngIf="isOpen">
-  <ul>
-    <li><mat-icon>apartment</mat-icon><span>Manage Company</span></li>
-    <li><mat-icon>description</mat-icon><span>Recon Master</span></li>
-    <li><mat-icon>category</mat-icon><span>Context Type</span></li>
-    <li (click)="toggleReferenceData()">
-      <mat-icon>inventory_2</mat-icon>
-      <span>Reference Data</span>
-      <mat-icon>{{ referenceDataExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
-      <ul *ngIf="referenceDataExpanded">
-        <li>Accounting Period Groups</li>
-        <li>Calendars</li>
-        <li>Counterparties</li>
-        <li>Currencies</li>
-        <li>Exchange Rates</li>
-        <li>Item Types</li>
-        <li>Reason Codes</li>
-        <li>Securities</li>
-        <li>Tags</li>
-      </ul>
-    </li>
-    <li><mat-icon>search</mat-icon><span>Audit</span></li>
-  </ul>
-</div>
+.menu li, .submenu li {
+  padding: 10px 20px;
+  cursor: pointer;
+}
 
+.menu li:hover, .submenu li:hover {
+  background-color: #065f6b;
+}
 
----
+.expandable {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-7. Add to app.module.ts
+.expand-icon {
+  margin-left: auto;
+}
 
-Ensure you have declared the components and imported necessary modules like BrowserModule.
-
-
----
-
-If it still doesn’t work, let me know:
-
-Are app.component, header.component, and sidebar.component correctly nested?
-
-Can you confirm the console shows no errors?
-
-Is the menuClicked event firing? (We can add console.log("clicked") inside it to verify.)
-
-
-Let me know and I’ll help debug further.
+Let me know if you want routing links added or styling adjusted further to match the exact color gradients.
 
