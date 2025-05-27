@@ -1,13 +1,45 @@
-To match the sidebar layout you showed in the screenshot (with nested items shown under "Reference Data" and icons for each main item), I’ve updated your sidebar.component.html file as follows:
+Thanks! If you want the entire sidebar to disappear (not just collapse to icons) when clicking the menu icon, follow these steps:
 
-Edited Sidebar HTML:
 
-<div class="sidebar-container" [class.collapsed]="isCollapsed">
-  <button class="toggle-button" (click)="toggleSidebar()">
-    <mat-icon>{{ isCollapsed ? 'chevron_right' : 'chevron_left' }}</mat-icon>
-  </button>
+---
 
-  <ul class="menu" *ngIf="!isCollapsed">
+1. Update sidebar.component.ts
+
+Keep a showSidebar boolean:
+
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-sidebar',
+  templateUrl: './sidebar.component.html',
+  styleUrls: ['./sidebar.component.css']
+})
+export class SidebarComponent {
+  showSidebar = true;
+  referenceDataExpanded = false;
+
+  toggleSidebar() {
+    this.showSidebar = !this.showSidebar;
+  }
+
+  toggleReferenceData() {
+    this.referenceDataExpanded = !this.referenceDataExpanded;
+  }
+}
+
+
+---
+
+2. Update sidebar.component.html
+
+Wrap the entire sidebar with *ngIf="showSidebar" so it completely disappears:
+
+<button class="toggle-button" (click)="toggleSidebar()">
+  <mat-icon>{{ showSidebar ? 'menu_open' : 'menu' }}</mat-icon>
+</button>
+
+<div *ngIf="showSidebar" class="sidebar-container">
+  <ul class="menu">
     <li>
       <mat-icon>apartment</mat-icon>
       <span>Manage Company</span>
@@ -24,12 +56,10 @@ Edited Sidebar HTML:
     <li (click)="toggleReferenceData()" class="expandable">
       <mat-icon>inventory_2</mat-icon>
       <span>Reference Data</span>
-      <mat-icon class="expand-icon">
-        {{ referenceDataExpanded ? 'expand_less' : 'expand_more' }}
-      </mat-icon>
+      <mat-icon>{{ referenceDataExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
     </li>
 
-    <ul class="submenu" *ngIf="referenceDataExpanded">
+    <ul *ngIf="referenceDataExpanded" class="submenu">
       <li>Accounting Period Groups</li>
       <li>Calendars</li>
       <li>Counterparties</li>
@@ -52,59 +82,39 @@ Edited Sidebar HTML:
   </ul>
 </div>
 
-Also update sidebar.component.ts:
 
-export class SidebarComponent {
-  isCollapsed = false;
-  referenceDataExpanded = false;
+---
 
-  toggleSidebar() {
-    this.isCollapsed = !this.isCollapsed;
-  }
-
-  toggleReferenceData() {
-    this.referenceDataExpanded = !this.referenceDataExpanded;
-  }
-}
-
-Add CSS (sidebar.component.css or .scss):
+3. Basic CSS (sidebar.component.css)
 
 .sidebar-container {
   width: 250px;
-  background-color: #04343d;
+  background-color: #1b3b4b;
   color: white;
   height: 100vh;
-  overflow-y: auto;
-  transition: width 0.3s ease;
+  padding: 10px;
 }
 
-.sidebar-container.collapsed {
-  width: 60px;
-}
-
-.menu, .submenu {
-  list-style: none;
-  padding-left: 0;
-}
-
-.menu li, .submenu li {
-  padding: 10px 20px;
+.toggle-button {
+  background: none;
+  border: none;
+  color: #1b3b4b;
+  margin: 10px;
+  font-size: 24px;
   cursor: pointer;
 }
 
-.menu li:hover, .submenu li:hover {
-  background-color: #065f6b;
-}
 
-.expandable {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+---
 
-.expand-icon {
-  margin-left: auto;
-}
+Summary:
 
-Let me know if you want routing links added or styling adjusted further to match the exact color gradients.
+Menu icon always visible at top-left.
+
+Sidebar fully disappears on toggle (not even icons shown).
+
+You can adjust placement of the toggle button as needed.
+
+
+Let me know if you want an animation or transition effect.
 
