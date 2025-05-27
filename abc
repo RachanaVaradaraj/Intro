@@ -1,12 +1,156 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { SidebarComponent } from '../sidebar/sidebar.component';
+import { HeaderComponent } from '../header/header.component';
+import { RouterOutlet } from '@angular/router';
+
+@Component({
+  selector: 'app-layout',
+  standalone: true,
+  imports: [SidebarComponent, HeaderComponent, RouterOutlet],
+  templateUrl: './layout.component.html',
+  styleUrls: ['./layout.component.scss'],
+})
+export class LayoutComponent {}
+
+
+
+
+<div class="layout">
+  <app-sidebar></app-sidebar>
+  <div class="main-content">
+    <app-header></app-header>
+    <router-outlet></router-outlet>
+  </div>
+</div>
+
+
+
+
+.layout {
+  display: flex;
+  height: 100vh;
+
+  .main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background: #f9f9f9;
+  }
+}
+
+
+
+
+
+
+import { Component } from '@angular/core';
+import { RouterModule } from '@angular/router';
+
+@Component({
+  selector: 'app-sidebar',
+  standalone: true,
+  imports: [RouterModule],
+  templateUrl: './sidebar.component.html',
+  styleUrls: ['./sidebar.component.scss'],
+})
+export class SidebarComponent {
+  collapsed = false;
+  toggleSidebar() {
+    this.collapsed = !this.collapsed;
+  }
+}
+
+
+
+
+<div class="sidebar" [class.collapsed]="collapsed">
+  <div class="top-bar">
+    <button (click)="toggleSidebar()">☰</button>
+    <i class="icon-home"></i>
+    <i class="icon-folder"></i>
+    <i class="icon-search"></i>
+  </div>
+
+  <ul class="nav">
+    <li routerLink="/home" routerLinkActive="active">Home</li>
+    <li>
+      <div (click)="collapsed = !collapsed">Manage Company</div>
+      <ul *ngIf="!collapsed">
+        <li routerLink="/manage-company" routerLinkActive="active">View</li>
+      </ul>
+    </li>
+    <li routerLink="/recon-master" routerLinkActive="active">Recon Master</li>
+    <li routerLink="/context-type" routerLinkActive="active">Context Type</li>
+    <li>
+      <div (click)="collapsed = !collapsed">Reference Data</div>
+      <ul *ngIf="!collapsed">
+        <li routerLink="/accounting-period-groups" routerLinkActive="active">
+          Accounting Period Groups
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+
+
+
+
+.sidebar {
+  width: 250px;
+  background-color: #004e66;
+  color: white;
+  transition: width 0.3s;
+  overflow: hidden;
+
+  &.collapsed {
+    width: 60px;
+  }
+
+  .top-bar {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    align-items: center;
+  }
+
+  .nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    li {
+      padding: 10px;
+      cursor: pointer;
+
+      &:hover,
+      &.active {
+        background-color: #00728c;
+      }
+
+      ul {
+        list-style: none;
+        padding-left: 20px;
+      }
+    }
+  }
+
+  i {
+    font-size: 16px;
+    cursor: pointer;
+  }
+}
+
+
+
+
+
+import { Component } from '@angular/core';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule],
   templateUrl: './header.component.html',
-  styleUrls: ['./header.component.css']
+  styleUrls: ['./header.component.scss'],
 })
 export class HeaderComponent {}
 
@@ -14,196 +158,61 @@ export class HeaderComponent {}
 
 
 
-
 <header class="header">
-  <img src="/assets/bnp-logo.gif" alt="Logo" class="logo" />
-  <span class="title">Data Integrity Manager</span>
+  <h1>System Setup</h1>
 </header>
-
-
-import { Component } from '@angular/core';
-import { HeaderComponent } from '../header/header.component';
-import { SidebarComponent } from '../sidebar/sidebar.component';
-import { RouterOutlet } from '@angular/router';
-import { CommonModule } from '@angular/common';
-
-@Component({
-  selector: 'app-layout',
-  standalone: true,
-  imports: [CommonModule, HeaderComponent, SidebarComponent, RouterOutlet],
-  templateUrl: './layout.component.html',
-  styleUrls: ['./layout.component.css']
-})
-export class LayoutComponent {}
-
-
-
-
-
-<app-header></app-header>
-<div class="container">
-  <app-sidebar></app-sidebar>
-  <main class="content">
-    <router-outlet></router-outlet>
-  </main>
-</div>
-
-
-
-
-
-
-.container {
-  display: flex;
-}
-
-.content {
-  flex: 1;
-  background-color: #f4f6f8;
-  padding: 20px;
-  height: calc(100vh - 60px);
-  overflow-y: auto;
-}
-
-
-
-
-
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-
-@Component({
-  selector: 'app-home',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './home.component.html',
-  styleUrls: ['./home.component.css']
-})
-export class HomeComponent {}
-
-
-
-
-
-
-<h2>Accounting Period Groups</h2>
-<div class="card">
-  <p>No Rows to Show</p>
-  <p class="info">Click on › to view the accounting periods.</p>
-</div>
-
-
-
-
-
-.card {
-  padding: 20px;
-  border: 1px solid #ccc;
-  background: #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-}
-
-.info {
-  color: #666;
-  font-size: 14px;
-}
-
-
-
 
 
 
 
 
 .header {
-  height: 60px;
-  background-color: #007c91;
+  background-color: #00728c;
   color: white;
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-}
-
-.logo {
-  height: 40px;
-  margin-right: 10px;
-}
-
-.title {
-  font-size: 20px;
-  font-weight: bold;
+  padding: 15px;
+  font-size: 18px;
+  font-weight: 500;
 }
 
 
 
 
 
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Routes } from '@angular/router';
+import { LayoutComponent } from './layout/layout.component';
+import { HomeComponent } from './home/home.component';
+import { ManageCompanyComponent } from './manage-company/manage-company.component';
+import { ReconMasterComponent } from './recon-master/recon-master.component';
+import { ContextTypeComponent } from './context-type/context-type.component';
+import { AccountingPeriodGroupsComponent } from './accounting-period-groups/accounting-period-groups.component';
 
-@Component({
-  selector: 'app-sidebar',
-  standalone: true,
-  imports: [CommonModule, RouterModule],
-  templateUrl: './sidebar.component.html',
-  styleUrls: ['./sidebar.component.css']
-})
-export class SidebarComponent {}
-
-
-
-
-
-
-<aside class="sidebar">
-  <ul>
-    <li><a routerLink="/home">Home</a></li>
-    <li><strong>Reference Data</strong></li>
-    <ul>
-      <li><a>Accounting Period Groups</a></li>
-      <li><a>Calendars</a></li>
-      <li><a>Counterparties</a></li>
-      <li><a>Currencies</a></li>
-      <li><a>Exchange Rates</a></li>
-      <li><a>Item Types</a></li>
-      <li><a>Reason Codes</a></li>
-    </ul>
-  </ul>
-</aside>
+export const routes: Routes = [
+  {
+    path: '',
+    component: LayoutComponent,
+    children: [
+      { path: 'home', component: HomeComponent },
+      { path: 'manage-company', component: ManageCompanyComponent },
+      { path: 'recon-master', component: ReconMasterComponent },
+      { path: 'context-type', component: ContextTypeComponent },
+      { path: 'accounting-period-groups', component: AccountingPeriodGroupsComponent },
+      { path: '', redirectTo: 'home', pathMatch: 'full' }
+    ],
+  },
+];
 
 
 
 
 
+import { bootstrapApplication } from '@angular/platform-browser';
+import { AppComponent } from './app/app.component';
+import { provideRouter } from '@angular/router';
+import { routes } from './app/app.routes';
 
-.sidebar {
-  width: 240px;
-  background-color: #004d60;
-  color: white;
-  height: 100vh;
-  padding: 20px 10px;
-  font-size: 14px;
-}
-
-.sidebar ul {
-  list-style: none;
-  padding-left: 0;
-}
-
-.sidebar li {
-  margin: 10px 0;
-}
-
-.sidebar a {
-  color: white;
-  text-decoration: none;
-}
-
-.sidebar a:hover {
-  text-decoration: underline;
-}
-
+bootstrapApplication(AppComponent, {
+  providers: [provideRouter(routes)],
+});
 
 
 
