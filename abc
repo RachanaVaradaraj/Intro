@@ -1,93 +1,38 @@
-.sidebar-container {
-  background: linear-gradient(to bottom, #0f525b, #0a3b47);
-  color: white;
-  width: 260px;
-  padding-top: 56px;
-  transition: all 0.3s ease;
-  height: 100vh;
-  position: relative;
-  overflow-x: hidden;
+import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { NgIf, NgFor } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+
+@Component({
+  selector: 'app-sidebar',
+  standalone: true,
+  imports: [NgIf, NgFor, MatIconModule],
+  templateUrl: './sidebar.component.html',
+  styleUrls: ['./sidebar.component.css']
+})
+export class SidebarComponent {
+  @Input() isOpen = true;
+  @Output() toggle = new EventEmitter<void>();
+
+  referenceDataExpanded = false;
+
+  toggleReferenceData() {
+    this.referenceDataExpanded = !this.referenceDataExpanded;
+  }
+
+  toggleSidebar() {
+    this.toggle.emit(); // Notifies layout to toggle
+  }
 }
 
-.sidebar-container.collapsed {
-  width: 60px;
-  background: white;
-  color: #333;
-  padding-top: 56px;
-}
 
-.toggle-button {
-  position: absolute;
-  top: 60px;
-  left: 0;
-  background: transparent;
-  border: none;
-  color: inherit;
-  padding: 8px;
-  cursor: pointer;
-  z-index: 10;
-}
 
-.sidebar-container.collapsed .toggle-button {
-  background: white;
-  color: #333;
-}
 
-.menu {
-  list-style: none;
-  padding: 0 16px;
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  font-size: 14px;
-}
-
-.menu li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  cursor: pointer;
-}
-
-.submenu {
-  list-style: none;
-  padding-left: 40px;
-  font-size: 13px;
-  color: #c0c0c0;
-}
-
-.submenu li {
-  padding: 4px 0;
-}
-
-.expandable {
-  justify-content: space-between;
-  display: flex;
-  align-items: center;
-}
-
-.expand-icon {
-  margin-left: auto;
-}
-<div class="sidebar-container" [class.collapsed]="isCollapsed">
-  <button class="toggle-button" (click)="toggleSidebar()">
-    <mat-icon>{{ isCollapsed ? 'menu' : 'chevron_left' }}</mat-icon>
-  </button>
-
-  <ng-container *ngIf="!isCollapsed">
+<div class="sidebar" [class.closed]="!isOpen">
+  <ng-container *ngIf="isOpen">
     <ul class="menu">
-      <li>
-        <mat-icon>apartment</mat-icon>
-        <span>Manage Company</span>
-      </li>
-      <li>
-        <mat-icon>description</mat-icon>
-        <span>Recon Master</span>
-      </li>
-      <li>
-        <mat-icon>category</mat-icon>
-        <span>Context Type</span>
-      </li>
+      <li><mat-icon>apartment</mat-icon> <span>Manage Company</span></li>
+      <li><mat-icon>description</mat-icon> <span>Recon Master</span></li>
+      <li><mat-icon>category</mat-icon> <span>Context Type</span></li>
       <li (click)="toggleReferenceData()" class="expandable">
         <mat-icon>inventory_2</mat-icon>
         <span>Reference Data</span>
@@ -106,14 +51,69 @@
         <li>Securities</li>
         <li>Tags</li>
       </ul>
-      <li>
-        <mat-icon>search</mat-icon>
-        <span>Audit</span>
-      </li>
-      <li>
-        <mat-icon>list_alt</mat-icon>
-        <span>Logs</span>
-      </li>
+      <li><mat-icon>search</mat-icon> <span>Audit</span></li>
+      <li><mat-icon>list_alt</mat-icon> <span>Logs</span></li>
     </ul>
   </ng-container>
+
+  <!-- Bottom toggle -->
+  <div class="bottom-toggle" (click)="toggleSidebar()">
+    <mat-icon>{{ isOpen ? 'chevron_left' : 'chevron_right' }}</mat-icon>
+  </div>
 </div>
+
+
+
+
+export class LayoutComponent {
+  isSidebarOpen = true;
+
+  toggleSidebar() {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
+}
+export class LayoutComponent {
+  isSidebarOpen = true;
+
+  toggleSidebar() {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
+}
+
+
+
+
+<app-header (menuClick)="toggleSidebar()"></app-header>
+<app-sidebar [isOpen]="isSidebarOpen" (toggle)="toggleSidebar()"></app-sidebar>
+
+<main class="content-area">
+  <!-- Main content here -->
+</main>
+
+
+
+
+import { Component, Output, EventEmitter } from '@angular/core';
+import { MatIconModule } from '@angular/material/icon';
+
+@Component({
+  selector: 'app-header',
+  standalone: true,
+  imports: [MatIconModule],
+  templateUrl: './header.component.html',
+  styleUrls: ['./header.component.css']
+})
+export class HeaderComponent {
+  @Output() menuClick = new EventEmitter<void>();
+
+  toggleMenu() {
+    this.menuClick.emit();
+  }
+}
+
+
+
+<header class="app-header">
+  <mat-icon (click)="toggleMenu()">menu</mat-icon>
+  <!-- other icons/content -->
+</header>
