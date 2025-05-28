@@ -1,232 +1,177 @@
-Thanks for the clear folder structure and image references. Here's the complete Spring Boot code for managing the ExchangeRates_Rachana table in your recon_connect project using Oracle DB.
+Based on your earlier Spring Boot setup and the screenshots, you are trying to build a Spring Boot backend to list all table names from an Oracle database, with an endpoint accessible from an Angular frontend running on port 4200.
+
+Here is a complete and fully working Spring Boot project structure to achieve this.
 
 
 ---
 
-✅ 1. pom.xml Dependencies
+✅ Project Structure
 
-Ensure your pom.xml contains:
-
-<dependencies>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>com.oracle.database.jdbc</groupId>
-        <artifactId>ojdbc8</artifactId>
-        <version>19.3.0.0</version>
-    </dependency>
-</dependencies>
+oracle-connect/
+├── src/
+│   └── main/
+│       ├── java/
+│       │   └── com/example/oracleconnect/
+│       │       ├── OracleTableListApplication.java
+│       │       └── controller/
+│       │           └── TableController.java
+│       └── resources/
+│           ├── application.properties
+├── pom.xml
 
 
 ---
 
-✅ 2. application.properties
+1. pom.xml
 
-spring.datasource.url=jdbc:oracle:thin:@localhost:1521:xe
-spring.datasource.username=your_username
-spring.datasource.password=your_password
+Ensure you have these dependencies for Spring Boot and Oracle:
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>oracle-connect</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.7.0</version>
+    </parent>
+
+    <dependencies>
+        <!-- Spring Boot dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Oracle JDBC -->
+        <dependency>
+            <groupId>com.oracle.database.jdbc</groupId>
+            <artifactId>ojdbc8</artifactId>
+            <version>19.3.0.0</version>
+        </dependency>
+
+        <!-- For JPA (optional if you add JPA later) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+    </dependencies>
+
+    <properties>
+        <java.version>11</java.version>
+    </properties>
+
+</project>
+
+
+---
+
+2. application.properties
+
+spring.datasource.url=jdbc:oracle:thin:@//localhost:1521/XEPDB1
+spring.datasource.username=your_oracle_username
+spring.datasource.password=your_oracle_password
 spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
 
-spring.jpa.database-platform=org.hibernate.dialect.Oracle12cDialect
 spring.jpa.hibernate.ddl-auto=none
 spring.jpa.show-sql=true
 
+> ✅ Replace your_oracle_username and your_oracle_password with your actual credentials. Update the JDBC URL as per your Oracle DB instance.
 
----
 
-✅ 3. Entity: ExchangeRate.java
-
-📁 com.example.recon_connect.entity
-
-package com.example.recon_connect.entity;
-
-import jakarta.persistence.*;
-import java.util.Date;
-
-@Entity
-@Table(name = "ExchangeRates_Rachana")
-@IdClass(ExchangeRateId.class)
-public class ExchangeRate {
-
-    @Id
-    @Column(name = "FromCurr")
-    private String fromCurr;
-
-    @Id
-    @Column(name = "ToCurr")
-    private String toCurr;
-
-    @Column(name = "Rate")
-    private Double rate;
-
-    @Column(name = "LastMod")
-    @Temporal(TemporalType.DATE)
-    private Date lastMod;
-
-    // Getters and Setters
-}
 
 
 ---
 
-✅ 4. Composite Key: ExchangeRateId.java
+3. OracleTableListApplication.java
 
-📁 com.example.recon_connect.entity
-
-package com.example.recon_connect.entity;
-
-import java.io.Serializable;
-import java.util.Objects;
-
-public class ExchangeRateId implements Serializable {
-    private String fromCurr;
-    private String toCurr;
-
-    public ExchangeRateId() {}
-
-    // equals and hashCode
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ExchangeRateId)) return false;
-        ExchangeRateId that = (ExchangeRateId) o;
-        return Objects.equals(fromCurr, that.fromCurr) &&
-               Objects.equals(toCurr, that.toCurr);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(fromCurr, toCurr);
-    }
-}
-
-
----
-
-✅ 5. Repository: ExchangeRateRepository.java
-
-📁 com.example.recon_connect.repository
-
-package com.example.recon_connect.repository;
-
-import com.example.recon_connect.entity.ExchangeRate;
-import com.example.recon_connect.entity.ExchangeRateId;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, ExchangeRateId> {
-}
-
-
----
-
-✅ 6. Controller: ExchangeRateController.java
-
-📁 com.example.recon_connect.controller
-
-package com.example.recon_connect.controller;
-
-import com.example.recon_connect.entity.ExchangeRate;
-import com.example.recon_connect.repository.ExchangeRateRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-
-@RestController
-@RequestMapping("/api/exchange-rates")
-@CrossOrigin(origins = "http://localhost:4200")
-public class ExchangeRateController {
-
-    @Autowired
-    private ExchangeRateRepository repository;
-
-    @GetMapping
-    public List<ExchangeRate> getAll() {
-        return repository.findAll();
-    }
-
-    @PostMapping
-    public ExchangeRate addRate(@RequestBody ExchangeRate rate) {
-        return repository.save(rate);
-    }
-
-    @PutMapping
-    public ExchangeRate updateRate(@RequestBody ExchangeRate rate) {
-        return repository.save(rate);
-    }
-
-    @DeleteMapping("/{from}/{to}")
-    public void deleteRate(@PathVariable String from, @PathVariable String to) {
-        repository.deleteById(new com.example.recon_connect.entity.ExchangeRateId(from, to));
-    }
-}
-
-
----
-
-✅ 7. Main App: ReconApplication.java
-
-package com.example.recon_connect;
+package com.example.oracleconnect;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ReconApplication {
+public class OracleTableListApplication {
     public static void main(String[] args) {
-        SpringApplication.run(ReconApplication.class, args);
+        SpringApplication.run(OracleTableListApplication.class, args);
     }
 }
 
 
 ---
 
-✅ 8. CORS Config (Optional): CorsConfig.java
+4. TableController.java
 
-📁 com.example.recon_connect.config
+package com.example.oracleconnect.controller;
 
-package com.example.recon_connect.config;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.*;
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
-@Configuration
-public class CorsConfig {
-    @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**").allowedOrigins("http://localhost:4200").allowedMethods("*");
+@RestController
+@RequestMapping("/api/tables")
+@CrossOrigin(origins = "http://localhost:4200")  // Angular frontend
+public class TableController {
+
+    @Autowired
+    private DataSource dataSource;
+
+    @GetMapping
+    public List<String> getAllTableNames() {
+        List<String> tableNames = new ArrayList<>();
+        String sql = "SELECT table_name FROM user_tables ORDER BY table_name";
+
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                tableNames.add(rs.getString("table_name"));
             }
-        };
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error retrieving table names from Oracle", e);
+        }
+
+        return tableNames;
     }
 }
 
 
 ---
 
-✅ 9. Build and Run
+✅ How to Run
 
-1. Run Oracle DB and ensure ExchangeRates_Rachana table exists.
-
-
-2. In terminal:
+1. Add your Oracle driver manually if needed (ojdbc8.jar) to your Maven repo, or install via IDE.
 
 
+2. Run the Spring Boot app:
 
-./mvnw clean install
-./mvnw spring-boot:run
+mvn spring-boot:run
+
+
+3. Test the endpoint:
+http://localhost:8080/api/tables — should return a list of table names in JSON.
+
+
+4. Ensure your Angular app (running on http://localhost:4200) makes a GET request to this endpoint.
+
+
 
 
 ---
 
-Would you like me to also generate the Angular service that connects to this API next?
+Would you like me to zip this project structure for you and provide it for download?
 
