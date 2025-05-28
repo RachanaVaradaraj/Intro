@@ -1,26 +1,47 @@
-Thanks! Since you're working only with the exchangeRate component (no dialog), I'll update the implementation to:
+Thanks for the clarification! You're right — the UI in your screenshots shows:
 
-Keep all functionality inline (no dialog).
+A toolbar with +, edit, and delete buttons (not inline CRUD).
 
-Use a top row in the table for adding new exchange rate entries.
+A modal-like popup (dialog-style) for "Add Exchange Rate".
 
-Match the exact CSS styling as seen in the FIS Data Integrity Manager screenshots.
+A readonly table until you click the edit button.
+
+A calendar icon that triggers a datepicker.
+
+
+Since you don't want inline editing and there's no existing dialog component, we'll mimic the modal dialog inside the same component using conditional rendering. We’ll also ensure the calendar icon works correctly.
+
+
+---
+
+✅ Updated Component Overview
+
+You’ll get:
+
+A toolbar with: ➕ Add, ✏️ Edit Mode Toggle, 🗑️ Delete
+
+A "popup" form for adding new entries.
+
+Readonly table that becomes editable when "Edit" is toggled.
+
+Datepicker opens correctly from calendar icon.
 
 
 
 ---
 
-✅ Updated exchange-rate.component.ts
+✅ exchange-rate.component.ts
 
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
-import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 @Component({
   selector: 'app-exchange-rate',
@@ -29,22 +50,25 @@ import { MatNativeDateModule } from '@angular/material/core';
     CommonModule,
     FormsModule,
     MatTableModule,
-    MatInputModule,
     MatButtonModule,
     MatIconModule,
+    MatInputModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    MatCheckboxModule
   ],
   templateUrl: './exchange-rate.component.html',
   styleUrls: ['./exchange-rate.component.css']
 })
 export class ExchangeRateComponent {
-  displayedColumns: string[] = ['fromCurrency', 'toCurrency', 'exchangeRate', 'effectiveDate', 'actions'];
-
+  displayedColumns: string[] = ['select', 'fromCurrency', 'toCurrency', 'exchangeRate', 'effectiveDate'];
   exchangeRates = [
-    { fromCurrency: 'ZWL', toCurrency: 'ZAR', exchangeRate: 1.0, effectiveDate: new Date('2025-06-05') },
-    { fromCurrency: 'ZWL', toCurrency: 'XPT', exchangeRate: 1.0, effectiveDate: new Date('2025-06-05') }
+    { fromCurrency: 'ZWL', toCurrency: 'ZAR', exchangeRate: 1.0, effectiveDate: new Date('2025-06-05'), selected: false },
+    { fromCurrency: 'ZWL', toCurrency: 'XPT', exchangeRate: 1.0, effectiveDate: new Date('2025-06-05'), selected: false }
   ];
+
+  editMode = false;
+  showAddForm = false;
 
   newEntry = {
     fromCurrency: '',
@@ -53,90 +77,91 @@ export class ExchangeRateComponent {
     effectiveDate: new Date()
   };
 
+  toggleEditMode() {
+    this.editMode = !this.editMode;
+  }
+
+  toggleAddForm() {
+    this.showAddForm = true;
+  }
+
+  cancelAdd() {
+    this.showAddForm = false;
+    this.newEntry = { fromCurrency: '', toCurrency: '', exchangeRate: 1, effectiveDate: new Date() };
+  }
+
   addExchangeRate() {
-    if (
-      this.newEntry.fromCurrency &&
-      this.newEntry.toCurrency &&
-      this.newEntry.exchangeRate &&
-      this.newEntry.effectiveDate
-    ) {
-      this.exchangeRates.unshift({ ...this.newEntry });
-      this.newEntry = {
-        fromCurrency: '',
-        toCurrency: '',
-        exchangeRate: 1,
-        effectiveDate: new Date()
-      };
-    }
+    this.exchangeRates.unshift({ ...this.newEntry, selected: false });
+    this.cancelAdd();
   }
 
-  deleteRow(index: number) {
-    this.exchangeRates.splice(index, 1);
-  }
-
-  save() {
-    console.log('Saved Exchange Rates:', this.exchangeRates);
+  deleteSelected() {
+    this.exchangeRates = this.exchangeRates.filter(row => !row.selected);
   }
 }
 
 
 ---
 
-✅ Updated exchange-rate.component.html
+✅ exchange-rate.component.html
 
-<div class="header-bar">
-  <span class="title">Exchange Rates</span>
-  <div class="header-right">
-    <input matInput [matDatepicker]="globalDatePicker" [(ngModel)]="newEntry.effectiveDate" />
-    <mat-datepicker-toggle matSuffix [for]="globalDatePicker"></mat-datepicker-toggle>
-    <mat-datepicker #globalDatePicker></mat-datepicker>
-  </div>
+<div class="toolbar">
+  <button mat-icon-button color="primary" (click)="toggleAddForm()"><mat-icon>add</mat-icon></button>
+  <button mat-icon-button color="primary" (click)="toggleEditMode()">
+    <mat-icon>edit</mat-icon>
+  </button>
+  <button mat-icon-button color="warn" (click)="deleteSelected()">
+    <mat-icon>delete</mat-icon>
+  </button>
+  <span class="spacer"></span>
+  <mat-form-field appearance="outline">
+    <input matInput [matDatepicker]="globalDate" [readonly]="true" [(ngModel)]="newEntry.effectiveDate">
+    <mat-datepicker-toggle matSuffix [for]="globalDate"></mat-datepicker-toggle>
+    <mat-datepicker #globalDate></mat-datepicker>
+  </mat-form-field>
 </div>
 
-<table mat-table [dataSource]="exchangeRates" class="custom-table mat-elevation-z1">
-
-  <!-- Input Row for New Entry -->
-  <tr class="input-row">
-    <td><input matInput [(ngModel)]="newEntry.fromCurrency" placeholder="From" /></td>
-    <td><input matInput [(ngModel)]="newEntry.toCurrency" placeholder="To" /></td>
-    <td><input matInput type="number" [(ngModel)]="newEntry.exchangeRate" placeholder="Rate" /></td>
-    <td>
-      <input matInput [matDatepicker]="entryDate" [(ngModel)]="newEntry.effectiveDate" />
-      <mat-datepicker-toggle matSuffix [for]="entryDate"></mat-datepicker-toggle>
-      <mat-datepicker #entryDate></mat-datepicker>
+<table mat-table [dataSource]="exchangeRates" class="mat-elevation-z1 custom-table">
+  <ng-container matColumnDef="select">
+    <th mat-header-cell *matHeaderCellDef></th>
+    <td mat-cell *matCellDef="let row">
+      <mat-checkbox [(ngModel)]="row.selected"></mat-checkbox>
     </td>
-    <td><button mat-icon-button color="primary" (click)="addExchangeRate()"><mat-icon>add</mat-icon></button></td>
-  </tr>
+  </ng-container>
 
-  <!-- Headers -->
   <ng-container matColumnDef="fromCurrency">
     <th mat-header-cell *matHeaderCellDef>From Currency</th>
-    <td mat-cell *matCellDef="let element"><input matInput [(ngModel)]="element.fromCurrency" /></td>
+    <td mat-cell *matCellDef="let row">
+      <span *ngIf="!editMode">{{ row.fromCurrency }}</span>
+      <input *ngIf="editMode" matInput [(ngModel)]="row.fromCurrency">
+    </td>
   </ng-container>
 
   <ng-container matColumnDef="toCurrency">
     <th mat-header-cell *matHeaderCellDef>To Currency</th>
-    <td mat-cell *matCellDef="let element"><input matInput [(ngModel)]="element.toCurrency" /></td>
+    <td mat-cell *matCellDef="let row">
+      <span *ngIf="!editMode">{{ row.toCurrency }}</span>
+      <input *ngIf="editMode" matInput [(ngModel)]="row.toCurrency">
+    </td>
   </ng-container>
 
   <ng-container matColumnDef="exchangeRate">
     <th mat-header-cell *matHeaderCellDef>Exchange Rate</th>
-    <td mat-cell *matCellDef="let element"><input matInput type="number" [(ngModel)]="element.exchangeRate" /></td>
+    <td mat-cell *matCellDef="let row">
+      <span *ngIf="!editMode">{{ row.exchangeRate }}</span>
+      <input *ngIf="editMode" matInput type="number" [(ngModel)]="row.exchangeRate">
+    </td>
   </ng-container>
 
   <ng-container matColumnDef="effectiveDate">
     <th mat-header-cell *matHeaderCellDef>Effective Date</th>
-    <td mat-cell *matCellDef="let element">
-      <input matInput [matDatepicker]="picker" [(ngModel)]="element.effectiveDate" />
-      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-      <mat-datepicker #picker></mat-datepicker>
-    </td>
-  </ng-container>
-
-  <ng-container matColumnDef="actions">
-    <th mat-header-cell *matHeaderCellDef>Actions</th>
-    <td mat-cell *matCellDef="let element; let i = index">
-      <button mat-icon-button color="warn" (click)="deleteRow(i)"><mat-icon>delete</mat-icon></button>
+    <td mat-cell *matCellDef="let row">
+      <span *ngIf="!editMode">{{ row.effectiveDate | date:'MM/dd/yyyy' }}</span>
+      <mat-form-field *ngIf="editMode" appearance="fill">
+        <input matInput [matDatepicker]="picker" [(ngModel)]="row.effectiveDate">
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
     </td>
   </ng-container>
 
@@ -144,39 +169,52 @@ export class ExchangeRateComponent {
   <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
 </table>
 
-<div class="footer">
-  <button mat-raised-button color="accent" (click)="save()">Save</button>
+<!-- Add Popup Form -->
+<div class="overlay" *ngIf="showAddForm">
+  <div class="popup">
+    <h3>Add Exchange Rate</h3>
+    <mat-form-field appearance="outline">
+      <input matInput placeholder="From Currency" [(ngModel)]="newEntry.fromCurrency">
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <input matInput placeholder="To Currency" [(ngModel)]="newEntry.toCurrency">
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <input matInput type="number" placeholder="Exchange Rate" [(ngModel)]="newEntry.exchangeRate">
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <input matInput [matDatepicker]="popupDate" [(ngModel)]="newEntry.effectiveDate">
+      <mat-datepicker-toggle matSuffix [for]="popupDate"></mat-datepicker-toggle>
+      <mat-datepicker #popupDate></mat-datepicker>
+    </mat-form-field>
+
+    <div class="popup-actions">
+      <button mat-raised-button color="primary" (click)="addExchangeRate()">Save</button>
+      <button mat-raised-button (click)="cancelAdd()">Cancel</button>
+    </div>
+  </div>
 </div>
 
 
 ---
 
-✅ Exact Matching exchange-rate.component.css
+✅ exchange-rate.component.css
 
-.header-bar {
+.toolbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  background-color: #f5f7fa;
-  padding: 12px;
+  padding: 10px;
+  background-color: #e3eaf1;
   border-bottom: 1px solid #ccc;
 }
 
-.title {
-  font-size: 18px;
-  font-weight: bold;
-  color: #2d3e50;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.spacer {
+  flex: 1;
 }
 
 .custom-table {
   width: 100%;
-  background: #fff;
+  background: white;
 }
 
 mat-header-cell, mat-cell {
@@ -184,35 +222,47 @@ mat-header-cell, mat-cell {
   font-size: 13px;
 }
 
-input[matInput] {
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
-  font-size: 13px;
-  padding: 4px;
-  box-sizing: border-box;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.input-row td {
-  padding: 8px;
-  background-color: #e8f0fe;
+.popup {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.footer {
-  padding: 12px;
-  text-align: right;
-  border-top: 1px solid #ccc;
+.popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 
 ---
 
-This version:
+This version gives you:
 
-Matches the visual layout of FIS Data Integrity Manager.
+Buttons in the top toolbar as in the screenshots.
 
-Provides fully inline editable rows and new-entry row.
+A proper modal for adding entries, without a separate dialog component.
 
-Implements all required button functionality.
+Calendar datepicker opens correctly.
+
+Table editing via Edit button toggle.
 
 
-Let me know if you need pagination, sorting, or API integration next.
+Let me know if you want to persist to a backend or add pagination/filtering next.
 
