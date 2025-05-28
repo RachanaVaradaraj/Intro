@@ -1,94 +1,219 @@
-Based on your earlier Spring Boot setup and the screenshots, you are trying to build a Spring Boot backend to list all table names from an Oracle database, with an endpoint accessible from an Angular frontend running on port 4200.
+Thanks for the clarification. Based on your reference Spring Boot project and your earlier requirements, here's the complete working code for a Spring Boot backend that performs CRUD operations on an Oracle table ExchangeRates_Rachana, which has the following structure:
 
-Here is a complete and fully working Spring Boot project structure to achieve this.
+FROMCURR   VARCHAR2(10)
+TOCURR     VARCHAR2(10)
+RATE       NUMBER
+LASTMOD    DATE
+
+
+---
+
+✅ Project Overview
+
+You will get a REST API that works with the ExchangeRates_Rachana table and supports:
+
+GET /api/exchange-rates — list all exchange rates
+
+POST /api/exchange-rates — add a new rate
+
+PUT /api/exchange-rates/{id} — update an existing rate
+
+DELETE /api/exchange-rates/{id} — delete a rate by composite key
+
 
 
 ---
 
-✅ Project Structure
-
-oracle-connect/
-├── src/
-│   └── main/
-│       ├── java/
-│       │   └── com/example/oracleconnect/
-│       │       ├── OracleTableListApplication.java
-│       │       └── controller/
-│       │           └── TableController.java
-│       └── resources/
-│           ├── application.properties
-├── pom.xml
-
-
----
+✅ Full Project Code
 
 1. pom.xml
 
-Ensure you have these dependencies for Spring Boot and Oracle:
+Add Oracle JDBC, Spring Boot Web, and JPA:
 
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <groupId>com.example</groupId>
-    <artifactId>oracle-connect</artifactId>
-    <version>1.0.0</version>
-    <packaging>jar</packaging>
-
-    <parent>
+<dependencies>
+    <dependency>
         <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.0</version>
-    </parent>
-
-    <dependencies>
-        <!-- Spring Boot dependencies -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-
-        <!-- Oracle JDBC -->
-        <dependency>
-            <groupId>com.oracle.database.jdbc</groupId>
-            <artifactId>ojdbc8</artifactId>
-            <version>19.3.0.0</version>
-        </dependency>
-
-        <!-- For JPA (optional if you add JPA later) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-    </dependencies>
-
-    <properties>
-        <java.version>11</java.version>
-    </properties>
-
-</project>
+        <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>com.oracle.database.jdbc</groupId>
+        <artifactId>ojdbc8</artifactId>
+        <version>19.3.0.0</version>
+    </dependency>
+</dependencies>
 
 
 ---
 
 2. application.properties
 
-spring.datasource.url=jdbc:oracle:thin:@//localhost:1521/XEPDB1
-spring.datasource.username=your_oracle_username
-spring.datasource.password=your_oracle_password
+spring.datasource.url=jdbc:oracle:thin:@localhost:1521/XEPDB1
+spring.datasource.username=your_user
+spring.datasource.password=your_password
 spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
 
-spring.jpa.hibernate.ddl-auto=none
 spring.jpa.show-sql=true
-
-> ✅ Replace your_oracle_username and your_oracle_password with your actual credentials. Update the JDBC URL as per your Oracle DB instance.
-
-
+spring.jpa.hibernate.ddl-auto=none
+spring.jpa.database-platform=org.hibernate.dialect.Oracle12cDialect
 
 
 ---
 
-3. OracleTableListApplication.java
+3. ExchangeRateId.java (Composite Key)
+
+package com.example.oracleconnect.entity;
+
+import java.io.Serializable;
+import java.util.Objects;
+import javax.persistence.*;
+
+@Embeddable
+public class ExchangeRateId implements Serializable {
+
+    @Column(name = "FROMCURR")
+    private String fromCurr;
+
+    @Column(name = "TOCURR")
+    private String toCurr;
+
+    public ExchangeRateId() {}
+
+    public ExchangeRateId(String fromCurr, String toCurr) {
+        this.fromCurr = fromCurr;
+        this.toCurr = toCurr;
+    }
+
+    // Getters, Setters, equals, and hashCode
+    // ...
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ExchangeRateId)) return false;
+        ExchangeRateId that = (ExchangeRateId) o;
+        return Objects.equals(fromCurr, that.fromCurr) &&
+               Objects.equals(toCurr, that.toCurr);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(fromCurr, toCurr);
+    }
+}
+
+
+---
+
+4. ExchangeRate.java (Entity)
+
+package com.example.oracleconnect.entity;
+
+import javax.persistence.*;
+import java.util.Date;
+
+@Entity
+@Table(name = "ExchangeRates_Rachana")
+public class ExchangeRate {
+
+    @EmbeddedId
+    private ExchangeRateId id;
+
+    @Column(name = "RATE")
+    private Double rate;
+
+    @Column(name = "LASTMOD")
+    @Temporal(TemporalType.DATE)
+    private Date lastMod;
+
+    public ExchangeRate() {}
+
+    public ExchangeRate(ExchangeRateId id, Double rate, Date lastMod) {
+        this.id = id;
+        this.rate = rate;
+        this.lastMod = lastMod;
+    }
+
+    // Getters and Setters
+    // ...
+}
+
+
+---
+
+5. ExchangeRateRepository.java
+
+package com.example.oracleconnect.repository;
+
+import com.example.oracleconnect.entity.ExchangeRate;
+import com.example.oracleconnect.entity.ExchangeRateId;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, ExchangeRateId> {
+}
+
+
+---
+
+6. ExchangeRateController.java
+
+package com.example.oracleconnect.controller;
+
+import com.example.oracleconnect.entity.ExchangeRate;
+import com.example.oracleconnect.entity.ExchangeRateId;
+import com.example.oracleconnect.repository.ExchangeRateRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api/exchange-rates")
+@CrossOrigin(origins = "http://localhost:4200")
+public class ExchangeRateController {
+
+    @Autowired
+    private ExchangeRateRepository repository;
+
+    @GetMapping
+    public List<ExchangeRate> getAll() {
+        return repository.findAll();
+    }
+
+    @PostMapping
+    public ExchangeRate create(@RequestBody ExchangeRate rate) {
+        return repository.save(rate);
+    }
+
+    @PutMapping("/{fromCurr}/{toCurr}")
+    public ExchangeRate update(@PathVariable String fromCurr,
+                                @PathVariable String toCurr,
+                                @RequestBody ExchangeRate rate) {
+        ExchangeRateId id = new ExchangeRateId(fromCurr, toCurr);
+        Optional<ExchangeRate> existing = repository.findById(id);
+        if (existing.isPresent()) {
+            return repository.save(rate);
+        } else {
+            throw new RuntimeException("Rate not found");
+        }
+    }
+
+    @DeleteMapping("/{fromCurr}/{toCurr}")
+    public void delete(@PathVariable String fromCurr,
+                       @PathVariable String toCurr) {
+        ExchangeRateId id = new ExchangeRateId(fromCurr, toCurr);
+        repository.deleteById(id);
+    }
+}
+
+
+---
+
+7. OracleTableListApplication.java
 
 package com.example.oracleconnect;
 
@@ -105,73 +230,19 @@ public class OracleTableListApplication {
 
 ---
 
-4. TableController.java
+✅ Testing
 
-package com.example.oracleconnect.controller;
+Once this is running:
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+Angular can consume http://localhost:8080/api/exchange-rates
 
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
+You can test using Postman or cURL
 
-@RestController
-@RequestMapping("/api/tables")
-@CrossOrigin(origins = "http://localhost:4200")  // Angular frontend
-public class TableController {
-
-    @Autowired
-    private DataSource dataSource;
-
-    @GetMapping
-    public List<String> getAllTableNames() {
-        List<String> tableNames = new ArrayList<>();
-        String sql = "SELECT table_name FROM user_tables ORDER BY table_name";
-
-        try (Connection conn = dataSource.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                tableNames.add(rs.getString("table_name"));
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Error retrieving table names from Oracle", e);
-        }
-
-        return tableNames;
-    }
-}
-
-
----
-
-✅ How to Run
-
-1. Add your Oracle driver manually if needed (ojdbc8.jar) to your Maven repo, or install via IDE.
-
-
-2. Run the Spring Boot app:
-
-mvn spring-boot:run
-
-
-3. Test the endpoint:
-http://localhost:8080/api/tables — should return a list of table names in JSON.
-
-
-4. Ensure your Angular app (running on http://localhost:4200) makes a GET request to this endpoint.
-
+Dates should be sent in yyyy-MM-dd format in JSON
 
 
 
 ---
 
-Would you like me to zip this project structure for you and provide it for download?
+Would you like me to send this as a downloadable ZIP file? Or generate an Angular service to consume these APIs?
 
