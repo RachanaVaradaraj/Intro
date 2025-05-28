@@ -1,86 +1,45 @@
-Here’s the complete package structure and code for your Spring Boot project recon_connect, connected to the Oracle table ExchangeRates_Rachana with full CRUD support.
+Based on your images and uploaded reference files, you're working on a Spring Boot backend for managing exchange rates. I’ll now provide a complete backend implementation for CRUD operations on the ExchangeRates_Rachana Oracle table with the structure:
 
+FROMCURR (VARCHAR2)
 
----
+TOCURR (VARCHAR2)
 
-✅ Project Structure
+RATE (NUMBER)
 
-recon_connect/
-├── src/
-│   └── main/
-│       ├── java/
-│       │   └── com/
-│       │       └── example/
-│       │           └── recon_connect/
-│       │               ├── ReconApplication.java
-│       │               ├── controller/
-│       │               │   └── ExchangeRateController.java
-│       │               ├── entity/
-│       │               │   ├── ExchangeRate.java
-│       │               │   └── ExchangeRateId.java
-│       │               ├── repository/
-│       │               │   └── ExchangeRateRepository.java
-│       │               └── service/
-│       │                   └── ExchangeRateService.java
-│       └── resources/
-│           ├── application.properties
-│           └── ...
+LASTMOD (DATE)
+
 
 
 ---
 
-✅ 1. ReconApplication.java
+✅ Folder Structure (Package: com.recon_connect)
 
-package com.example.recon_connect;
-
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-@SpringBootApplication
-public class ReconApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(ReconApplication.class, args);
-    }
-}
-
-
----
-
-✅ 2. ExchangeRateId.java (Composite Key)
-
-package com.example.recon_connect.entity;
-
-import java.io.Serializable;
-import java.util.Objects;
-import jakarta.persistence.Embeddable;
-
-@Embeddable
-public class ExchangeRateId implements Serializable {
-    private String fromCurr;
-    private String toCurr;
-
-    public ExchangeRateId() {}
-
-    public ExchangeRateId(String fromCurr, String toCurr) {
-        this.fromCurr = fromCurr;
-        this.toCurr = toCurr;
-    }
-
-    // Getters, Setters, equals(), hashCode()
-}
+src/
+└── main/
+    └── java/
+        └── com/
+            └── recon_connect/
+                ├── controller/
+                │   └── ExchangeRateController.java
+                ├── entity/
+                │   └── ExchangeRate.java
+                ├── repository/
+                │   └── ExchangeRateRepository.java
+                ├── config/
+                │   └── CorsConfig.java
+                └── ReconApplication.java
 
 
 ---
 
-✅ 3. ExchangeRate.java (Entity)
+1. ExchangeRate.java (Entity)
 
-package com.example.recon_connect.entity;
+package com.recon_connect.entity;
 
 import jakarta.persistence.*;
 import java.util.Date;
 
 @Entity
-@IdClass(ExchangeRateId.class)
 @Table(name = "ExchangeRates_Rachana")
 public class ExchangeRate {
 
@@ -88,7 +47,6 @@ public class ExchangeRate {
     @Column(name = "FROMCURR")
     private String fromCurr;
 
-    @Id
     @Column(name = "TOCURR")
     private String toCurr;
 
@@ -100,119 +58,168 @@ public class ExchangeRate {
     private Date lastMod;
 
     // Getters and Setters
+    public String getFromCurr() {
+        return fromCurr;
+    }
+
+    public void setFromCurr(String fromCurr) {
+        this.fromCurr = fromCurr;
+    }
+
+    public String getToCurr() {
+        return toCurr;
+    }
+
+    public void setToCurr(String toCurr) {
+        this.toCurr = toCurr;
+    }
+
+    public Double getRate() {
+        return rate;
+    }
+
+    public void setRate(Double rate) {
+        this.rate = rate;
+    }
+
+    public Date getLastMod() {
+        return lastMod;
+    }
+
+    public void setLastMod(Date lastMod) {
+        this.lastMod = lastMod;
+    }
 }
 
 
 ---
 
-✅ 4. ExchangeRateRepository.java
+2. ExchangeRateRepository.java
 
-package com.example.recon_connect.repository;
+package com.recon_connect.repository;
 
-import com.example.recon_connect.entity.ExchangeRate;
-import com.example.recon_connect.entity.ExchangeRateId;
+import com.recon_connect.entity.ExchangeRate;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, ExchangeRateId> {}
-
-
----
-
-✅ 5. ExchangeRateService.java
-
-package com.example.recon_connect.service;
-
-import com.example.recon_connect.entity.ExchangeRate;
-import com.example.recon_connect.entity.ExchangeRateId;
-import com.example.recon_connect.repository.ExchangeRateRepository;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Optional;
-
-@Service
-public class ExchangeRateService {
-
-    private final ExchangeRateRepository repository;
-
-    public ExchangeRateService(ExchangeRateRepository repository) {
-        this.repository = repository;
-    }
-
-    public List<ExchangeRate> getAllRates() {
-        return repository.findAll();
-    }
-
-    public Optional<ExchangeRate> getRateById(ExchangeRateId id) {
-        return repository.findById(id);
-    }
-
-    public ExchangeRate saveOrUpdate(ExchangeRate rate) {
-        return repository.save(rate);
-    }
-
-    public void deleteById(ExchangeRateId id) {
-        repository.deleteById(id);
-    }
+public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, String> {
 }
 
 
 ---
 
-✅ 6. ExchangeRateController.java
+3. ExchangeRateController.java
 
-package com.example.recon_connect.controller;
+package com.recon_connect.controller;
 
-import com.example.recon_connect.entity.ExchangeRate;
-import com.example.recon_connect.entity.ExchangeRateId;
-import com.example.recon_connect.service.ExchangeRateService;
+import com.recon_connect.entity.ExchangeRate;
+import com.recon_connect.repository.ExchangeRateRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/exchange-rates")
 @CrossOrigin(origins = "*")
 public class ExchangeRateController {
 
-    private final ExchangeRateService service;
+    private final ExchangeRateRepository repository;
 
-    public ExchangeRateController(ExchangeRateService service) {
-        this.service = service;
+    public ExchangeRateController(ExchangeRateRepository repository) {
+        this.repository = repository;
     }
 
     @GetMapping
     public List<ExchangeRate> getAll() {
-        return service.getAllRates();
+        return repository.findAll();
     }
 
     @PostMapping
-    public ExchangeRate save(@RequestBody ExchangeRate rate) {
-        return service.saveOrUpdate(rate);
+    public ExchangeRate add(@RequestBody ExchangeRate rate) {
+        return repository.save(rate);
     }
 
-    @DeleteMapping("/{from}/{to}")
-    public void delete(@PathVariable String from, @PathVariable String to) {
-        service.deleteById(new ExchangeRateId(from, to));
+    @PutMapping("/{fromCurr}")
+    public ExchangeRate update(@PathVariable String fromCurr, @RequestBody ExchangeRate rate) {
+        Optional<ExchangeRate> existing = repository.findById(fromCurr);
+        if (existing.isPresent()) {
+            ExchangeRate existingRate = existing.get();
+            existingRate.setToCurr(rate.getToCurr());
+            existingRate.setRate(rate.getRate());
+            existingRate.setLastMod(rate.getLastMod());
+            return repository.save(existingRate);
+        } else {
+            return repository.save(rate); // Or throw error if you want strict update
+        }
+    }
+
+    @DeleteMapping("/{fromCurr}")
+    public void delete(@PathVariable String fromCurr) {
+        repository.deleteById(fromCurr);
     }
 }
 
 
 ---
 
-✅ 7. application.properties
+4. CorsConfig.java (Optional CORS config)
 
-spring.datasource.url=jdbc:oracle:thin:@localhost:1521:XE
+package com.recon_connect.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class CorsConfig {
+    @Bean
+    public WebMvcConfigurer corsConfigurer() {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addCorsMappings(CorsRegistry registry) {
+                registry.addMapping("/**")
+                        .allowedOrigins("*")
+                        .allowedMethods("*");
+            }
+        };
+    }
+}
+
+
+---
+
+5. ReconApplication.java (Main class)
+
+package com.recon_connect;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ReconApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(ReconApplication.class, args);
+    }
+}
+
+
+---
+
+✅ application.properties (Oracle DB connection)
+
+spring.datasource.url=jdbc:oracle:thin:@localhost:1521:xe
 spring.datasource.username=your_oracle_username
 spring.datasource.password=your_oracle_password
 spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
 
 spring.jpa.hibernate.ddl-auto=none
 spring.jpa.show-sql=true
-spring.jpa.database-platform=org.hibernate.dialect.Oracle12cDialect
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.Oracle12cDialect
 
 
 ---
 
-Would you like this in a downloadable zip or GitHub structure? Or do you want the Angular frontend hooked to this API too?
+Would you like the corresponding Angular 17 code that interacts with this backend and reflects changes on the UI as discussed earlier?
 
