@@ -1,253 +1,54 @@
-Great — thanks for confirming the design! Now let's make sure all the functionalities work correctly and that everything is fully wired up:
+Great! To make the calendar icon open the calendar when clicked, you need to:
 
-✅ Goals to Fix:
-
-1. Add data into table (from inline popup).
+1. Attach the mat-datepicker-toggle properly.
 
 
-2. Edit existing row (via same popup with pre-filled values).
-
-
-3. Delete a row.
-
-
-4. Calendar icon opens datepicker.
-
-
-5. Table scrolls when many rows are present.
+2. Make sure the calendar icon acts as the trigger.
 
 
 
+✅ Here’s the updated HTML snippet for the date picker section:
 
----
+Replace your existing date section in exchange-rates.component.html with this:
 
-✅ Final Working Code Below:
-
-
----
-
-exchange-rates.component.ts
-
-import { Component } from '@angular/core';
-
-@Component({
-  selector: 'app-exchange-rates',
-  standalone: true,
-  templateUrl: './exchange-rates.component.html',
-  styleUrls: ['./exchange-rates.component.css'],
-})
-export class ExchangeRatesComponent {
-  exchangeRates: {
-    fromCurrency: string;
-    toCurrency: string;
-    rate: number;
-    effectiveDate: Date;
-  }[] = [];
-
-  formModel = {
-    fromCurrency: '',
-    toCurrency: '',
-    rate: 0,
-    effectiveDate: new Date(),
-  };
-
-  showForm = false;
-  isEditing = false;
-  editIndex: number | null = null;
-
-  openForm(index: number | null = null): void {
-    if (index !== null) {
-      this.isEditing = true;
-      this.editIndex = index;
-      this.formModel = { ...this.exchangeRates[index] };
-    } else {
-      this.isEditing = false;
-      this.editIndex = null;
-      this.formModel = {
-        fromCurrency: '',
-        toCurrency: '',
-        rate: 0,
-        effectiveDate: new Date(),
-      };
-    }
-    this.showForm = true;
-  }
-
-  saveForm(): void {
-    if (this.isEditing && this.editIndex !== null) {
-      this.exchangeRates[this.editIndex] = { ...this.formModel };
-    } else {
-      this.exchangeRates.push({ ...this.formModel });
-    }
-    this.closeForm();
-  }
-
-  deleteRate(index: number): void {
-    this.exchangeRates.splice(index, 1);
-  }
-
-  closeForm(): void {
-    this.showForm = false;
-  }
-}
-
-
----
-
-exchange-rates.component.html
-
-<div class="container">
-  <button class="add-btn" (click)="openForm()">+ Add Exchange Rate</button>
-
-  <div class="table-wrapper">
-    <table>
-      <thead>
-        <tr>
-          <th>From Currency</th>
-          <th>To Currency</th>
-          <th>Rate</th>
-          <th>Effective Date</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let rate of exchangeRates; let i = index">
-          <td>{{ rate.fromCurrency }}</td>
-          <td>{{ rate.toCurrency }}</td>
-          <td>{{ rate.rate }}</td>
-          <td>{{ rate.effectiveDate | date: 'MM/dd/yyyy' }}</td>
-          <td>
-            <button (click)="openForm(i)">Edit</button>
-            <button (click)="deleteRate(i)">Delete</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Popup form -->
-  <div class="popup" *ngIf="showForm">
-    <div class="popup-content">
-      <h3>{{ isEditing ? 'Edit Exchange Rate' : 'Add Exchange Rate' }}</h3>
-
-      <label>From Currency</label>
-      <input [(ngModel)]="formModel.fromCurrency" type="text" />
-
-      <label>To Currency</label>
-      <input [(ngModel)]="formModel.toCurrency" type="text" />
-
-      <label>Exchange Rate</label>
-      <input [(ngModel)]="formModel.rate" type="number" />
-
-      <label>Effective Date</label>
-      <input [matDatepicker]="picker" [(ngModel)]="formModel.effectiveDate" />
-      <mat-datepicker-toggle matSuffix [for]="picker">
-        <mat-icon>calendar_today</mat-icon>
-      </mat-datepicker-toggle>
-      <mat-datepicker #picker></mat-datepicker>
-
-      <div class="actions">
-        <button (click)="saveForm()">Save</button>
-        <button (click)="closeForm()">Cancel</button>
-      </div>
-    </div>
-  </div>
+<label>Effective Date</label>
+<div class="datepicker-container">
+  <input [matDatepicker]="picker" [(ngModel)]="formModel.effectiveDate" />
+  <mat-datepicker-toggle [for]="picker" matSuffix></mat-datepicker-toggle>
+  <mat-datepicker #picker></mat-datepicker>
 </div>
 
+✅ And add this CSS to position the icon nicely:
 
----
+In exchange-rates.component.css, add:
 
-exchange-rates.component.css
-
-.container {
-  padding: 20px;
-}
-
-.add-btn {
-  background-color: #006666;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  margin-bottom: 16px;
-  cursor: pointer;
-}
-
-.table-wrapper {
-  max-height: 300px;
-  overflow-y: auto;
-  border: 1px solid #ccc;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th, td {
-  border: 1px solid #ccc;
-  padding: 8px;
-  text-align: left;
-}
-
-.popup {
-  position: fixed;
-  top: 20%;
-  left: 40%;
-  background: white;
-  border: 1px solid #ccc;
-  padding: 24px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
-  width: 300px;
-}
-
-.popup-content {
+.datepicker-container {
   display: flex;
-  flex-direction: column;
-}
-
-.popup-content input {
-  margin-bottom: 12px;
-  padding: 6px;
-  border: 1px solid #aaa;
-  border-radius: 4px;
-}
-
-.actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
 }
 
 
 ---
 
-✅ Make Sure These Modules Are Imported:
+✅ Ensure You’ve Imported These:
 
-In your app.config.ts or module setup:
+In your app.config.ts (or module):
 
-import { provideAnimations } from '@angular/platform-browser/animations';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
-import { FormsModule } from '@angular/forms';
 
-bootstrapApplication(AppComponent, {
-  providers: [
-    provideAnimations(),
-    importProvidersFrom(
-      FormsModule,
-      MatDatepickerModule,
-      MatNativeDateModule,
-      MatIconModule
-    ),
-  ],
-});
+And in providers (for standalone apps):
+
+importProvidersFrom(
+  MatDatepickerModule,
+  MatNativeDateModule,
+  MatIconModule
+)
 
 
 ---
 
-Let me know if you're using a module-based setup and need NgModule-style imports instead.
-
-Would you like me to bundle this into a StackBlitz link or zip file?
+Now the calendar icon will open the calendar correctly! Let me know if you'd like it to look more compact or to appear inline.
 
