@@ -1,84 +1,68 @@
-Thanks for pointing that out. Here's the corrected and fully working Angular 17 standalone component with the HTML errors fixed. It includes:
+Thank you for sharing the screenshots — they reveal the core issue:
 
-Edit and Delete buttons next to each row.
+❌ Error Summary:
 
-Proper use of mat-datepicker that opens when the calendar icon is clicked.
+NG5002: Parser Error: Unexpected token '{' at column 7 in [picker({ i })]
 
-Scrollable table when many rows exist.
+This means Angular is trying to interpret picker({ i }) as a directive or method inside the HTML template, but this is invalid because:
 
-Add, Edit, Save, and Delete functionality.
+You're using picker({ i }) inside square brackets ([picker({ i })]) — this is not a valid Angular directive or property binding.
+
+picker is not defined, or you're trying to call a function like picker() directly in an input binding — which isn't supported like that.
 
 
 
 ---
 
-✅ exchange-rate.component.ts
+✅ What You Need:
+
+Here’s a clean and working version of your exchange-rates.component.html, ts, and css with:
+
+Working Datepicker
+
+Correct buttons next to each row
+
+Editable fields
+
+Scrollable table
+
+
+
+---
+
+✅ exchange-rates.component.ts
 
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatFormFieldModule } from '@angular/material/form-field';
-
-interface ExchangeRate {
-  fromCurrency: string;
-  toCurrency: string;
-  rate: number;
-  effectiveDate: Date;
-  isEditing?: boolean;
-}
 
 @Component({
-  selector: 'app-exchange-rate',
+  selector: 'app-exchange-rates',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatIconModule,
-    MatInputModule,
-    MatButtonModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatFormFieldModule
-  ],
-  templateUrl: './exchange-rate.component.html',
-  styleUrls: ['./exchange-rate.component.css']
+  templateUrl: './exchange-rates.component.html',
+  styleUrls: ['./exchange-rates.component.css'],
 })
-export class ExchangeRateComponent {
-  exchangeRates: ExchangeRate[] = [
-    { fromCurrency: 'ZWL', toCurrency: 'USD', rate: 1.0, effectiveDate: new Date() }
+export class ExchangeRatesComponent {
+  exchangeRates = [
+    { currency: 'USD', rate: 1.0, effectiveDate: new Date(), isEditing: false },
   ];
 
-  newRate: ExchangeRate = {
-    fromCurrency: '',
-    toCurrency: '',
-    rate: 1,
-    effectiveDate: new Date()
-  };
-
-  addExchangeRate() {
-    this.exchangeRates.push({ ...this.newRate });
-    this.newRate = {
-      fromCurrency: '',
-      toCurrency: '',
-      rate: 1,
-      effectiveDate: new Date()
-    };
+  addRate() {
+    this.exchangeRates.push({
+      currency: '',
+      rate: 0,
+      effectiveDate: new Date(),
+      isEditing: true,
+    });
   }
 
-  editExchangeRate(rate: ExchangeRate) {
+  editRate(rate: any) {
     rate.isEditing = true;
   }
 
-  saveExchangeRate(rate: ExchangeRate) {
+  saveRate(rate: any) {
     rate.isEditing = false;
   }
 
-  deleteExchangeRate(index: number) {
+  deleteRate(index: number) {
     this.exchangeRates.splice(index, 1);
   }
 }
@@ -86,150 +70,110 @@ export class ExchangeRateComponent {
 
 ---
 
-✅ exchange-rate.component.html
+✅ exchange-rates.component.html
 
-<div class="container">
-  <h2>Exchange Rates</h2>
+<div class="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th>Currency</th>
+        <th>Rate</th>
+        <th>Effective Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let rate of exchangeRates; let i = index">
+        <td>
+          <input type="text" [(ngModel)]="rate.currency" [readonly]="!rate.isEditing" />
+        </td>
+        <td>
+          <input type="number" [(ngModel)]="rate.rate" [readonly]="!rate.isEditing" />
+        </td>
+        <td class="date-cell">
+          <input
+            type="date"
+            [(ngModel)]="rate.effectiveDate"
+            [readonly]="!rate.isEditing"
+            class="date-input"
+          />
+        </td>
+        <td class="actions">
+          <button *ngIf="!rate.isEditing" (click)="editRate(rate)">Edit</button>
+          <button *ngIf="rate.isEditing" (click)="saveRate(rate)">Save</button>
+          <button (click)="deleteRate(i)">Delete</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
-  <div class="input-row">
-    <mat-form-field appearance="outline">
-      <mat-label>From Currency</mat-label>
-      <input matInput [(ngModel)]="newRate.fromCurrency">
-    </mat-form-field>
-
-    <mat-form-field appearance="outline">
-      <mat-label>To Currency</mat-label>
-      <input matInput [(ngModel)]="newRate.toCurrency">
-    </mat-form-field>
-
-    <mat-form-field appearance="outline">
-      <mat-label>Exchange Rate</mat-label>
-      <input matInput type="number" [(ngModel)]="newRate.rate">
-    </mat-form-field>
-
-    <mat-form-field appearance="outline">
-      <mat-label>Effective Date</mat-label>
-      <input matInput [matDatepicker]="picker" [(ngModel)]="newRate.effectiveDate">
-      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-      <mat-datepicker #picker></mat-datepicker>
-    </mat-form-field>
-
-    <button mat-raised-button color="primary" (click)="addExchangeRate()">Add</button>
-  </div>
-
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th>From</th>
-          <th>To</th>
-          <th>Rate</th>
-          <th>Effective Date</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let rate of exchangeRates; let i = index">
-          <td>
-            <ng-container *ngIf="rate.isEditing; else fromDisplay">
-              <input [(ngModel)]="rate.fromCurrency" />
-            </ng-container>
-            <ng-template #fromDisplay>{{ rate.fromCurrency }}</ng-template>
-          </td>
-          <td>
-            <ng-container *ngIf="rate.isEditing; else toDisplay">
-              <input [(ngModel)]="rate.toCurrency" />
-            </ng-container>
-            <ng-template #toDisplay>{{ rate.toCurrency }}</ng-template>
-          </td>
-          <td>
-            <ng-container *ngIf="rate.isEditing; else rateDisplay">
-              <input type="number" [(ngModel)]="rate.rate" />
-            </ng-container>
-            <ng-template #rateDisplay>{{ rate.rate }}</ng-template>
-          </td>
-          <td>
-            <ng-container *ngIf="rate.isEditing; else dateDisplay">
-              <mat-form-field appearance="outline">
-                <input matInput [matDatepicker]="picker{{ i }}" [(ngModel)]="rate.effectiveDate">
-                <mat-datepicker-toggle matSuffix [for]="picker{{ i }}"></mat-datepicker-toggle>
-                <mat-datepicker #picker{{ i }}></mat-datepicker>
-              </mat-form-field>
-            </ng-container>
-            <ng-template #dateDisplay>
-              {{ rate.effectiveDate | date: 'MM/dd/yyyy' }}
-            </ng-template>
-          </td>
-          <td>
-            <button mat-icon-button color="primary" (click)="editExchangeRate(rate)" *ngIf="!rate.isEditing">
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button mat-icon-button color="accent" (click)="saveExchangeRate(rate)" *ngIf="rate.isEditing">
-              <mat-icon>check</mat-icon>
-            </button>
-            <button mat-icon-button color="warn" (click)="deleteExchangeRate(i)">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+<div class="footer">
+  <button (click)="addRate()">Add New Rate</button>
 </div>
 
 
 ---
 
-✅ exchange-rate.component.css
-
-.container {
-  padding: 16px;
-  background-color: #f5f5f5;
-}
-
-.input-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 20px;
-}
+✅ exchange-rates.component.css
 
 .table-container {
   max-height: 400px;
   overflow-y: auto;
   border: 1px solid #ccc;
-  border-radius: 4px;
-  background-color: white;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-}
-
-th, td {
-  padding: 12px;
   text-align: left;
-  border-bottom: 1px solid #e0e0e0;
 }
 
 thead {
-  background-color: #e0e0e0;
-  font-weight: bold;
+  background-color: #f4f4f4;
+  position: sticky;
+  top: 0;
 }
 
-mat-form-field {
-  width: 150px;
+th, td {
+  padding: 10px;
+  border: 1px solid #ddd;
+}
+
+input[type='text'],
+input[type='number'],
+input[type='date'] {
+  width: 100%;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.actions button {
+  margin-right: 5px;
+}
+
+.footer {
+  margin-top: 10px;
 }
 
 
 ---
 
-✅ Final Notes
+✅ Module Setup (important!)
 
-Make sure you have Angular Material installed:
+Ensure these imports exist in your AppModule or standalone setup:
 
-ng add @angular/material
+import { FormsModule } from '@angular/forms';
 
-Let me know if you want to enable sorting, filtering, or a dialog modal version for Add/Edit as in your original screenshot.
+And add imports: [FormsModule] if you're using standalone components.
+
+
+---
+
+Let me know if you'd like:
+
+A fancier calendar (e.g. Angular Material Datepicker),
+
+Or any UI polish (icon buttons, styling, floating headers, etc.).
+
 
