@@ -1,14 +1,62 @@
-<nav [class.collapsed]="isCollapsed" class="sidebar">
-  <ul>
-    <li>
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-        <span class="icon">💱</span>
-        <span class="text" *ngIf="!isCollapsed">Exchange Rates</span>
-      </a>
-    </li>
-    <!-- Add more navigation items as needed -->
-  </ul>
-</nav>
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 
+/* Container for the entire Exchange Rates page */
+.exchange-rates-container {
+  background-color: #fff;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  height: 100%;
+  box-sizing: border-box;
+  overflow: auto;
+}
 
+/* Header styling */
+.exchange-rates-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
 
+/* Table styles */
+.exchange-rates-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  background-color: #fff;
+}
+
+.exchange-rates-table th,
+.exchange-rates-table td {
+  border: 1px solid #ddd;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.exchange-rates-table th {
+  background-color: #f0f0f0;
+  font-weight: 600;
+}
+
+.exchange-rates-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+/* Button for adding/editing */
+.exchange-rates-button {
+  background-color: #007bff;
+  color: #fff;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.exchange-rates-button:hover {
+  background-color: #0056b3;
+}
