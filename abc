@@ -1,192 +1,170 @@
-To achieve the design shown in your screenshot where the sidebar:
-
-Uses the exact same blue background and styles,
-
-Is completely collapsible (hiding even the icons),
-
-Uses the existing menu button from the header,
-
-Displays a dropdown for Reference Data containing Exchange Rates, and
-
-Loads a table on clicking Exchange Rates,
-
-
-Here's the complete updated code.
-
-
----
-
-✅ sidebar.component.ts
-
-Make the sidebar collapsible via a shared service or input from the header button:
-
-import { Component, Input } from '@angular/core';
-
-@Component({
-  selector: 'app-sidebar',
-  standalone: true,
-  templateUrl: './sidebar.component.html',
-  styleUrls: ['./sidebar.component.css'],
-})
-export class SidebarComponent {
-  @Input() collapsed = false;
-  showReferenceData = false;
-
-  toggleReferenceData() {
-    this.showReferenceData = !this.showReferenceData;
-  }
-}
-
-
----
-
-✅ sidebar.component.html
-
-<div class="sidebar" [class.collapsed]="collapsed">
-  <ul class="menu">
-    <li>Manage Company</li>
-    <li>Recon Master</li>
-    <li>Context Type</li>
-
-    <li (click)="toggleReferenceData()">
-      Reference Data
-    </li>
-
-    <ul *ngIf="showReferenceData" class="submenu">
-      <li routerLink="/exchange-rates">Exchange Rates</li>
-    </ul>
-  </ul>
-</div>
-
-
----
-
-✅ sidebar.component.css
-
-.sidebar {
-  width: 240px;
-  height: 100vh;
-  background-color: #014c74;
-  color: white;
-  overflow: hidden;
-  transition: width 0.3s ease;
-}
-
-.sidebar.collapsed {
-  width: 0;
-}
-
-.menu {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.menu li {
-  padding: 15px 20px;
-  cursor: pointer;
-  border-bottom: 1px solid #005b87;
-}
-
-.submenu {
-  list-style: none;
-  padding-left: 20px;
-}
-
-.submenu li {
-  padding: 10px 0;
-  font-size: 14px;
-}
-
-
----
-
-✅ header.component.ts (toggle sidebar from header)
-
-import { Component, Output, EventEmitter } from '@angular/core';
-
-@Component({
-  selector: 'app-header',
-  standalone: true,
-  templateUrl: './header.component.html',
-  styleUrls: ['./header.component.css'],
-})
-export class HeaderComponent {
-  @Output() toggleSidebar = new EventEmitter<void>();
-
-  onToggleSidebar() {
-    this.toggleSidebar.emit();
-  }
-}
-
-
----
-
-✅ header.component.html (keep your original, just hook into the toggle)
-
-<button (click)="onToggleSidebar()">☰</button>
-<!-- your existing header content -->
-
-
----
-
-✅ layout.component.ts (or wherever header and sidebar are combined)
-
 import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 @Component({
-  selector: 'app-layout',
   standalone: true,
-  templateUrl: './layout.component.html',
+  selector: 'app-exchange-rates',
+  imports: [CommonModule, FormsModule],
+  templateUrl: './exchange-rates.component.html',
+  styleUrls: ['./exchange-rates.component.css'],
 })
-export class LayoutComponent {
-  isSidebarCollapsed = false;
+export class ExchangeRatesComponent {
+  exchangeRates = [
+    { from: 'ZWL', to: 'USD', rate: 1.000000, date: '06/05/2025' },
+    { from: 'ZWL', to: 'EUR', rate: 1.000000, date: '06/05/2025' },
+    // Add more for testing
+  ];
 
-  toggleSidebar() {
-    this.isSidebarCollapsed = !this.isSidebarCollapsed;
+  showModal = false;
+
+  newRate = {
+    from: '',
+    to: '',
+    rate: 1,
+    date: new Date().toISOString().split('T')[0],
+  };
+
+  openModal() {
+    this.showModal = true;
+  }
+
+  closeModal() {
+    this.showModal = false;
+  }
+
+  addRate() {
+    this.exchangeRates.push({ ...this.newRate });
+    this.closeModal();
   }
 }
 
 
----
 
-✅ layout.component.html
 
-<app-header (toggleSidebar)="toggleSidebar()"></app-header>
 
-<div class="layout">
-  <app-sidebar [collapsed]="isSidebarCollapsed"></app-sidebar>
-  <div class="main-content">
-    <router-outlet></router-outlet>
+<div class="exchange-rates-container">
+  <div class="header-bar">
+    <span>Exchange Rates</span>
+    <button class="btn-add" (click)="openModal()">+</button>
+  </div>
+
+  <table class="rates-table">
+    <thead>
+      <tr>
+        <th>From Currency</th>
+        <th>To Currency</th>
+        <th>Exchange Rate</th>
+        <th>Effective Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let rate of exchangeRates">
+        <td>{{ rate.from }}</td>
+        <td>{{ rate.to }}</td>
+        <td>{{ rate.rate }}</td>
+        <td>{{ rate.date }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="modal" *ngIf="showModal">
+    <div class="modal-content">
+      <h3>Add Exchange Rate</h3>
+      <label>From Currency:</label>
+      <input type="text" [(ngModel)]="newRate.from" />
+
+      <label>To Currency:</label>
+      <input type="text" [(ngModel)]="newRate.to" />
+
+      <label>Exchange Rate:</label>
+      <input type="number" [(ngModel)]="newRate.rate" />
+
+      <label>Effective Date:</label>
+      <input type="date" [(ngModel)]="newRate.date" />
+
+      <div class="modal-actions">
+        <button (click)="addRate()">Add</button>
+        <button (click)="closeModal()">Cancel</button>
+      </div>
+    </div>
   </div>
 </div>
 
 
----
-
-✅ exchange-rates.component.html
-
-<table>
-  <thead>
-    <tr>
-      <th>Currency</th>
-      <th>Rate</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>USD</td>
-      <td>1.00</td>
-    </tr>
-    <tr>
-      <td>EUR</td>
-      <td>0.85</td>
-    </tr>
-  </tbody>
-</table>
 
 
----
 
-Let me know if you'd like dropdown arrows/icons or a table fetched from an API.
+.exchange-rates-container {
+  padding: 1rem;
+  font-family: Arial, sans-serif;
+}
 
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #006778;
+  color: white;
+  padding: 0.75rem;
+  font-weight: bold;
+}
+
+.btn-add {
+  background-color: #007f8f;
+  color: white;
+  border: none;
+  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.rates-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.rates-table th, .rates-table td {
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 6px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.modal-actions button {
+  padding: 0.5rem 1rem;
+  border: none;
+  color: white;
+  background-color: #006778;
+  cursor: pointer;
+}
