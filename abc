@@ -1,68 +1,79 @@
-Thank you for sharing the screenshots — they reveal the core issue:
+Based on your request and the screenshots provided, here's the complete Angular 17 standalone component code with a popup form that matches the FIS Data Integrity Manager UI.
 
-❌ Error Summary:
+This includes:
 
-NG5002: Parser Error: Unexpected token '{' at column 7 in [picker({ i })]
+A scrollable table with inline editable fields.
 
-This means Angular is trying to interpret picker({ i }) as a directive or method inside the HTML template, but this is invalid because:
+A calendar icon that triggers a datepicker.
 
-You're using picker({ i }) inside square brackets ([picker({ i })]) — this is not a valid Angular directive or property binding.
-
-picker is not defined, or you're trying to call a function like picker() directly in an input binding — which isn't supported like that.
+A popup form (via MatDialog) for adding exchange rates.
 
 
 
 ---
 
-✅ What You Need:
-
-Here’s a clean and working version of your exchange-rates.component.html, ts, and css with:
-
-Working Datepicker
-
-Correct buttons next to each row
-
-Editable fields
-
-Scrollable table
-
-
-
----
-
-✅ exchange-rates.component.ts
+✅ exchange-rate.component.ts
 
 import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatTableModule } from '@angular/material/table';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { FormsModule } from '@angular/forms';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { AddExchangeRateDialogComponent } from './add-exchange-rate-dialog.component';
+
+export interface ExchangeRate {
+  fromCurrency: string;
+  toCurrency: string;
+  rate: number;
+  effectiveDate: string;
+}
 
 @Component({
-  selector: 'app-exchange-rates',
+  selector: 'app-exchange-rate',
   standalone: true,
-  templateUrl: './exchange-rates.component.html',
-  styleUrls: ['./exchange-rates.component.css'],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatTableModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatIconModule,
+    MatButtonModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatDialogModule,
+    AddExchangeRateDialogComponent
+  ],
+  templateUrl: './exchange-rate.component.html',
+  styleUrls: ['./exchange-rate.component.css']
 })
-export class ExchangeRatesComponent {
-  exchangeRates = [
-    { currency: 'USD', rate: 1.0, effectiveDate: new Date(), isEditing: false },
+export class ExchangeRateComponent {
+  displayedColumns: string[] = ['fromCurrency', 'toCurrency', 'rate', 'effectiveDate', 'actions'];
+  exchangeRates: ExchangeRate[] = [
+    { fromCurrency: 'ZWL', toCurrency: 'USD', rate: 1.0, effectiveDate: '2025-05-28' }
   ];
 
-  addRate() {
-    this.exchangeRates.push({
-      currency: '',
-      rate: 0,
-      effectiveDate: new Date(),
-      isEditing: true,
+  constructor(private dialog: MatDialog) {}
+
+  openAddDialog(): void {
+    const dialogRef = this.dialog.open(AddExchangeRateDialogComponent, {
+      width: '400px',
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.exchangeRates.push(result);
+      }
     });
   }
 
-  editRate(rate: any) {
-    rate.isEditing = true;
-  }
-
-  saveRate(rate: any) {
-    rate.isEditing = false;
-  }
-
-  deleteRate(index: number) {
+  deleteRow(index: number) {
     this.exchangeRates.splice(index, 1);
   }
 }
@@ -70,110 +81,183 @@ export class ExchangeRatesComponent {
 
 ---
 
-✅ exchange-rates.component.html
+✅ exchange-rate.component.html
 
-<div class="table-container">
-  <table>
-    <thead>
-      <tr>
-        <th>Currency</th>
-        <th>Rate</th>
-        <th>Effective Date</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let rate of exchangeRates; let i = index">
-        <td>
-          <input type="text" [(ngModel)]="rate.currency" [readonly]="!rate.isEditing" />
-        </td>
-        <td>
-          <input type="number" [(ngModel)]="rate.rate" [readonly]="!rate.isEditing" />
-        </td>
-        <td class="date-cell">
-          <input
-            type="date"
-            [(ngModel)]="rate.effectiveDate"
-            [readonly]="!rate.isEditing"
-            class="date-input"
-          />
-        </td>
-        <td class="actions">
-          <button *ngIf="!rate.isEditing" (click)="editRate(rate)">Edit</button>
-          <button *ngIf="rate.isEditing" (click)="saveRate(rate)">Save</button>
-          <button (click)="deleteRate(i)">Delete</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+<div class="header">
+  <button mat-mini-fab color="primary" (click)="openAddDialog()">
+    <mat-icon>add</mat-icon>
+  </button>
 </div>
 
-<div class="footer">
-  <button (click)="addRate()">Add New Rate</button>
+<div class="table-container">
+  <table mat-table [dataSource]="exchangeRates" class="mat-elevation-z8">
+
+    <ng-container matColumnDef="fromCurrency">
+      <th mat-header-cell *matHeaderCellDef> From Currency </th>
+      <td mat-cell *matCellDef="let row">
+        <input matInput [(ngModel)]="row.fromCurrency" />
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="toCurrency">
+      <th mat-header-cell *matHeaderCellDef> To Currency </th>
+      <td mat-cell *matCellDef="let row">
+        <input matInput [(ngModel)]="row.toCurrency" />
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="rate">
+      <th mat-header-cell *matHeaderCellDef> Exchange Rate </th>
+      <td mat-cell *matCellDef="let row">
+        <input matInput type="number" [(ngModel)]="row.rate" />
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="effectiveDate">
+      <th mat-header-cell *matHeaderCellDef> Effective Date </th>
+      <td mat-cell *matCellDef="let row">
+        <mat-form-field appearance="standard">
+          <input matInput [matDatepicker]="picker" [(ngModel)]="row.effectiveDate" />
+          <mat-datepicker-toggle matSuffix [for]="picker">
+            <mat-icon matDatepickerToggleIcon>calendar_today</mat-icon>
+          </mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let row; let i = index">
+        <button mat-icon-button color="warn" (click)="deleteRow(i)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  </table>
 </div>
 
 
 ---
 
-✅ exchange-rates.component.css
+✅ exchange-rate.component.css
+
+.header {
+  display: flex;
+  justify-content: flex-start;
+  padding: 12px;
+}
 
 .table-container {
-  max-height: 400px;
-  overflow-y: auto;
-  border: 1px solid #ccc;
+  max-height: 500px;
+  overflow: auto;
+  margin: 0 12px;
 }
 
 table {
   width: 100%;
-  border-collapse: collapse;
-  text-align: left;
+  border-spacing: 0;
 }
 
-thead {
-  background-color: #f4f4f4;
-  position: sticky;
-  top: 0;
-}
-
-th, td {
-  padding: 10px;
-  border: 1px solid #ddd;
-}
-
-input[type='text'],
-input[type='number'],
-input[type='date'] {
+mat-form-field {
   width: 100%;
-  padding: 6px;
-  box-sizing: border-box;
-}
-
-.actions button {
-  margin-right: 5px;
-}
-
-.footer {
-  margin-top: 10px;
 }
 
 
 ---
 
-✅ Module Setup (important!)
+✅ add-exchange-rate-dialog.component.ts
 
-Ensure these imports exist in your AppModule or standalone setup:
-
+import { Component } from '@angular/core';
+import { MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 
-And add imports: [FormsModule] if you're using standalone components.
+@Component({
+  selector: 'app-add-exchange-rate-dialog',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatDatepickerModule,
+    MatNativeDateModule
+  ],
+  template: `
+    <h2 mat-dialog-title>Add Exchange Rate</h2>
+    <div mat-dialog-content>
+      <mat-form-field appearance="fill">
+        <mat-label>From Currency</mat-label>
+        <input matInput [(ngModel)]="data.fromCurrency" />
+      </mat-form-field>
+
+      <mat-form-field appearance="fill">
+        <mat-label>To Currency</mat-label>
+        <input matInput [(ngModel)]="data.toCurrency" />
+      </mat-form-field>
+
+      <mat-form-field appearance="fill">
+        <mat-label>Exchange Rate</mat-label>
+        <input matInput type="number" [(ngModel)]="data.rate" />
+      </mat-form-field>
+
+      <mat-form-field appearance="fill">
+        <mat-label>Effective Date</mat-label>
+        <input matInput [matDatepicker]="picker" [(ngModel)]="data.effectiveDate" />
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+    </div>
+    <div mat-dialog-actions align="end">
+      <button mat-button (click)="onCancel()">Cancel</button>
+      <button mat-flat-button color="primary" (click)="onSave()">Save</button>
+    </div>
+  `
+})
+export class AddExchangeRateDialogComponent {
+  data = {
+    fromCurrency: '',
+    toCurrency: '',
+    rate: 0,
+    effectiveDate: ''
+  };
+
+  constructor(private dialogRef: MatDialogRef<AddExchangeRateDialogComponent>) {}
+
+  onCancel(): void {
+    this.dialogRef.close();
+  }
+
+  onSave(): void {
+    this.dialogRef.close(this.data);
+  }
+}
 
 
 ---
 
-Let me know if you'd like:
+Let me know if you want:
 
-A fancier calendar (e.g. Angular Material Datepicker),
+Dialog validations
 
-Or any UI polish (icon buttons, styling, floating headers, etc.).
+Auto-formatting dates
 
+Integration with a backend API
+
+Tooltips or icons like the ones in the screenshots
+
+
+I'll help you enhance it step-by-step.
 
