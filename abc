@@ -1,62 +1,145 @@
-:host {
-  display: block;
-  width: 100%;
-  height: 100%;
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { MatTableModule } from '@angular/material/table';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+
+@Component({
+  selector: 'app-exchange-rates',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatTableModule,
+    MatCheckboxModule,
+    MatIconModule,
+    MatInputModule,
+    MatButtonModule,
+    MatDatepickerModule,
+    MatNativeDateModule
+  ],
+  templateUrl: './exchange-rates.component.html',
+  styleUrls: ['./exchange-rates.component.css']
+})
+export class ExchangeRatesComponent {
+  displayedColumns: string[] = ['select', 'fromCurrency', 'toCurrency', 'exchangeRate', 'effectiveDate', 'edit'];
+  dataSource = [
+    { fromCurrency: 'ZWL', toCurrency: 'ZAR', exchangeRate: 1.000000, effectiveDate: '2025-06-05', selected: false },
+    { fromCurrency: 'ZWL', toCurrency: 'USD', exchangeRate: 1.000000, effectiveDate: '2025-06-05', selected: false }
+  ];
+  today = new Date().toISOString().substring(0, 10);
+
+  addRow() {
+    this.dataSource.push({ fromCurrency: '', toCurrency: '', exchangeRate: 1.0, effectiveDate: this.today, selected: false });
+  }
+
+  deleteSelected() {
+    this.dataSource = this.dataSource.filter(row => !row.selected);
+  }
+
+  refreshData() {
+    // Refresh logic can go here (placeholder for now)
+  }
 }
 
-/* Container for the entire Exchange Rates page */
+
+
+
+<div class="exchange-rates-container">
+  <div class="header">
+    <span>Exchange Rates</span>
+    <button mat-icon-button (click)="addRow()"><mat-icon>add</mat-icon></button>
+    <button mat-icon-button (click)="deleteSelected()"><mat-icon>delete</mat-icon></button>
+    <button mat-icon-button (click)="refreshData()"><mat-icon>refresh</mat-icon></button>
+    <mat-form-field appearance="outline">
+      <input matInput [matDatepicker]="picker" placeholder="Effective Date" [value]="today">
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <table mat-table [dataSource]="dataSource" class="mat-elevation-z2">
+    <ng-container matColumnDef="select">
+      <th mat-header-cell *matHeaderCellDef><mat-checkbox></mat-checkbox></th>
+      <td mat-cell *matCellDef="let row">
+        <mat-checkbox [(ngModel)]="row.selected"></mat-checkbox>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="fromCurrency">
+      <th mat-header-cell *matHeaderCellDef>From Currency</th>
+      <td mat-cell *matCellDef="let row">
+        <input matInput [(ngModel)]="row.fromCurrency">
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="toCurrency">
+      <th mat-header-cell *matHeaderCellDef>To Currency</th>
+      <td mat-cell *matCellDef="let row">
+        <input matInput [(ngModel)]="row.toCurrency">
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="exchangeRate">
+      <th mat-header-cell *matHeaderCellDef>Exchange Rate</th>
+      <td mat-cell *matCellDef="let row">{{ row.exchangeRate.toFixed(6) }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="effectiveDate">
+      <th mat-header-cell *matHeaderCellDef>Effective Date</th>
+      <td mat-cell *matCellDef="let row">{{ row.effectiveDate }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="edit">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let row">
+        <button mat-icon-button><mat-icon>edit</mat-icon></button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  </table>
+</div>
+
+
+
+
+
 .exchange-rates-container {
-  background-color: #fff;
-  padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  height: 100%;
+  padding: 16px;
+  background-color: #f7f7f7;
+  height: calc(100vh - 64px); /* Adjust if header is different */
   box-sizing: border-box;
-  overflow: auto;
-}
-
-/* Header styling */
-.exchange-rates-header {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
   align-items: center;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
-/* Table styles */
-.exchange-rates-table {
+mat-form-field {
+  width: 200px;
+}
+
+table {
+  background: white;
   width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-  background-color: #fff;
 }
 
-.exchange-rates-table th,
-.exchange-rates-table td {
-  border: 1px solid #ddd;
-  padding: 10px 12px;
-  text-align: left;
+th.mat-header-cell {
+  font-weight: bold;
 }
 
-.exchange-rates-table th {
-  background-color: #f0f0f0;
-  font-weight: 600;
-}
-
-.exchange-rates-table tr:hover {
-  background-color: #f9f9f9;
-}
-
-/* Button for adding/editing */
-.exchange-rates-button {
-  background-color: #007bff;
-  color: #fff;
-  padding: 8px 14px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.exchange-rates-button:hover {
-  background-color: #0056b3;
+td.mat-cell input {
+  width: 100%;
 }
