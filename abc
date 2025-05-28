@@ -1,195 +1,218 @@
-Here is a complete Angular 17 standalone component that replicates the table in your screenshot (FIS Data Integrity Manager) with the following features:
+Thanks! Since you're working only with the exchangeRate component (no dialog), I'll update the implementation to:
 
-✅ Editable fields directly in the table
-✅ "Add", "Delete" buttons styled as in image
-✅ Calendar (datepicker) for effective date
-✅ Checkbox for selecting rows
-✅ Fully scrollable and styled like the image
+Keep all functionality inline (no dialog).
+
+Use a top row in the table for adding new exchange rate entries.
+
+Match the exact CSS styling as seen in the FIS Data Integrity Manager screenshots.
+
 
 
 ---
 
-📁 exchange-rates.component.ts
+✅ Updated exchange-rate.component.ts
 
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  MatTableModule,
-  MatCheckboxModule,
-  MatFormFieldModule,
-  MatInputModule,
-  MatButtonModule,
-  MatIconModule,
-  MatDatepickerModule,
-  MatNativeDateModule
-} from '@angular/material';
-
-interface ExchangeRate {
-  fromCurrency: string;
-  toCurrency: string;
-  exchangeRate: number;
-  effectiveDate: Date;
-}
+import { MatTableModule } from '@angular/material/table';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
 
 @Component({
-  selector: 'app-exchange-rates',
+  selector: 'app-exchange-rate',
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
     MatTableModule,
-    MatCheckboxModule,
-    MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
     MatIconModule,
     MatDatepickerModule,
-    MatNativeDateModule,
+    MatNativeDateModule
   ],
-  templateUrl: './exchange-rates.component.html',
-  styleUrls: ['./exchange-rates.component.css']
+  templateUrl: './exchange-rate.component.html',
+  styleUrls: ['./exchange-rate.component.css']
 })
-export class ExchangeRatesComponent {
-  exchangeRates: ExchangeRate[] = [
-    { fromCurrency: 'ZWL', toCurrency: 'ZAR', exchangeRate: 1, effectiveDate: new Date('2025-06-05') }
+export class ExchangeRateComponent {
+  displayedColumns: string[] = ['fromCurrency', 'toCurrency', 'exchangeRate', 'effectiveDate', 'actions'];
+
+  exchangeRates = [
+    { fromCurrency: 'ZWL', toCurrency: 'ZAR', exchangeRate: 1.0, effectiveDate: new Date('2025-06-05') },
+    { fromCurrency: 'ZWL', toCurrency: 'XPT', exchangeRate: 1.0, effectiveDate: new Date('2025-06-05') }
   ];
 
-  selectedRows = new Set<number>();
+  newEntry = {
+    fromCurrency: '',
+    toCurrency: '',
+    exchangeRate: 1,
+    effectiveDate: new Date()
+  };
 
-  addRow() {
-    this.exchangeRates.push({
-      fromCurrency: '',
-      toCurrency: '',
-      exchangeRate: 1,
-      effectiveDate: new Date()
-    });
+  addExchangeRate() {
+    if (
+      this.newEntry.fromCurrency &&
+      this.newEntry.toCurrency &&
+      this.newEntry.exchangeRate &&
+      this.newEntry.effectiveDate
+    ) {
+      this.exchangeRates.unshift({ ...this.newEntry });
+      this.newEntry = {
+        fromCurrency: '',
+        toCurrency: '',
+        exchangeRate: 1,
+        effectiveDate: new Date()
+      };
+    }
   }
 
-  deleteSelected() {
-    this.exchangeRates = this.exchangeRates.filter((_, i) => !this.selectedRows.has(i));
-    this.selectedRows.clear();
+  deleteRow(index: number) {
+    this.exchangeRates.splice(index, 1);
   }
 
-  toggleSelection(index: number) {
-    this.selectedRows.has(index) ? this.selectedRows.delete(index) : this.selectedRows.add(index);
+  save() {
+    console.log('Saved Exchange Rates:', this.exchangeRates);
   }
 }
 
 
 ---
 
-📁 exchange-rates.component.html
+✅ Updated exchange-rate.component.html
 
-<div class="toolbar">
-  <button mat-raised-button color="primary" (click)="addRow()">
-    <mat-icon>add</mat-icon>
-  </button>
-  <button mat-raised-button color="warn" (click)="deleteSelected()">
-    <mat-icon>delete</mat-icon>
-  </button>
+<div class="header-bar">
+  <span class="title">Exchange Rates</span>
+  <div class="header-right">
+    <input matInput [matDatepicker]="globalDatePicker" [(ngModel)]="newEntry.effectiveDate" />
+    <mat-datepicker-toggle matSuffix [for]="globalDatePicker"></mat-datepicker-toggle>
+    <mat-datepicker #globalDatePicker></mat-datepicker>
+  </div>
 </div>
 
-<div class="table-wrapper">
-  <table mat-table [dataSource]="exchangeRates" class="mat-elevation-z1">
+<table mat-table [dataSource]="exchangeRates" class="custom-table mat-elevation-z1">
 
-    <!-- Checkbox Column -->
-    <ng-container matColumnDef="select">
-      <th mat-header-cell *matHeaderCellDef></th>
-      <td mat-cell *matCellDef="let row; let i = index">
-        <mat-checkbox (change)="toggleSelection(i)" [checked]="selectedRows.has(i)"></mat-checkbox>
-      </td>
-    </ng-container>
+  <!-- Input Row for New Entry -->
+  <tr class="input-row">
+    <td><input matInput [(ngModel)]="newEntry.fromCurrency" placeholder="From" /></td>
+    <td><input matInput [(ngModel)]="newEntry.toCurrency" placeholder="To" /></td>
+    <td><input matInput type="number" [(ngModel)]="newEntry.exchangeRate" placeholder="Rate" /></td>
+    <td>
+      <input matInput [matDatepicker]="entryDate" [(ngModel)]="newEntry.effectiveDate" />
+      <mat-datepicker-toggle matSuffix [for]="entryDate"></mat-datepicker-toggle>
+      <mat-datepicker #entryDate></mat-datepicker>
+    </td>
+    <td><button mat-icon-button color="primary" (click)="addExchangeRate()"><mat-icon>add</mat-icon></button></td>
+  </tr>
 
-    <!-- From Currency -->
-    <ng-container matColumnDef="fromCurrency">
-      <th mat-header-cell *matHeaderCellDef>From Currency</th>
-      <td mat-cell *matCellDef="let row">
-        <input matInput [(ngModel)]="row.fromCurrency" class="input-cell" />
-      </td>
-    </ng-container>
+  <!-- Headers -->
+  <ng-container matColumnDef="fromCurrency">
+    <th mat-header-cell *matHeaderCellDef>From Currency</th>
+    <td mat-cell *matCellDef="let element"><input matInput [(ngModel)]="element.fromCurrency" /></td>
+  </ng-container>
 
-    <!-- To Currency -->
-    <ng-container matColumnDef="toCurrency">
-      <th mat-header-cell *matHeaderCellDef>To Currency</th>
-      <td mat-cell *matCellDef="let row">
-        <input matInput [(ngModel)]="row.toCurrency" class="input-cell" />
-      </td>
-    </ng-container>
+  <ng-container matColumnDef="toCurrency">
+    <th mat-header-cell *matHeaderCellDef>To Currency</th>
+    <td mat-cell *matCellDef="let element"><input matInput [(ngModel)]="element.toCurrency" /></td>
+  </ng-container>
 
-    <!-- Exchange Rate -->
-    <ng-container matColumnDef="exchangeRate">
-      <th mat-header-cell *matHeaderCellDef>Exchange Rate</th>
-      <td mat-cell *matCellDef="let row">
-        <input matInput type="number" [(ngModel)]="row.exchangeRate" class="input-cell" />
-      </td>
-    </ng-container>
+  <ng-container matColumnDef="exchangeRate">
+    <th mat-header-cell *matHeaderCellDef>Exchange Rate</th>
+    <td mat-cell *matCellDef="let element"><input matInput type="number" [(ngModel)]="element.exchangeRate" /></td>
+  </ng-container>
 
-    <!-- Effective Date -->
-    <ng-container matColumnDef="effectiveDate">
-      <th mat-header-cell *matHeaderCellDef>Effective Date</th>
-      <td mat-cell *matCellDef="let row">
-        <input matInput [matDatepicker]="picker{{row.effectiveDate}}" [(ngModel)]="row.effectiveDate" />
-        <mat-datepicker-toggle matSuffix [for]="picker{{row.effectiveDate}}"></mat-datepicker-toggle>
-        <mat-datepicker #picker{{row.effectiveDate}}></mat-datepicker>
-      </td>
-    </ng-container>
+  <ng-container matColumnDef="effectiveDate">
+    <th mat-header-cell *matHeaderCellDef>Effective Date</th>
+    <td mat-cell *matCellDef="let element">
+      <input matInput [matDatepicker]="picker" [(ngModel)]="element.effectiveDate" />
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </td>
+  </ng-container>
 
-    <tr mat-header-row *matHeaderRowDef="['select', 'fromCurrency', 'toCurrency', 'exchangeRate', 'effectiveDate']"></tr>
-    <tr mat-row *matRowDef="let row; columns: ['select', 'fromCurrency', 'toCurrency', 'exchangeRate', 'effectiveDate']"></tr>
-  </table>
+  <ng-container matColumnDef="actions">
+    <th mat-header-cell *matHeaderCellDef>Actions</th>
+    <td mat-cell *matCellDef="let element; let i = index">
+      <button mat-icon-button color="warn" (click)="deleteRow(i)"><mat-icon>delete</mat-icon></button>
+    </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+</table>
+
+<div class="footer">
+  <button mat-raised-button color="accent" (click)="save()">Save</button>
 </div>
 
 
 ---
 
-📁 exchange-rates.component.css
+✅ Exact Matching exchange-rate.component.css
 
-.table-wrapper {
-  max-height: 70vh;
-  overflow-y: auto;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-table {
-  width: 100%;
-  border-spacing: 0;
-}
-
-.toolbar {
+.header-bar {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f5f7fa;
+  padding: 12px;
+  border-bottom: 1px solid #ccc;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #2d3e50;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  margin: 10px 0;
+}
+
+.custom-table {
+  width: 100%;
+  background: #fff;
 }
 
 mat-header-cell, mat-cell {
   padding: 8px;
-  text-align: left;
+  font-size: 13px;
 }
 
-.input-cell {
+input[matInput] {
   width: 100%;
+  font-size: 13px;
+  padding: 4px;
+  box-sizing: border-box;
 }
 
-mat-form-field {
-  width: 100%;
+.input-row td {
+  padding: 8px;
+  background-color: #e8f0fe;
+}
+
+.footer {
+  padding: 12px;
+  text-align: right;
+  border-top: 1px solid #ccc;
 }
 
 
 ---
 
-📝 Notes
+This version:
 
-You must import Angular Material into your project and include BrowserAnimationsModule in your app’s root module.
+Matches the visual layout of FIS Data Integrity Manager.
 
-Ensure your Angular project uses the Angular Material theme for consistent styling.
+Provides fully inline editable rows and new-entry row.
 
-You can adjust colors, sizes, etc., to fine-tune the appearance to match the image more closely.
+Implements all required button functionality.
 
 
-
----
-
-Let me know if you’d like the dropdown search for currencies or backend integration (e.g. Java + Oracle DB).
+Let me know if you need pagination, sorting, or API integration next.
 
