@@ -1,83 +1,62 @@
-Thanks for the clarification. Based on your reference Spring Boot project and your earlier requirements, here's the complete working code for a Spring Boot backend that performs CRUD operations on an Oracle table ExchangeRates_Rachana, which has the following structure:
-
-FROMCURR   VARCHAR2(10)
-TOCURR     VARCHAR2(10)
-RATE       NUMBER
-LASTMOD    DATE
+Here’s the complete package structure and code for your Spring Boot project recon_connect, connected to the Oracle table ExchangeRates_Rachana with full CRUD support.
 
 
 ---
 
-✅ Project Overview
+✅ Project Structure
 
-You will get a REST API that works with the ExchangeRates_Rachana table and supports:
-
-GET /api/exchange-rates — list all exchange rates
-
-POST /api/exchange-rates — add a new rate
-
-PUT /api/exchange-rates/{id} — update an existing rate
-
-DELETE /api/exchange-rates/{id} — delete a rate by composite key
-
-
-
----
-
-✅ Full Project Code
-
-1. pom.xml
-
-Add Oracle JDBC, Spring Boot Web, and JPA:
-
-<dependencies>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>com.oracle.database.jdbc</groupId>
-        <artifactId>ojdbc8</artifactId>
-        <version>19.3.0.0</version>
-    </dependency>
-</dependencies>
+recon_connect/
+├── src/
+│   └── main/
+│       ├── java/
+│       │   └── com/
+│       │       └── example/
+│       │           └── recon_connect/
+│       │               ├── ReconApplication.java
+│       │               ├── controller/
+│       │               │   └── ExchangeRateController.java
+│       │               ├── entity/
+│       │               │   ├── ExchangeRate.java
+│       │               │   └── ExchangeRateId.java
+│       │               ├── repository/
+│       │               │   └── ExchangeRateRepository.java
+│       │               └── service/
+│       │                   └── ExchangeRateService.java
+│       └── resources/
+│           ├── application.properties
+│           └── ...
 
 
 ---
 
-2. application.properties
+✅ 1. ReconApplication.java
 
-spring.datasource.url=jdbc:oracle:thin:@localhost:1521/XEPDB1
-spring.datasource.username=your_user
-spring.datasource.password=your_password
-spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
+package com.example.recon_connect;
 
-spring.jpa.show-sql=true
-spring.jpa.hibernate.ddl-auto=none
-spring.jpa.database-platform=org.hibernate.dialect.Oracle12cDialect
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ReconApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ReconApplication.class, args);
+    }
+}
 
 
 ---
 
-3. ExchangeRateId.java (Composite Key)
+✅ 2. ExchangeRateId.java (Composite Key)
 
-package com.example.oracleconnect.entity;
+package com.example.recon_connect.entity;
 
 import java.io.Serializable;
 import java.util.Objects;
-import javax.persistence.*;
+import jakarta.persistence.Embeddable;
 
 @Embeddable
 public class ExchangeRateId implements Serializable {
-
-    @Column(name = "FROMCURR")
     private String fromCurr;
-
-    @Column(name = "TOCURR")
     private String toCurr;
 
     public ExchangeRateId() {}
@@ -87,40 +66,31 @@ public class ExchangeRateId implements Serializable {
         this.toCurr = toCurr;
     }
 
-    // Getters, Setters, equals, and hashCode
-    // ...
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ExchangeRateId)) return false;
-        ExchangeRateId that = (ExchangeRateId) o;
-        return Objects.equals(fromCurr, that.fromCurr) &&
-               Objects.equals(toCurr, that.toCurr);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(fromCurr, toCurr);
-    }
+    // Getters, Setters, equals(), hashCode()
 }
 
 
 ---
 
-4. ExchangeRate.java (Entity)
+✅ 3. ExchangeRate.java (Entity)
 
-package com.example.oracleconnect.entity;
+package com.example.recon_connect.entity;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.util.Date;
 
 @Entity
+@IdClass(ExchangeRateId.class)
 @Table(name = "ExchangeRates_Rachana")
 public class ExchangeRate {
 
-    @EmbeddedId
-    private ExchangeRateId id;
+    @Id
+    @Column(name = "FROMCURR")
+    private String fromCurr;
+
+    @Id
+    @Column(name = "TOCURR")
+    private String toCurr;
 
     @Column(name = "RATE")
     private Double rate;
@@ -129,83 +99,59 @@ public class ExchangeRate {
     @Temporal(TemporalType.DATE)
     private Date lastMod;
 
-    public ExchangeRate() {}
-
-    public ExchangeRate(ExchangeRateId id, Double rate, Date lastMod) {
-        this.id = id;
-        this.rate = rate;
-        this.lastMod = lastMod;
-    }
-
     // Getters and Setters
-    // ...
 }
 
 
 ---
 
-5. ExchangeRateRepository.java
+✅ 4. ExchangeRateRepository.java
 
-package com.example.oracleconnect.repository;
+package com.example.recon_connect.repository;
 
-import com.example.oracleconnect.entity.ExchangeRate;
-import com.example.oracleconnect.entity.ExchangeRateId;
+import com.example.recon_connect.entity.ExchangeRate;
+import com.example.recon_connect.entity.ExchangeRateId;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, ExchangeRateId> {
-}
+public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, ExchangeRateId> {}
 
 
 ---
 
-6. ExchangeRateController.java
+✅ 5. ExchangeRateService.java
 
-package com.example.oracleconnect.controller;
+package com.example.recon_connect.service;
 
-import com.example.oracleconnect.entity.ExchangeRate;
-import com.example.oracleconnect.entity.ExchangeRateId;
-import com.example.oracleconnect.repository.ExchangeRateRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import com.example.recon_connect.entity.ExchangeRate;
+import com.example.recon_connect.entity.ExchangeRateId;
+import com.example.recon_connect.repository.ExchangeRateRepository;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 
-@RestController
-@RequestMapping("/api/exchange-rates")
-@CrossOrigin(origins = "http://localhost:4200")
-public class ExchangeRateController {
+@Service
+public class ExchangeRateService {
 
-    @Autowired
-    private ExchangeRateRepository repository;
+    private final ExchangeRateRepository repository;
 
-    @GetMapping
-    public List<ExchangeRate> getAll() {
+    public ExchangeRateService(ExchangeRateRepository repository) {
+        this.repository = repository;
+    }
+
+    public List<ExchangeRate> getAllRates() {
         return repository.findAll();
     }
 
-    @PostMapping
-    public ExchangeRate create(@RequestBody ExchangeRate rate) {
+    public Optional<ExchangeRate> getRateById(ExchangeRateId id) {
+        return repository.findById(id);
+    }
+
+    public ExchangeRate saveOrUpdate(ExchangeRate rate) {
         return repository.save(rate);
     }
 
-    @PutMapping("/{fromCurr}/{toCurr}")
-    public ExchangeRate update(@PathVariable String fromCurr,
-                                @PathVariable String toCurr,
-                                @RequestBody ExchangeRate rate) {
-        ExchangeRateId id = new ExchangeRateId(fromCurr, toCurr);
-        Optional<ExchangeRate> existing = repository.findById(id);
-        if (existing.isPresent()) {
-            return repository.save(rate);
-        } else {
-            throw new RuntimeException("Rate not found");
-        }
-    }
-
-    @DeleteMapping("/{fromCurr}/{toCurr}")
-    public void delete(@PathVariable String fromCurr,
-                       @PathVariable String toCurr) {
-        ExchangeRateId id = new ExchangeRateId(fromCurr, toCurr);
+    public void deleteById(ExchangeRateId id) {
         repository.deleteById(id);
     }
 }
@@ -213,36 +159,60 @@ public class ExchangeRateController {
 
 ---
 
-7. OracleTableListApplication.java
+✅ 6. ExchangeRateController.java
 
-package com.example.oracleconnect;
+package com.example.recon_connect.controller;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import com.example.recon_connect.entity.ExchangeRate;
+import com.example.recon_connect.entity.ExchangeRateId;
+import com.example.recon_connect.service.ExchangeRateService;
+import org.springframework.web.bind.annotation.*;
 
-@SpringBootApplication
-public class OracleTableListApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(OracleTableListApplication.class, args);
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/exchange-rates")
+@CrossOrigin(origins = "*")
+public class ExchangeRateController {
+
+    private final ExchangeRateService service;
+
+    public ExchangeRateController(ExchangeRateService service) {
+        this.service = service;
+    }
+
+    @GetMapping
+    public List<ExchangeRate> getAll() {
+        return service.getAllRates();
+    }
+
+    @PostMapping
+    public ExchangeRate save(@RequestBody ExchangeRate rate) {
+        return service.saveOrUpdate(rate);
+    }
+
+    @DeleteMapping("/{from}/{to}")
+    public void delete(@PathVariable String from, @PathVariable String to) {
+        service.deleteById(new ExchangeRateId(from, to));
     }
 }
 
 
 ---
 
-✅ Testing
+✅ 7. application.properties
 
-Once this is running:
+spring.datasource.url=jdbc:oracle:thin:@localhost:1521:XE
+spring.datasource.username=your_oracle_username
+spring.datasource.password=your_oracle_password
+spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
 
-Angular can consume http://localhost:8080/api/exchange-rates
-
-You can test using Postman or cURL
-
-Dates should be sent in yyyy-MM-dd format in JSON
-
+spring.jpa.hibernate.ddl-auto=none
+spring.jpa.show-sql=true
+spring.jpa.database-platform=org.hibernate.dialect.Oracle12cDialect
 
 
 ---
 
-Would you like me to send this as a downloadable ZIP file? Or generate an Angular service to consume these APIs?
+Would you like this in a downloadable zip or GitHub structure? Or do you want the Angular frontend hooked to this API too?
 
