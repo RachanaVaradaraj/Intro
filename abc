@@ -1,25 +1,29 @@
-Thanks! If you want the entire sidebar to disappear (not just collapse to icons) when clicking the menu icon, follow these steps:
+Based on your screenshots and your request, here's the complete setup to make your sidebar collapsible, display a Reference Data dropdown, and show a table in the Exchange Rates component when selected.
 
 
 ---
 
-1. Update sidebar.component.ts
+✅ 1. sidebar.component.ts
 
-Keep a showSidebar boolean:
-
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
+import { NgIf, NgFor } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-sidebar',
+  standalone: true,
+  imports: [NgIf, NgFor, MatIconModule, RouterModule],
   templateUrl: './sidebar.component.html',
   styleUrls: ['./sidebar.component.css']
 })
 export class SidebarComponent {
-  showSidebar = true;
+  @Input() showSidebar = true;
+  isCollapsed = false;
   referenceDataExpanded = false;
 
   toggleSidebar() {
-    this.showSidebar = !this.showSidebar;
+    this.isCollapsed = !this.isCollapsed;
   }
 
   toggleReferenceData() {
@@ -30,184 +34,204 @@ export class SidebarComponent {
 
 ---
 
-2. Update sidebar.component.html
-
-Wrap the entire sidebar with *ngIf="showSidebar" so it completely disappears:
+✅ 2. sidebar.component.html
 
 <button class="toggle-button" (click)="toggleSidebar()">
-  <mat-icon>{{ showSidebar ? 'menu_open' : 'menu' }}</mat-icon>
+  <mat-icon>{{ isCollapsed ? 'menu_open' : 'menu' }}</mat-icon>
 </button>
 
-<div *ngIf="showSidebar" class="sidebar-container">
+<div *ngIf="showSidebar" class="sidebar-container" [ngClass]="{ 'collapsed': isCollapsed }">
   <ul class="menu">
     <li>
       <mat-icon>apartment</mat-icon>
-      <span>Manage Company</span>
+      <span *ngIf="!isCollapsed">Manage Company</span>
     </li>
     <li>
       <mat-icon>description</mat-icon>
-      <span>Recon Master</span>
+      <span *ngIf="!isCollapsed">Recon Master</span>
     </li>
     <li>
       <mat-icon>category</mat-icon>
-      <span>Context Type</span>
+      <span *ngIf="!isCollapsed">Context Type</span>
     </li>
-
     <li (click)="toggleReferenceData()" class="expandable">
       <mat-icon>inventory_2</mat-icon>
-      <span>Reference Data</span>
-      <mat-icon>{{ referenceDataExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+      <span *ngIf="!isCollapsed">Reference Data</span>
+      <mat-icon *ngIf="!isCollapsed">
+        {{ referenceDataExpanded ? 'expand_less' : 'expand_more' }}
+      </mat-icon>
     </li>
-
-    <ul *ngIf="referenceDataExpanded" class="submenu">
-      <li>Accounting Period Groups</li>
+    <ul *ngIf="referenceDataExpanded && !isCollapsed" class="submenu">
+      <li><a routerLink="/exchange-rates">Exchange Rates</a></li>
       <li>Calendars</li>
       <li>Counterparties</li>
       <li>Currencies</li>
-      <li>Exchange Rates</li>
       <li>Item Types</li>
       <li>Reason Codes</li>
       <li>Securities</li>
       <li>Tags</li>
     </ul>
-
-    <li>
-      <mat-icon>search</mat-icon>
-      <span>Audit</span>
-    </li>
-    <li>
-      <mat-icon>list_alt</mat-icon>
-      <span>Logs</span>
-    </li>
   </ul>
 </div>
 
 
 ---
 
-3. Basic CSS (sidebar.component.css)
+✅ 3. sidebar.component.css
 
 .sidebar-container {
-  width: 250px;
-  background-color: #1b3b4b;
-  color: white;
+  width: 260px;
+  padding-top: 56px;
+  transition: all 0.3s ease;
   height: 100vh;
-  padding: 10px;
+  position: relative;
+  overflow-x: hidden;
+  background: white;
+  color: #333;
+}
+
+.sidebar-container.collapsed {
+  width: 60px;
+  padding-top: 56px;
 }
 
 .toggle-button {
-  background: none;
+  position: absolute;
+  top: 60px;
+  left: 0;
+  background: transparent;
   border: none;
-  color: #1b3b4b;
-  margin: 10px;
-  font-size: 24px;
+  color: inherit;
+  padding: 8px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.sidebar-container.collapsed .toggle-button {
+  background: white;
+  color: #333;
+}
+
+.menu {
+  list-style: none;
+  padding: 0 16px;
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 14px;
+}
+
+.menu li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
   cursor: pointer;
 }
 
+.submenu {
+  list-style: none;
+  padding-left: 40px;
+  font-size: 13px;
+  color: #6c6c6c;
+}
 
----
+.submenu li {
+  padding: 4px 0;
+}
 
-Summary:
-
-Menu icon always visible at top-left.
-
-Sidebar fully disappears on toggle (not even icons shown).
-
-You can adjust placement of the toggle button as needed.
-
-
-Let me know if you want an animation or transition effect.
-
-Thanks for the clarification! You want to use the menu icon already present in the bottom-bar of your header to completely hide/show the sidebar, not add a new button.
-
-Here’s how to do it properly:
-
-
----
-
-Step 1: Modify Sidebar to Listen to External Toggle
-
-In your sidebar.component.ts:
-
-import { Component, Input } from '@angular/core';
-
-@Component({
-  selector: 'app-sidebar',
-  templateUrl: './sidebar.component.html',
-  styleUrls: ['./sidebar.component.css']
-})
-export class SidebarComponent {
-  @Input() showSidebar = true;
-
-  referenceDataExpanded = false;
-
-  toggleReferenceData() {
-    this.referenceDataExpanded = !this.referenceDataExpanded;
-  }
+.expandable {
+  justify-content: space-between;
+  display: flex;
+  align-items: center;
 }
 
 
 ---
 
-Step 2: Wrap Sidebar with *ngIf Based on showSidebar
+✅ 4. Routing (app.routes.ts or your route module)
 
-In sidebar.component.html, wrap the entire sidebar content:
+import { Routes } from '@angular/router';
+import { ExchangeRatesComponent } from './components/exchange-rates/exchange-rates.component';
 
-<div *ngIf="showSidebar" class="sidebar-container">
-  <!-- sidebar content here exactly as before -->
-</div>
-
-
----
-
-Step 3: Emit Toggle From Header (app.component.html / wherever the header is)
-
-In the file where your bottom-bar is located (probably app.component.html), change this:
-
-<!-- Before -->
-<button class="icon-btn" (click)="toggleSidebar.emit()">
-  <span class="material-icons">menu</span>
-</button>
-
-To this (trigger a method):
-
-<button class="icon-btn" (click)="toggleSidebar()">
-  <span class="material-icons">menu</span>
-</button>
+export const routes: Routes = [
+  {
+    path: 'exchange-rates',
+    component: ExchangeRatesComponent
+  },
+  {
+    path: '',
+    redirectTo: 'exchange-rates',
+    pathMatch: 'full'
+  }
+];
 
 
 ---
 
-Step 4: Control Sidebar Visibility in app.component.ts
+✅ 5. ExchangeRatesComponent
 
 import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
+  selector: 'app-exchange-rates',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <h2>Exchange Rates</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Currency</th>
+          <th>Rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>USD</td>
+          <td>1.00</td>
+        </tr>
+        <tr>
+          <td>EUR</td>
+          <td>0.93</td>
+        </tr>
+      </tbody>
+    </table>
+  `,
+  styles: [`
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f5f5f5;
+    }
+  `]
 })
-export class AppComponent {
-  showSidebar = true;
-
-  toggleSidebar() {
-    this.showSidebar = !this.showSidebar;
-  }
-}
+export class ExchangeRatesComponent {}
 
 
 ---
 
-Step 5: Bind showSidebar to <app-sidebar>
+✅ 6. AppComponent or Layout View (template that includes Sidebar + <router-outlet>)
 
-In app.component.html, pass the showSidebar variable:
+<app-sidebar></app-sidebar>
+<main style="margin-left: 260px; padding: 16px;">
+  <router-outlet></router-outlet>
+</main>
 
-<app-sidebar [showSidebar]="showSidebar"></app-sidebar>
+Make sure to dynamically adjust the main margin if sidebar is collapsed (optional enhancement).
 
 
 ---
 
-Now, clicking the menu icon in the header will completely hide or show the entire sidebar component.
-
-Let me know if you also want a smooth slide-out animation!
+Let me know if you'd like animations or lazy-loading for the components too!
 
