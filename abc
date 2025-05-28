@@ -1,3 +1,112 @@
+Here's the complete updated TypeScript code (exchange-rates.component.ts) that:
+
+Uses a single inline popup for both Add and Edit.
+
+Binds and updates the form correctly.
+
+Updates the table dynamically.
+
+Supports Edit and Delete actions.
+
+Closes the popup after submission or cancel.
+
+
+
+---
+
+✅ exchange-rates.component.ts
+
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatTableModule } from '@angular/material/table';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSelectModule } from '@angular/material/select';
+
+@Component({
+  selector: 'app-exchange-rates',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatIconModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatTableModule,
+    MatButtonModule,
+    MatSelectModule
+  ],
+  templateUrl: './exchange-rates.component.html',
+  styleUrls: ['./exchange-rates.component.css']
+})
+export class ExchangeRatesComponent {
+  exchangeRates = [
+    { fromCurrency: 'USD', toCurrency: 'EUR', rate: 1.2, effectiveDate: new Date() }
+  ];
+
+  showPopup = false;
+  isEditMode = false;
+  editIndex: number | null = null;
+
+  formModel = {
+    fromCurrency: '',
+    toCurrency: '',
+    rate: 0,
+    effectiveDate: null as Date | null
+  };
+
+  currencies = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'AUD', 'CAD', 'ZWL'];
+
+  openPopup(isEdit = false, index: number | null = null): void {
+    this.isEditMode = isEdit;
+    this.editIndex = index;
+
+    if (isEdit && index !== null) {
+      const item = this.exchangeRates[index];
+      this.formModel = { ...item };
+    } else {
+      this.formModel = {
+        fromCurrency: '',
+        toCurrency: '',
+        rate: 0,
+        effectiveDate: null
+      };
+    }
+
+    this.showPopup = true;
+  }
+
+  closePopup(): void {
+    this.showPopup = false;
+  }
+
+  saveExchangeRate(): void {
+    if (this.isEditMode && this.editIndex !== null) {
+      this.exchangeRates[this.editIndex] = { ...this.formModel };
+    } else {
+      this.exchangeRates.push({ ...this.formModel });
+    }
+
+    this.closePopup();
+  }
+
+  deleteExchangeRate(index: number): void {
+    this.exchangeRates.splice(index, 1);
+  }
+}
+
+
+---
+
+✅ Next, let me know if you want the updated CSS as well. It will apply styling like the FIS screenshot (centered popup, shadow, layout, colors).
+
 <!-- exchange-rates.component.html -->
 <div class="table-container">
   <table mat-table [dataSource]="exchangeRates" class="mat-elevation-z1">
