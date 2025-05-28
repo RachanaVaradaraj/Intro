@@ -1,138 +1,18 @@
-Got it. Here's what I’ll do to fix everything:
-
-✅ Fixes and Features to Implement
-
-1. Inline popup for both Add and Edit – a single popup form shown inside the same component.
-
-
-2. Fix Delete functionality – make sure rows are removed properly from the data source.
-
-
-3. Ensure new data shows in the table – bind data correctly to MatTableDataSource so it updates when changed.
-
-
-4. Make table scrollable – apply a fixed height and overflow styles.
-
-
-5. Fix calendar icon not opening – correctly link <mat-datepicker-toggle> to the picker.
-
-
-
-✅ Updated Code Files
-
-I will now provide you complete working code for:
-
-exchange-rates.component.ts
-
-exchange-rates.component.html
-
-exchange-rates.component.css
-
-
-
----
-
-📁 exchange-rates.component.ts
-
-import { Component } from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
-import { MatTableDataSource } from '@angular/material/table';
-
-interface ExchangeRate {
-  fromCurrency: string;
-  toCurrency: string;
-  rate: number;
-  effectiveDate: Date;
-}
-
-@Component({
-  selector: 'app-exchange-rates',
-  standalone: true,
-  imports: [
-    // Angular and Material modules
-  ],
-  templateUrl: './exchange-rates.component.html',
-  styleUrls: ['./exchange-rates.component.css']
-})
-export class ExchangeRatesComponent {
-  displayedColumns: string[] = ['fromCurrency', 'toCurrency', 'rate', 'effectiveDate', 'actions'];
-  dataSource = new MatTableDataSource<ExchangeRate>([]);
-  popupVisible = false;
-  isEditMode = false;
-  currentEditIndex: number | null = null;
-
-  form: FormGroup;
-
-  constructor(private fb: FormBuilder) {
-    this.form = this.fb.group({
-      fromCurrency: [''],
-      toCurrency: [''],
-      rate: [''],
-      effectiveDate: [new Date()]
-    });
-  }
-
-  openPopup(editIndex: number | null = null): void {
-    this.isEditMode = editIndex !== null;
-    this.popupVisible = true;
-    this.currentEditIndex = editIndex;
-
-    if (this.isEditMode && editIndex !== null) {
-      this.form.patchValue(this.dataSource.data[editIndex]);
-    } else {
-      this.form.reset({ effectiveDate: new Date() });
-    }
-  }
-
-  closePopup(): void {
-    this.popupVisible = false;
-    this.currentEditIndex = null;
-  }
-
-  save(): void {
-    const newEntry: ExchangeRate = this.form.value;
-    if (this.isEditMode && this.currentEditIndex !== null) {
-      this.dataSource.data[this.currentEditIndex] = newEntry;
-    } else {
-      this.dataSource.data = [...this.dataSource.data, newEntry];
-    }
-
-    this.closePopup();
-  }
-
-  delete(index: number): void {
-    const newData = [...this.dataSource.data];
-    newData.splice(index, 1);
-    this.dataSource.data = newData;
-  }
-}
-
-
----
-
-📁 exchange-rates.component.html
-
-<div class="toolbar">
-  <button mat-icon-button (click)="openPopup()">
-    <mat-icon>add</mat-icon>
-  </button>
-</div>
-
+<!-- exchange-rates.component.html -->
 <div class="table-container">
-  <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
-
+  <table mat-table [dataSource]="exchangeRates" class="mat-elevation-z1">
     <ng-container matColumnDef="fromCurrency">
-      <th mat-header-cell *matHeaderCellDef>From</th>
+      <th mat-header-cell *matHeaderCellDef>From Currency</th>
       <td mat-cell *matCellDef="let row">{{ row.fromCurrency }}</td>
     </ng-container>
 
     <ng-container matColumnDef="toCurrency">
-      <th mat-header-cell *matHeaderCellDef>To</th>
+      <th mat-header-cell *matHeaderCellDef>To Currency</th>
       <td mat-cell *matCellDef="let row">{{ row.toCurrency }}</td>
     </ng-container>
 
     <ng-container matColumnDef="rate">
-      <th mat-header-cell *matHeaderCellDef>Rate</th>
+      <th mat-header-cell *matHeaderCellDef>Exchange Rate</th>
       <td mat-cell *matCellDef="let row">{{ row.rate }}</td>
     </ng-container>
 
@@ -143,102 +23,224 @@ export class ExchangeRatesComponent {
 
     <ng-container matColumnDef="actions">
       <th mat-header-cell *matHeaderCellDef>Actions</th>
-      <td mat-cell *matCellDef="let row; let i = index">
-        <button mat-icon-button (click)="openPopup(i)">
+      <td mat-cell *matCellDef="let row; let i = index" class="action-buttons">
+        <button mat-icon-button (click)="editExchangeRate(i)">
           <mat-icon>edit</mat-icon>
         </button>
-        <button mat-icon-button (click)="delete(i)">
+        <button mat-icon-button color="warn" (click)="deleteExchangeRate(i)">
           <mat-icon>delete</mat-icon>
         </button>
       </td>
     </ng-container>
 
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    <tr mat-header-row *matHeaderRowDef="columns"></tr>
+    <tr mat-row *matRowDef="let row; columns: columns;"></tr>
   </table>
 </div>
 
+<div style="margin-top: 16px">
+  <button mat-raised-button color="primary" (click)="openPopup()">Add Exchange Rate</button>
+</div>
+
 <!-- Inline Popup -->
-<div *ngIf="popupVisible" class="popup">
-  <h3>{{ isEditMode ? 'Edit' : 'Add' }} Exchange Rate</h3>
-  <form [formGroup]="form">
-    <mat-form-field>
-      <mat-label>From Currency</mat-label>
-      <input matInput formControlName="fromCurrency">
-    </mat-form-field>
+<div *ngIf="showPopup">
+  <div class="popup-backdrop"></div>
+  <div class="popup-form">
+    <h3>{{ editIndex !== null ? 'Edit Exchange Rate' : 'Add Exchange Rate' }}</h3>
+    <form [formGroup]="popupForm">
+      <div class="form-field">
+        <mat-form-field appearance="fill">
+          <mat-label>From Currency</mat-label>
+          <input matInput formControlName="fromCurrency">
+        </mat-form-field>
+      </div>
 
-    <mat-form-field>
-      <mat-label>To Currency</mat-label>
-      <input matInput formControlName="toCurrency">
-    </mat-form-field>
+      <div class="form-field">
+        <mat-form-field appearance="fill">
+          <mat-label>To Currency</mat-label>
+          <input matInput formControlName="toCurrency">
+        </mat-form-field>
+      </div>
 
-    <mat-form-field>
-      <mat-label>Rate</mat-label>
-      <input matInput type="number" formControlName="rate">
-    </mat-form-field>
+      <div class="form-field">
+        <mat-form-field appearance="fill">
+          <mat-label>Exchange Rate</mat-label>
+          <input matInput type="number" formControlName="rate">
+        </mat-form-field>
+      </div>
 
-    <mat-form-field>
-      <mat-label>Effective Date</mat-label>
-      <input matInput [matDatepicker]="picker" formControlName="effectiveDate">
-      <mat-datepicker-toggle matSuffix [for]="picker">
-        <mat-icon>calendar_today</mat-icon>
-      </mat-datepicker-toggle>
-      <mat-datepicker #picker></mat-datepicker>
-    </mat-form-field>
+      <div class="form-field">
+        <mat-form-field appearance="fill">
+          <mat-label>Effective Date</mat-label>
+          <input matInput [matDatepicker]="picker" formControlName="effectiveDate">
+          <mat-datepicker-toggle matSuffix [for]="picker">
+            <mat-icon>calendar_today</mat-icon>
+          </mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+      </div>
 
-    <div class="popup-actions">
-      <button mat-raised-button color="primary" (click)="save()">Save</button>
-      <button mat-raised-button color="warn" (click)="closePopup()">Cancel</button>
-    </div>
-  </form>
+      <div class="popup-buttons">
+        <button mat-stroked-button type="button" (click)="closePopup()">Cancel</button>
+        <button mat-flat-button color="primary" type="button" (click)="saveExchangeRate()">
+          {{ editIndex !== null ? 'Update' : 'Add' }}
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
 
 
+Here is your updated and complete exchange-rates.component.html code with:
+
+A styled inline popup (matching the screenshot).
+
+Working datepicker with icon toggle.
+
+Add and Edit functionality using the same popup.
+
+Scrollable table and working Delete functionality.
+
+
+Let me know if you’d like the TypeScript (.ts) and CSS (.css) files too.
+
+Thanks for the reference image and clarification. Below is the updated CSS for your popup and table to match the styling in the FIS Data Integrity Manager UI (as shown in the image), along with an update in the component logic to make sure edited data reflects in the table properly.
+
+
 ---
 
-📁 exchange-rates.component.css
+✅ Updated exchange-rates.component.css
 
+/* Table container */
 .table-container {
   max-height: 400px;
-  overflow: auto;
-  margin: 16px 0;
-}
-
-.popup {
-  background: #fff;
-  padding: 20px;
-  margin-top: 20px;
+  overflow-y: auto;
   border: 1px solid #ccc;
-  width: 350px;
+  border-radius: 6px;
+  background-color: white;
 }
 
-.popup-actions {
-  margin-top: 16px;
+/* Table styling */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th, td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+th {
+  background-color: #f4f6f8;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Buttons in each row */
+.action-buttons button {
+  margin: 0 5px;
+}
+
+/* Popup form container */
+.popup-form {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 380px;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transform: translate(-50%, -50%);
+  padding: 24px;
+  z-index: 1000;
+}
+
+/* Popup title */
+.popup-form h3 {
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: 500;
+  color: #444;
+}
+
+/* Form fields */
+.popup-form .form-field {
+  margin-bottom: 16px;
+}
+
+/* Input and datepicker styling */
+input[matInput] {
+  width: 100%;
+}
+
+/* Form buttons */
+.popup-buttons {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.popup-buttons button {
+  margin-left: 10px;
+}
+
+/* Overlay backdrop */
+.popup-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.25);
+  z-index: 999;
 }
 
 
 ---
 
-✅ Required Modules to Import
+🔁 Fix: Data not updating after editing
 
-Ensure your @Component uses the following:
+Make sure your saveExchangeRate() function in the .ts file properly updates the edited row in the exchangeRates array. Here’s the correct logic:
 
-imports: [
-  MatTableModule,
-  MatIconModule,
-  MatButtonModule,
-  MatFormFieldModule,
-  MatInputModule,
-  MatDatepickerModule,
-  MatNativeDateModule,
-  ReactiveFormsModule,
-  CommonModule
-]
+saveExchangeRate() {
+  const updatedData = { ...this.popupForm.value };
+
+  if (this.editIndex !== null) {
+    // Update existing entry
+    this.exchangeRates[this.editIndex] = updatedData;
+    this.editIndex = null;
+  } else {
+    // Add new entry
+    this.exchangeRates.push(updatedData);
+  }
+
+  this.closePopup();
+}
+
+Make sure the popupForm is declared as a FormGroup, and you're resetting the form on popup close:
+
+closePopup() {
+  this.showPopup = false;
+  this.popupForm.reset();
+}
 
 
 ---
 
-Let me know if you'd like this to be extracted into a separate popup component instead of inline, or want enhancements like dropdowns for currencies.
+Once these changes are in place:
+
+The popup will visually match the image.
+
+Edited data will now properly update in the table.
+
+The table will scroll when overflowing.
+
+
+Would you like me to give you the complete .ts and .html as well to ensure the entire flow works properly with this CSS?
+
+
 
