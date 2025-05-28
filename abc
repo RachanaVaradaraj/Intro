@@ -1,14 +1,23 @@
-Here's an improved version of your Angular 17 standalone component that:
+Great! Based on your uploaded screenshots and requirements, here's the full Angular 17 standalone component code that exactly mirrors the layout and functionalities shown in the FIS image:
 
-1. **Matches the reference image styling.**
-2. **Fixes the calendar picker issue** (so the calendar shows when clicking the icon).
-3. Includes **full modal layout, proper spacing, colors**, and button alignment as seen in your screenshots.
+✅ Features included:
+
+Scrollable table
+
+Add/Edit exchange rate modal
+
+Delete selected rows
+
+All fields editable
+
+CSS styled to match the screenshot layout
+
+
 
 ---
 
-### ✅ exchange-rates.component.ts
+📁 exchange-rates.component.ts
 
-```ts
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -43,14 +52,16 @@ export interface ExchangeRate {
     MatButtonModule,
     MatIconModule,
     MatDatepickerModule,
-    MatNativeDateModule,
+    MatNativeDateModule
   ],
   templateUrl: './exchange-rates.component.html',
-  styleUrls: ['./exchange-rates.component.css'],
+  styleUrls: ['./exchange-rates.component.css']
 })
 export class ExchangeRatesComponent {
   exchangeRates: ExchangeRate[] = [
-    { fromCurrency: 'ZWL', toCurrency: 'ZAR', exchangeRate: 1, effectiveDate: new Date('2025-06-05') },
+    { fromCurrency: 'ZWL', toCurrency: 'ZAR', exchangeRate: 1.000000, effectiveDate: new Date('2025-06-05') },
+    { fromCurrency: 'ZWL', toCurrency: 'USD', exchangeRate: 1.000000, effectiveDate: new Date('2025-06-05') },
+    { fromCurrency: 'ZWL', toCurrency: 'SGD', exchangeRate: 1.000000, effectiveDate: new Date('2025-06-05') },
   ];
 
   selectedRows = new Set<number>();
@@ -63,7 +74,7 @@ export class ExchangeRatesComponent {
     return {
       fromCurrency: '',
       toCurrency: '',
-      exchangeRate: 1,
+      exchangeRate: 1.0,
       effectiveDate: new Date(),
     };
   }
@@ -83,7 +94,7 @@ export class ExchangeRatesComponent {
 
   save() {
     if (this.isEditMode && this.editIndex !== null) {
-      this.exchangeRates[this.editIndex] = this.modalData;
+      this.exchangeRates[this.editIndex] = { ...this.modalData };
     } else {
       this.exchangeRates.push({ ...this.modalData });
     }
@@ -108,68 +119,69 @@ export class ExchangeRatesComponent {
     this.editIndex = null;
   }
 }
-```
+
 
 ---
 
-### ✅ exchange-rates.component.html
+📁 exchange-rates.component.html
 
-```html
 <div class="toolbar">
   <button mat-raised-button color="primary" (click)="openAddModal()">
-    <mat-icon>add</mat-icon> Add
+    <mat-icon>add</mat-icon>
   </button>
   <button mat-raised-button color="warn" (click)="deleteSelected()">
-    <mat-icon>delete</mat-icon> Delete
+    <mat-icon>delete</mat-icon>
   </button>
 </div>
 
-<table mat-table [dataSource]="exchangeRates" class="mat-elevation-z2 full-width">
+<div class="table-container">
+  <table mat-table [dataSource]="exchangeRates" class="mat-elevation-z1">
 
-  <ng-container matColumnDef="select">
-    <th mat-header-cell *matHeaderCellDef></th>
-    <td mat-cell *matCellDef="let row; let i = index">
-      <mat-checkbox (change)="toggleSelection(i)" [checked]="selectedRows.has(i)"></mat-checkbox>
-    </td>
-  </ng-container>
+    <ng-container matColumnDef="select">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let row; let i = index">
+        <mat-checkbox (change)="toggleSelection(i)" [checked]="selectedRows.has(i)"></mat-checkbox>
+      </td>
+    </ng-container>
 
-  <ng-container matColumnDef="fromCurrency">
-    <th mat-header-cell *matHeaderCellDef>From Currency</th>
-    <td mat-cell *matCellDef="let row">{{ row.fromCurrency }}</td>
-  </ng-container>
+    <ng-container matColumnDef="fromCurrency">
+      <th mat-header-cell *matHeaderCellDef>From Currency</th>
+      <td mat-cell *matCellDef="let row">{{ row.fromCurrency }}</td>
+    </ng-container>
 
-  <ng-container matColumnDef="toCurrency">
-    <th mat-header-cell *matHeaderCellDef>To Currency</th>
-    <td mat-cell *matCellDef="let row">{{ row.toCurrency }}</td>
-  </ng-container>
+    <ng-container matColumnDef="toCurrency">
+      <th mat-header-cell *matHeaderCellDef>To Currency</th>
+      <td mat-cell *matCellDef="let row">{{ row.toCurrency }}</td>
+    </ng-container>
 
-  <ng-container matColumnDef="exchangeRate">
-    <th mat-header-cell *matHeaderCellDef>Exchange Rate</th>
-    <td mat-cell *matCellDef="let row">{{ row.exchangeRate }}</td>
-  </ng-container>
+    <ng-container matColumnDef="exchangeRate">
+      <th mat-header-cell *matHeaderCellDef>Exchange Rate</th>
+      <td mat-cell *matCellDef="let row">{{ row.exchangeRate.toFixed(6) }}</td>
+    </ng-container>
 
-  <ng-container matColumnDef="effectiveDate">
-    <th mat-header-cell *matHeaderCellDef>Effective Date</th>
-    <td mat-cell *matCellDef="let row">{{ row.effectiveDate | date: 'MM/dd/yyyy' }}</td>
-  </ng-container>
+    <ng-container matColumnDef="effectiveDate">
+      <th mat-header-cell *matHeaderCellDef>Effective Date</th>
+      <td mat-cell *matCellDef="let row">{{ row.effectiveDate | date: 'MM/dd/yyyy' }}</td>
+    </ng-container>
 
-  <ng-container matColumnDef="actions">
-    <th mat-header-cell *matHeaderCellDef></th>
-    <td mat-cell *matCellDef="let row; let i = index">
-      <button mat-icon-button color="accent" (click)="openEditModal(i)">
-        <mat-icon>edit</mat-icon>
-      </button>
-    </td>
-  </ng-container>
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let row; let i = index">
+        <button mat-icon-button color="accent" (click)="openEditModal(i)">
+          <mat-icon>edit</mat-icon>
+        </button>
+      </td>
+    </ng-container>
 
-  <tr mat-header-row *matHeaderRowDef="['select', 'fromCurrency', 'toCurrency', 'exchangeRate', 'effectiveDate', 'actions']"></tr>
-  <tr mat-row *matRowDef="let row; columns: ['select', 'fromCurrency', 'toCurrency', 'exchangeRate', 'effectiveDate', 'actions']"></tr>
-</table>
+    <tr mat-header-row *matHeaderRowDef="['select', 'fromCurrency', 'toCurrency', 'exchangeRate', 'effectiveDate', 'actions']"></tr>
+    <tr mat-row *matRowDef="let row; columns: ['select', 'fromCurrency', 'toCurrency', 'exchangeRate', 'effectiveDate', 'actions']"></tr>
+  </table>
+</div>
 
 <!-- Modal -->
 <div class="modal-backdrop" *ngIf="isModalOpen">
   <div class="modal">
-    <h2 class="modal-title">{{ isEditMode ? 'Edit Exchange Rate' : 'Add Exchange Rate' }}</h2>
+    <h3>{{ isEditMode ? 'Edit Exchange Rate' : 'Add Exchange Rate' }}</h3>
 
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>From Currency</mat-label>
@@ -194,26 +206,32 @@ export class ExchangeRatesComponent {
     </mat-form-field>
 
     <div class="modal-actions">
-      <button mat-stroked-button (click)="closeModal()">Cancel</button>
+      <button mat-button (click)="closeModal()">Cancel</button>
       <button mat-raised-button color="primary" (click)="save()">Save</button>
     </div>
   </div>
 </div>
-```
+
 
 ---
 
-### ✅ exchange-rates.component.css
+📁 exchange-rates.component.css
 
-```css
+.table-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
 table {
   width: 100%;
 }
 
 .toolbar {
   display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 /* Modal Styles */
@@ -223,45 +241,42 @@ table {
   left: 0;
   width: 100%;
   height: 100%;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(3px);
   background-color: rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  z-index: 1000;
 }
 
 .modal {
   background-color: #fff;
   padding: 24px;
-  border-radius: 6px;
+  border-radius: 8px;
   width: 400px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-}
-
-.modal-title {
-  margin-bottom: 20px;
-  font-weight: 600;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .full-width {
   width: 100%;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
 }
-```
+
 
 ---
 
-✅ **What’s fixed:**
+Let me know if you'd like to:
 
-* Date picker now opens when clicking the icon (verified).
-* Modal dimensions, input fields, and buttons now match your screenshot UI.
-* Added icons and color hints from your reference design.
+Add sorting/filtering
 
-Let me know when you're ready for the IntelliJ Java backend + Oracle DB integration — I can give you complete code for that too.
+Connect to an API/backend
+
+Generate dropdowns for currencies instead of plain text fields
+
+
