@@ -1,30 +1,20 @@
-Based on your screenshots and your request, here's the complete setup to make your sidebar collapsible, display a Reference Data dropdown, and show a table in the Exchange Rates component when selected.
+Got it. Here's how we’ll proceed without altering the sidebar’s CSS and while using the existing header menu button to control the sidebar toggle:
 
+✅ 1. Update sidebar.component.ts
 
----
-
-✅ 1. sidebar.component.ts
+Keep the collapse logic as is:
 
 import { Component, Input } from '@angular/core';
-import { NgIf, NgFor } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
-import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [NgIf, NgFor, MatIconModule, RouterModule],
   templateUrl: './sidebar.component.html',
   styleUrls: ['./sidebar.component.css']
 })
 export class SidebarComponent {
-  @Input() showSidebar = true;
-  isCollapsed = false;
+  @Input() isCollapsed = false;
   referenceDataExpanded = false;
-
-  toggleSidebar() {
-    this.isCollapsed = !this.isCollapsed;
-  }
 
   toggleReferenceData() {
     this.referenceDataExpanded = !this.referenceDataExpanded;
@@ -34,13 +24,9 @@ export class SidebarComponent {
 
 ---
 
-✅ 2. sidebar.component.html
+✅ 2. Update sidebar.component.html
 
-<button class="toggle-button" (click)="toggleSidebar()">
-  <mat-icon>{{ isCollapsed ? 'menu_open' : 'menu' }}</mat-icon>
-</button>
-
-<div *ngIf="showSidebar" class="sidebar-container" [ngClass]="{ 'collapsed': isCollapsed }">
+<div [ngClass]="{ 'sidebar-container': true, 'collapsed': isCollapsed }">
   <ul class="menu">
     <li>
       <mat-icon>apartment</mat-icon>
@@ -54,6 +40,7 @@ export class SidebarComponent {
       <mat-icon>category</mat-icon>
       <span *ngIf="!isCollapsed">Context Type</span>
     </li>
+
     <li (click)="toggleReferenceData()" class="expandable">
       <mat-icon>inventory_2</mat-icon>
       <span *ngIf="!isCollapsed">Reference Data</span>
@@ -61,15 +48,9 @@ export class SidebarComponent {
         {{ referenceDataExpanded ? 'expand_less' : 'expand_more' }}
       </mat-icon>
     </li>
+
     <ul *ngIf="referenceDataExpanded && !isCollapsed" class="submenu">
-      <li><a routerLink="/exchange-rates">Exchange Rates</a></li>
-      <li>Calendars</li>
-      <li>Counterparties</li>
-      <li>Currencies</li>
-      <li>Item Types</li>
-      <li>Reason Codes</li>
-      <li>Securities</li>
-      <li>Tags</li>
+      <li routerLink="/exchange-rates">Exchange Rates</li>
     </ul>
   </ul>
 </div>
@@ -77,161 +58,90 @@ export class SidebarComponent {
 
 ---
 
-✅ 3. sidebar.component.css
+✅ 3. In header.component.html
 
-.sidebar-container {
-  width: 260px;
-  padding-top: 56px;
-  transition: all 0.3s ease;
-  height: 100vh;
-  position: relative;
-  overflow-x: hidden;
-  background: white;
-  color: #333;
-}
+Update the button already present to emit a toggle event:
 
-.sidebar-container.collapsed {
-  width: 60px;
-  padding-top: 56px;
-}
+<button class="toggle-button" (click)="toggleSidebar()">
+  <mat-icon>{{ isSidebarCollapsed ? 'menu_open' : 'menu' }}</mat-icon>
+</button>
 
-.toggle-button {
-  position: absolute;
-  top: 60px;
-  left: 0;
-  background: transparent;
-  border: none;
-  color: inherit;
-  padding: 8px;
-  cursor: pointer;
-  z-index: 10;
-}
 
-.sidebar-container.collapsed .toggle-button {
-  background: white;
-  color: #333;
-}
+---
 
-.menu {
-  list-style: none;
-  padding: 0 16px;
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  font-size: 14px;
-}
+✅ 4. In header.component.ts
 
-.menu li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  cursor: pointer;
-}
+import { Component, EventEmitter, Output } from '@angular/core';
 
-.submenu {
-  list-style: none;
-  padding-left: 40px;
-  font-size: 13px;
-  color: #6c6c6c;
-}
+@Component({
+  selector: 'app-header',
+  standalone: true,
+  templateUrl: './header.component.html',
+  styleUrls: ['./header.component.css']
+})
+export class HeaderComponent {
+  @Output() sidebarToggle = new EventEmitter<void>();
+  isSidebarCollapsed = false;
 
-.submenu li {
-  padding: 4px 0;
-}
-
-.expandable {
-  justify-content: space-between;
-  display: flex;
-  align-items: center;
+  toggleSidebar() {
+    this.isSidebarCollapsed = !this.isSidebarCollapsed;
+    this.sidebarToggle.emit();
+  }
 }
 
 
 ---
 
-✅ 4. Routing (app.routes.ts or your route module)
+✅ 5. In the main layout (layout.component.ts/html)
+
+Use a shared variable to bind both components:
+
+layout.component.ts:
+
+export class LayoutComponent {
+  isSidebarCollapsed = false;
+
+  toggleSidebar() {
+    this.isSidebarCollapsed = !this.isSidebarCollapsed;
+  }
+}
+
+layout.component.html:
+
+<app-header (sidebarToggle)="toggleSidebar()"></app-header>
+<app-sidebar [isCollapsed]="isSidebarCollapsed"></app-sidebar>
+<router-outlet></router-outlet>
+
+
+---
+
+✅ 6. Routing Setup for Exchange Rates Table
+
+reference-data.routes.ts:
 
 import { Routes } from '@angular/router';
-import { ExchangeRatesComponent } from './components/exchange-rates/exchange-rates.component';
+import { ExchangeRatesComponent } from '../components/exchange-rates/exchange-rates.component';
 
-export const routes: Routes = [
+export const referenceDataRoutes: Routes = [
   {
     path: 'exchange-rates',
     component: ExchangeRatesComponent
-  },
+  }
+];
+
+app.routes.ts:
+
+import { referenceDataRoutes } from './reference-data/reference-data.routes';
+
+export const appRoutes: Routes = [
   {
     path: '',
-    redirectTo: 'exchange-rates',
-    pathMatch: 'full'
+    loadChildren: () => import('./reference-data/reference-data.routes').then(m => m.referenceDataRoutes)
   }
 ];
 
 
 ---
 
-✅ 5. ExchangeRatesComponent
-
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-
-@Component({
-  selector: 'app-exchange-rates',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
-    <h2>Exchange Rates</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Currency</th>
-          <th>Rate</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>USD</td>
-          <td>1.00</td>
-        </tr>
-        <tr>
-          <td>EUR</td>
-          <td>0.93</td>
-        </tr>
-      </tbody>
-    </table>
-  `,
-  styles: [`
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 16px;
-    }
-
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px 12px;
-      text-align: left;
-    }
-
-    th {
-      background-color: #f5f5f5;
-    }
-  `]
-})
-export class ExchangeRatesComponent {}
-
-
----
-
-✅ 6. AppComponent or Layout View (template that includes Sidebar + <router-outlet>)
-
-<app-sidebar></app-sidebar>
-<main style="margin-left: 260px; padding: 16px;">
-  <router-outlet></router-outlet>
-</main>
-
-Make sure to dynamically adjust the main margin if sidebar is collapsed (optional enhancement).
-
-
----
-
-Let me know if you'd like animations or lazy-loading for the components too!
+Let me know if you want to auto-collapse the submenu when the sidebar collapses or if the Exchange Rates table layout needs help!
 
