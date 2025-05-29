@@ -1,279 +1,167 @@
-Thanks for the clarification and files. Based on the screenshots and files, you're dealing with a Spring Boot + Angular application to manage exchange rates, and you want:
+Here is the complete CSS for your Angular Material Add/Edit popup form inside the exchange-rate component. This CSS will:
 
-1. To allow duplicate fromCurr and toCurr combinations in the database.
+Ensure the Cancel and Save buttons are visible.
 
+Match the layout to the FIS Data Integrity Manager UI style.
 
-2. To properly fetch and display all data in the Angular table UI.
+Fix issues with layout overflow, alignment, spacing, and dialog appearance.
 
-
-
-Below is the complete working code setup for both the backend (Spring Boot) and frontend (Angular) to achieve this.
 
 
 ---
 
-✅ Spring Boot Backend
+✅ exchange-rate.component.css (or inline dialog style CSS)
 
-ExchangeRate.java (Entity)
-
-package com.recon_connect.entity;
-
-import jakarta.persistence.*;
-import java.util.Date;
-
-@Entity
-@Table(name = "ExchangeRates_Rachana")
-public class ExchangeRate {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private String fromCurr;
-    private String toCurr;
-    private Double rate;
-
-    @Temporal(TemporalType.DATE)
-    private Date lastMod;
-
-    // Getters and setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public String getFromCurr() { return fromCurr; }
-    public void setFromCurr(String fromCurr) { this.fromCurr = fromCurr; }
-
-    public String getToCurr() { return toCurr; }
-    public void setToCurr(String toCurr) { this.toCurr = toCurr; }
-
-    public Double getRate() { return rate; }
-    public void setRate(Double rate) { this.rate = rate; }
-
-    public Date getLastMod() { return lastMod; }
-    public void setLastMod(Date lastMod) { this.lastMod = lastMod; }
+/* Dialog container styling */
+.mat-dialog-container {
+  padding: 24px !important;
+  border-radius: 8px;
+  background-color: #ffffff;
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2);
 }
 
-ExchangeRateRepository.java
-
-package com.recon_connect.repository;
-
-import com.recon_connect.entity.ExchangeRate;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long> {
-}
-
-ExchangeRateController.java
-
-package com.recon_connect.controller;
-
-import com.recon_connect.entity.ExchangeRate;
-import com.recon_connect.repository.ExchangeRateRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-
-@RestController
-@RequestMapping("/api/exchange-rates")
-@CrossOrigin(origins = "*")
-public class ExchangeRateController {
-
-    @Autowired
-    private ExchangeRateRepository repository;
-
-    @GetMapping
-    public List<ExchangeRate> getAllRates() {
-        return repository.findAll();
-    }
-
-    @PostMapping
-    public ExchangeRate createRate(@RequestBody ExchangeRate rate) {
-        return repository.save(rate);
-    }
-
-    @PutMapping("/{id}")
-    public ExchangeRate updateRate(@PathVariable Long id, @RequestBody ExchangeRate rate) {
-        rate.setId(id);
-        return repository.save(rate);
-    }
-
-    @DeleteMapping("/{id}")
-    public void deleteRate(@PathVariable Long id) {
-        repository.deleteById(id);
-    }
-
-    @GetMapping("/currencies")
-    public List<String> getDistinctCurrencies() {
-        return repository.findAll()
-                .stream()
-                .flatMap(e -> List.of(e.getFromCurr(), e.getToCurr()).stream())
-                .distinct()
-                .toList();
-    }
-}
-
-
----
-
-✅ Angular Frontend (exchange-rates standalone component)
-
-exchange-rates.component.ts
-
-import { Component, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { MatDialog } from '@angular/material/dialog';
-import { FormBuilder, FormGroup } from '@angular/forms';
-
-@Component({
-  selector: 'app-exchange-rates',
-  standalone: true,
-  templateUrl: './exchange-rates.component.html',
-  styleUrls: ['./exchange-rates.component.css'],
-  imports: [MatDialog],
-})
-export class ExchangeRatesComponent implements OnInit {
-  rates: any[] = [];
-  form: FormGroup;
-  editingId: number | null = null;
-  currencies: string[] = [];
-
-  constructor(private http: HttpClient, private fb: FormBuilder, private dialog: MatDialog) {
-    this.form = this.fb.group({
-      fromCurr: [''],
-      toCurr: [''],
-      rate: [''],
-      lastMod: ['']
-    });
-  }
-
-  ngOnInit() {
-    this.getRates();
-    this.getCurrencies();
-  }
-
-  getRates() {
-    this.http.get<any[]>('http://localhost:8080/api/exchange-rates').subscribe(data => {
-      this.rates = data;
-    });
-  }
-
-  getCurrencies() {
-    this.http.get<string[]>('http://localhost:8080/api/exchange-rates/currencies').subscribe(data => {
-      this.currencies = data;
-    });
-  }
-
-  saveRate() {
-    if (this.editingId !== null) {
-      this.http.put(`http://localhost:8080/api/exchange-rates/${this.editingId}`, this.form.value)
-        .subscribe(() => {
-          this.getRates();
-          this.cancelEdit();
-        });
-    } else {
-      this.http.post('http://localhost:8080/api/exchange-rates', this.form.value)
-        .subscribe(() => {
-          this.getRates();
-          this.form.reset();
-        });
-    }
-  }
-
-  editRate(rate: any) {
-    this.editingId = rate.id;
-    this.form.setValue({
-      fromCurr: rate.fromCurr,
-      toCurr: rate.toCurr,
-      rate: rate.rate,
-      lastMod: rate.lastMod
-    });
-  }
-
-  cancelEdit() {
-    this.editingId = null;
-    this.form.reset();
-  }
-
-  deleteRate(id: number) {
-    this.http.delete(`http://localhost:8080/api/exchange-rates/${id}`)
-      .subscribe(() => this.getRates());
-  }
-}
-
-exchange-rates.component.html
-
-<div>
-  <form [formGroup]="form" (ngSubmit)="saveRate()">
-    <select formControlName="fromCurr">
-      <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
-    </select>
-    <select formControlName="toCurr">
-      <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
-    </select>
-    <input formControlName="rate" placeholder="Rate" type="number" />
-    <input formControlName="lastMod" placeholder="YYYY-MM-DD" type="date" />
-    <button type="submit">{{ editingId ? 'Update' : 'Add' }}</button>
-    <button type="button" (click)="cancelEdit()" *ngIf="editingId">Cancel</button>
-  </form>
-
-  <table>
-    <thead>
-      <tr>
-        <th>From</th>
-        <th>To</th>
-        <th>Rate</th>
-        <th>Last Modified</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let rate of rates">
-        <td>{{ rate.fromCurr }}</td>
-        <td>{{ rate.toCurr }}</td>
-        <td>{{ rate.rate }}</td>
-        <td>{{ rate.lastMod }}</td>
-        <td>
-          <button (click)="editRate(rate)">Edit</button>
-          <button (click)="deleteRate(rate.id)">Delete</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-exchange-rates.component.css
-
-table {
+/* Form layout inside popup */
+.popup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   width: 100%;
-  border-collapse: collapse;
+  min-width: 400px;
+  max-width: 600px;
 }
-th, td {
-  padding: 0.5rem;
-  border: 1px solid #ddd;
+
+/* Each row in form */
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
-form {
-  margin-bottom: 1rem;
+
+/* Label styling */
+.form-row label {
+  flex: 1;
+  font-weight: 600;
+  margin-right: 12px;
+  color: #333;
 }
-select, input {
-  margin-right: 0.5rem;
+
+/* Input styling */
+.form-row input,
+.form-row select,
+.form-row .mat-form-field {
+  flex: 2;
+  width: 100%;
+}
+
+.mat-form-field {
+  width: 100%;
+}
+
+/* Footer buttons */
+.popup-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 24px;
+  border-top: 1px solid #ccc;
+  margin-top: 16px;
+}
+
+/* Button styling */
+.popup-footer button {
+  min-width: 90px;
+  font-weight: 500;
+}
+
+/* Fix for overflowing dialog content */
+mat-dialog-content {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* Optional: Calendar icon alignment */
+.calendar-icon {
+  cursor: pointer;
+  margin-left: -32px;
+  z-index: 10;
+  position: relative;
 }
 
 
 ---
 
-✅ Summary
+✅ Matching HTML Structure
 
-The database allows duplicates of fromCurr + toCurr because id is the primary key.
+Here’s the expected HTML structure to work with this CSS:
 
-Angular properly fetches all records using the /api/exchange-rates endpoint.
+<form class="popup-form">
+  <div class="form-row">
+    <label>From Currency</label>
+    <mat-form-field appearance="outline">
+      <mat-select [(value)]="data.fromCurr">
+        <mat-option *ngFor="let curr of currencyList" [value]="curr">{{ curr }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
 
-A simple UI is provided to Add, Edit, and Delete records.
+  <div class="form-row">
+    <label>To Currency</label>
+    <mat-form-field appearance="outline">
+      <mat-select [(value)]="data.toCurr">
+        <mat-option *ngFor="let curr of currencyList" [value]="curr">{{ curr }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
 
-All rates, even duplicates, are shown in the table.
+  <div class="form-row">
+    <label>Rate</label>
+    <mat-form-field appearance="outline">
+      <input matInput type="number" [(ngModel)]="data.rate" name="rate" />
+    </mat-form-field>
+  </div>
+
+  <div class="form-row">
+    <label>Effective Date</label>
+    <mat-form-field appearance="outline">
+      <input matInput [matDatepicker]="picker" [(ngModel)]="data.lastMod" name="lastMod">
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <div class="popup-footer">
+    <button mat-stroked-button (click)="onCancel()">Cancel</button>
+    <button mat-flat-button color="primary" (click)="onSave()">Save</button>
+  </div>
+</form>
 
 
-If you'd like to integrate a popup for the Add/Edit form (like FIS Data Integrity Manager), I can update the Angular component to use MatDialog.
+---
 
-Let me know if you'd like that version.
+✅ Result
+
+With this setup, your popup form will have:
+
+A clean, professional layout
+
+Clearly visible Cancel and Save buttons
+
+Proper spacing and field alignment
+
+Scrollable content if fields overflow
+
+
+
+---
+
+Let me know if you also want:
+
+Dark theme support
+
+Mobile responsive layout
+
+Validation/error styles
+
+
+I'll add those too if needed.
 
