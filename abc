@@ -1,245 +1,154 @@
-Thanks! Below is the updated and complete Angular 17 code setup with the following changes:
-
-✅ Dropdowns for fromCurr and toCurr in the popup
-✅ Fetching distinct values from backend
-✅ Works for both Add and Edit actions
-✅ Styled like the FIS Data Integrity Manager UI
+Thanks for sharing the details and files. Based on your current Angular 17 standalone component and Spring Boot backend, here's how you can complete the dropdown functionality for fromCurr and toCurr values fetched from the backend:
 
 
 ---
 
-✅ exchange-rate.component.ts
+✅ Spring Boot: Backend Endpoint for Distinct Currencies
 
-import { Component, OnInit } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
-import { HttpClient } from '@angular/common/http';
-import { FormBuilder, FormGroup } from '@angular/forms';
+Ensure your backend has the following two endpoints (if not, add them):
 
-@Component({
-  selector: 'app-exchange-rate',
-  templateUrl: './exchange-rate.component.html',
-  styleUrls: ['./exchange-rate.component.css'],
-  standalone: true
-})
-export class ExchangeRateComponent implements OnInit {
-  exchangeRates: any[] = [];
-  fromCurrOptions: string[] = [];
-  toCurrOptions: string[] = [];
-  popupForm!: FormGroup;
-  isPopupOpen = false;
-  isEditMode = false;
-  editingIndex: number | null = null;
+@GetMapping("/from-currencies")
+public List<String> getFromCurrencies() {
+    return repository.findDistinctFromCurr();
+}
 
-  constructor(private http: HttpClient, private fb: FormBuilder, public dialog: MatDialog) {}
+@GetMapping("/to-currencies")
+public List<String> getToCurrencies() {
+    return repository.findDistinctToCurr();
+}
+
+In your repository interface:
+
+@Query("SELECT DISTINCT e.fromCurr FROM ExchangeRate e")
+List<String> findDistinctFromCurr();
+
+@Query("SELECT DISTINCT e.toCurr FROM ExchangeRate e")
+List<String> findDistinctToCurr();
+
+
+---
+
+✅ Angular Frontend Changes
+
+1. exchange-rates.component.ts
+
+Enhance the component logic:
+
+export class ExchangeRatesComponent implements OnInit {
+  rates: ExchangeRate[] = [];
+  newRate: ExchangeRate = { fromCurr: '', toCurr: '', rate: 0, lastMod: '' };
+  isEditing: boolean = false;
+  originalFromCurr: string = '';
+  apiUrl = 'http://localhost:8080/api/exchange-rates';
+
+  fromCurrencies: string[] = [];
+  toCurrencies: string[] = [];
+
+  constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
-    this.getExchangeRates();
-    this.getCurrencyOptions();
-    this.initializeForm();
+    this.fetchRates();
+    this.fetchCurrencies();
   }
 
-  initializeForm() {
-    this.popupForm = this.fb.group({
-      fromCurr: [''],
-      toCurr: [''],
-      rate: [''],
-      lastMod: ['']
-    });
+  fetchRates(): void {
+    this.http.get<ExchangeRate[]>(this.apiUrl).subscribe(data => this.rates = data);
   }
 
-  getExchangeRates() {
-    this.http.get<any[]>('http://localhost:8080/api/exchange-rates').subscribe(data => {
-      this.exchangeRates = data;
-    });
+  fetchCurrencies(): void {
+    this.http.get<string[]>(`${this.apiUrl}/from-currencies`).subscribe(data => this.fromCurrencies = data);
+    this.http.get<string[]>(`${this.apiUrl}/to-currencies`).subscribe(data => this.toCurrencies = data);
   }
 
-  getCurrencyOptions() {
-    this.http.get<string[]>('http://localhost:8080/api/exchange-rates/fromCurrs').subscribe(data => {
-      this.fromCurrOptions = data;
-    });
-    this.http.get<string[]>('http://localhost:8080/api/exchange-rates/toCurrs').subscribe(data => {
-      this.toCurrOptions = data;
-    });
-  }
-
-  openPopup(edit: boolean = false, index?: number) {
-    this.isPopupOpen = true;
-    this.isEditMode = edit;
-
-    if (edit && index !== undefined) {
-      this.editingIndex = index;
-      this.popupForm.patchValue(this.exchangeRates[index]);
-    } else {
-      this.editingIndex = null;
-      this.popupForm.reset();
-    }
-  }
-
-  closePopup() {
-    this.isPopupOpen = false;
-  }
-
-  saveExchangeRate() {
-    const data = this.popupForm.value;
-    if (this.isEditMode && this.editingIndex !== null) {
-      this.http.put(`http://localhost:8080/api/exchange-rates/${this.exchangeRates[this.editingIndex].fromCurr}/${this.exchangeRates[this.editingIndex].toCurr}`, data)
-        .subscribe(() => {
-          this.getExchangeRates();
-          this.closePopup();
-        });
-    } else {
-      this.http.post('http://localhost:8080/api/exchange-rates', data)
-        .subscribe(() => {
-          this.getExchangeRates();
-          this.closePopup();
-        });
-    }
-  }
-
-  deleteExchangeRate(fromCurr: string, toCurr: string) {
-    this.http.delete(`http://localhost:8080/api/exchange-rates/${fromCurr}/${toCurr}`)
-      .subscribe(() => {
-        this.getExchangeRates();
+  save(): void {
+    const payload = { ...this.newRate };
+    if (this.isEditing) {
+      this.http.put(`${this.apiUrl}/${this.originalFromCurr}`, payload).subscribe(() => {
+        this.fetchRates();
+        this.resetForm();
       });
+    } else {
+      this.http.post<ExchangeRate>(this.apiUrl, payload).subscribe(() => {
+        this.fetchRates();
+        this.resetForm();
+      });
+    }
+  }
+
+  edit(rate: ExchangeRate): void {
+    this.newRate = { ...rate };
+    this.originalFromCurr = rate.fromCurr;
+    this.isEditing = true;
+  }
+
+  delete(rate: ExchangeRate): void {
+    this.http.delete(`${this.apiUrl}/${rate.fromCurr}`).subscribe(() => this.fetchRates());
+  }
+
+  resetForm(): void {
+    this.newRate = { fromCurr: '', toCurr: '', rate: 0, lastMod: '' };
+    this.isEditing = false;
+    this.originalFromCurr = '';
   }
 }
 
 
 ---
 
-✅ exchange-rate.component.html
+2. exchange-rates.component.html
 
-<div class="table-container">
-  <button mat-raised-button color="primary" (click)="openPopup()">Add</button>
-  <table>
-    <thead>
-      <tr>
-        <th>From Currency</th>
-        <th>To Currency</th>
-        <th>Rate</th>
-        <th>Last Modified</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let rate of exchangeRates; let i = index">
-        <td>{{ rate.fromCurr }}</td>
-        <td>{{ rate.toCurr }}</td>
-        <td>{{ rate.rate }}</td>
-        <td>{{ rate.lastMod | date: 'yyyy-MM-dd' }}</td>
-        <td>
-          <button mat-button (click)="openPopup(true, i)">Edit</button>
-          <button mat-button color="warn" (click)="deleteExchangeRate(rate.fromCurr, rate.toCurr)">Delete</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+Update your form with dropdowns:
+
+<div class="form-container">
+  <select [(ngModel)]="newRate.fromCurr">
+    <option *ngFor="let from of fromCurrencies" [value]="from">{{ from }}</option>
+  </select>
+  <select [(ngModel)]="newRate.toCurr">
+    <option *ngFor="let to of toCurrencies" [value]="to">{{ to }}</option>
+  </select>
+  <input type="number" [(ngModel)]="newRate.rate" placeholder="Rate" />
+  <input type="date" [(ngModel)]="newRate.lastMod" placeholder="Last Modified" />
+
+  <button (click)="save()">{{ isEditing ? 'Update' : 'Add' }}</button>
+  <button (click)="resetForm()">Clear</button>
 </div>
 
-<!-- Popup Form -->
-<div class="popup" *ngIf="isPopupOpen">
-  <h2>{{ isEditMode ? 'Edit Exchange Rate' : 'Add Exchange Rate' }}</h2>
-  <form [formGroup]="popupForm">
-    <label>From Currency:
-      <select formControlName="fromCurr">
-        <option *ngFor="let curr of fromCurrOptions" [value]="curr">{{ curr }}</option>
-      </select>
-    </label>
-
-    <label>To Currency:
-      <select formControlName="toCurr">
-        <option *ngFor="let curr of toCurrOptions" [value]="curr">{{ curr }}</option>
-      </select>
-    </label>
-
-    <label>Rate:
-      <input type="number" formControlName="rate" />
-    </label>
-
-    <label>Effective Date:
-      <input type="date" formControlName="lastMod" />
-    </label>
-
-    <div class="popup-buttons">
-      <button mat-button color="primary" (click)="saveExchangeRate()">Save</button>
-      <button mat-button (click)="closePopup()">Cancel</button>
-    </div>
-  </form>
-</div>
+<table>
+  <thead>
+    <tr>
+      <th>From</th>
+      <th>To</th>
+      <th>Rate</th>
+      <th>Last Modified</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let rate of rates">
+      <td>{{ rate.fromCurr }}</td>
+      <td>{{ rate.toCurr }}</td>
+      <td>{{ rate.rate }}</td>
+      <td>{{ rate.lastMod }}</td>
+      <td>
+        <button (click)="edit(rate)">Edit</button>
+        <button (click)="delete(rate)">Delete</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 
 ---
 
-✅ exchange-rate.component.css
+✅ Make Sure:
 
-.table-container {
-  padding: 16px;
-  max-height: 500px;
-  overflow-y: auto;
-}
+FormsModule is imported in your Angular module if you're using [(ngModel)].
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
+Your Spring Boot CORS config allows requests from your Angular app.
 
-th, td {
-  padding: 8px;
-  border: 1px solid #ccc;
-}
-
-.popup {
-  position: fixed;
-  top: 20%;
-  left: 30%;
-  background: #fff;
-  padding: 24px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.3);
-  z-index: 1000;
-  border-radius: 8px;
-  width: 400px;
-}
-
-.popup h2 {
-  margin-top: 0;
-}
-
-.popup form label {
-  display: block;
-  margin: 10px 0;
-}
-
-.popup-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 16px;
-}
 
 
 ---
 
-✅ Backend API Endpoints Required (Spring Boot)
-
-Make sure your Spring Boot backend includes:
-
-GET /api/exchange-rates → list of exchange rates
-
-GET /api/exchange-rates/fromCurrs → list of distinct fromCurr
-
-GET /api/exchange-rates/toCurrs → list of distinct toCurr
-
-POST /api/exchange-rates → to add
-
-PUT /api/exchange-rates/{fromCurr}/{toCurr} → to update
-
-DELETE /api/exchange-rates/{fromCurr}/{toCurr} → to delete
-
-
-If you need help adjusting the Spring Boot controller or repository for those endpoints, I can provide that too.
-
-
----
-
-Let me know if you'd like this integrated into a full Angular project structure, or help with the Spring Boot side!
+Would you like me to package this into a ZIP with all files updated for frontend and backend?
 
