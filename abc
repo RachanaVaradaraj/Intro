@@ -1,33 +1,18 @@
-Thanks for the update. I'll provide the complete working Angular 17 standalone component code for exchange-rates.component.ts, based on your errors and the backend integration we’ve discussed.
+Great! Here's how you can add dropdowns for fromCurr and toCurr in the Add section of your Angular component, assuming you're already fetching the distinct values for those from your Spring Boot backend.
 
 
 ---
 
-✅ Corrected exchange-rates.component.ts
+✅ Full Working Add Popup (with Dropdowns for fromCurr and toCurr)
 
-This includes:
+exchange-rates.component.ts (Standalone)
 
-Proper @Component decorator with standalone: true
-
-Correct ExchangeRate interface definition
-
-Fixes for fromCurrencies, toCurrencies
-
-Working fetchRates(), fetchCurrencies(), save(), edit()
-
+Make sure this is your ExchangeRatesComponent setup:
 
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { FormsModule } from '@angular/forms';
-import { MatDialogModule } from '@angular/material/dialog';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 
-interface ExchangeRate {
+export interface ExchangeRate {
   fromCurr: string;
   toCurr: string;
   rate: number;
@@ -39,27 +24,15 @@ interface ExchangeRate {
   standalone: true,
   templateUrl: './exchange-rates.component.html',
   styleUrls: ['./exchange-rates.component.css'],
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatDialogModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatDatepickerModule,
-    MatNativeDateModule
-  ]
 })
 export class ExchangeRatesComponent implements OnInit {
   rates: ExchangeRate[] = [];
   newRate: ExchangeRate = { fromCurr: '', toCurr: '', rate: 0, lastMod: '' };
   isEditing: boolean = false;
   originalFromCurr: string = '';
-
+  apiUrl = 'http://localhost:8080/api/exchange-rates';
   fromCurrencies: string[] = [];
   toCurrencies: string[] = [];
-
-  apiUrl = 'http://localhost:8080/api/exchange-rates';
 
   constructor(private http: HttpClient) {}
 
@@ -91,7 +64,7 @@ export class ExchangeRatesComponent implements OnInit {
         this.resetForm();
       });
     } else {
-      this.http.post<ExchangeRate>(this.apiUrl, payload).subscribe(() => {
+      this.http.post(this.apiUrl, payload).subscribe(() => {
         this.fetchRates();
         this.resetForm();
       });
@@ -113,47 +86,60 @@ export class ExchangeRatesComponent implements OnInit {
   resetForm(): void {
     this.newRate = { fromCurr: '', toCurr: '', rate: 0, lastMod: '' };
     this.isEditing = false;
-    this.originalFromCurr = '';
   }
 }
 
 
 ---
 
-✅ Make sure your exchange-rates.component.html uses the correct property bindings:
+exchange-rates.component.html
 
-Example snippet:
+Replace your form section with this:
 
-<select [(ngModel)]="newRate.fromCurr">
-  <option *ngFor="let from of fromCurrencies" [value]="from">{{ from }}</option>
-</select>
+<div class="popup-form">
+  <label>From Currency</label>
+  <select [(ngModel)]="newRate.fromCurr">
+    <option *ngFor="let from of fromCurrencies" [value]="from">{{ from }}</option>
+  </select>
 
-<select [(ngModel)]="newRate.toCurr">
-  <option *ngFor="let to of toCurrencies" [value]="to">{{ to }}</option>
-</select>
+  <label>To Currency</label>
+  <select [(ngModel)]="newRate.toCurr">
+    <option *ngFor="let to of toCurrencies" [value]="to">{{ to }}</option>
+  </select>
 
+  <label>Rate</label>
+  <input type="number" [(ngModel)]="newRate.rate" />
 
----
+  <label>Last Modified</label>
+  <input type="date" [(ngModel)]="newRate.lastMod" />
 
-🔁 Update any parent components:
+  <button (click)="save()">{{ isEditing ? 'Update' : 'Add' }}</button>
+</div>
 
-In the parent (e.g. layout.component.ts), make sure you're importing ExchangeRatesComponent properly:
-
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { SidebarComponent } from '../sidebar/sidebar.component';
-import { ExchangeRatesComponent } from '../exchange-rates/exchange-rates.component';
-
-@Component({
-  selector: 'app-layout',
-  standalone: true,
-  imports: [RouterOutlet, SidebarComponent, ExchangeRatesComponent],
-  templateUrl: './layout.component.html',
-})
-export class LayoutComponent {}
+Make sure your form fields are styled properly, and [(ngModel)] is enabled by importing FormsModule.
 
 
 ---
 
-If this still doesn’t work, feel free to upload your current full .ts and .html files — I’ll correct and send them back to you immediately.
+✅ Add This to main.ts or app.config.ts if Standalone:
+
+If you're using standalone components, make sure to import FormsModule:
+
+import { bootstrapApplication } from '@angular/platform-browser';
+import { provideHttpClient } from '@angular/common/http';
+import { ExchangeRatesComponent } from './app/components/exchange-rates/exchange-rates.component';
+import { importProvidersFrom } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+
+bootstrapApplication(ExchangeRatesComponent, {
+  providers: [
+    provideHttpClient(),
+    importProvidersFrom(FormsModule)
+  ]
+});
+
+
+---
+
+Let me know if you'd like a full popup modal instead of inline form, or need to adjust styling to match your FIS Data Integrity Manager layout.
 
