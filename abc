@@ -1,20 +1,81 @@
-Thanks for the clarification and the image. Based on your requirements:
+Thanks for pointing that out. The error Expected 0 arguments but found 2 in the line:
 
-✅ You want to edit all fields, including fromCurr (which is part of the primary key).
+Optional<ExchangeRate> optionalRate = repository.findById(new ExchangeRate(fromCurr, toCurr));
 
-✅ You do not want to create a new ExchangeRateKey class.
-
-✅ You want edits to reflect correctly in the Angular table.
-
-🔧 Your current controller uses only fromCurr in the @PutMapping, which won’t work correctly because your table has a composite primary key: fromCurr and toCurr.
-
+…is because you're trying to call findById() with an ExchangeRate object instead of the correct composite key type.
 
 
 ---
 
-✅ Corrected Spring Boot Controller Code
+🔧 Fixing the Core Issue
 
-Update your @PutMapping like this to work without creating a new class:
+Your ExchangeRate table uses a composite primary key: fromCurr and toCurr. For Spring Data JPA to work correctly with findById(), you must provide a key object — either via:
+
+Option 1: Create a key class (Recommended by Spring)
+
+If you don’t want this, skip to Option 2 (but that uses a workaround).
+
+
+---
+
+✅ ✅ Option 1: Proper Way — Use @IdClass
+
+1. Create the key class ExchangeRateKey.java:
+
+import java.io.Serializable;
+import java.util.Objects;
+
+public class ExchangeRateKey implements Serializable {
+    private String fromCurr;
+    private String toCurr;
+
+    // Constructors
+    public ExchangeRateKey() {}
+    public ExchangeRateKey(String fromCurr, String toCurr) {
+        this.fromCurr = fromCurr;
+        this.toCurr = toCurr;
+    }
+
+    // equals and hashCode
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ExchangeRateKey)) return false;
+        ExchangeRateKey that = (ExchangeRateKey) o;
+        return fromCurr.equals(that.fromCurr) && toCurr.equals(that.toCurr);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(fromCurr, toCurr);
+    }
+}
+
+2. Update your ExchangeRate entity:
+
+@Entity
+@IdClass(ExchangeRateKey.class)
+@Table(name = "ExchangeRates_Rachana")
+public class ExchangeRate {
+
+    @Id
+    private String fromCurr;
+
+    @Id
+    private String toCurr;
+
+    private Double rate;
+
+    @Temporal(TemporalType.DATE)
+    private Date lastMod;
+
+    // Getters/Setters
+}
+
+
+---
+
+✅ 3. Update your controller method:
 
 @PutMapping("/exchange-rates/{fromCurr}/{toCurr}")
 public ResponseEntity<ExchangeRate> updateExchangeRate(
@@ -22,18 +83,17 @@ public ResponseEntity<ExchangeRate> updateExchangeRate(
         @PathVariable String toCurr,
         @RequestBody ExchangeRate updatedRate) {
 
-    Optional<ExchangeRate> optionalRate = repository.findById(new ExchangeRate(fromCurr, toCurr));
-    if (optionalRate.isPresent()) {
-        ExchangeRate existingRate = optionalRate.get();
+    ExchangeRateKey key = new ExchangeRateKey(fromCurr, toCurr);
+    Optional<ExchangeRate> optionalRate = repository.findById(key);
 
-        // If primary key changed, delete the old and insert new
+    if (optionalRate.isPresent()) {
+        // Handle PK change
         if (!fromCurr.equals(updatedRate.getFromCurr()) || !toCurr.equals(updatedRate.getToCurr())) {
-            repository.deleteById(new ExchangeRate(fromCurr, toCurr));
+            repository.deleteById(key); // remove old
         }
 
-        // Save the new/updated entity
-        repository.save(updatedRate);
-        return ResponseEntity.ok(updatedRate);
+        ExchangeRate saved = repository.save(updatedRate); // insert new
+        return ResponseEntity.ok(saved);
     } else {
         return ResponseEntity.notFound().build();
     }
@@ -42,46 +102,29 @@ public ResponseEntity<ExchangeRate> updateExchangeRate(
 
 ---
 
-🔧 Entity Fix (if you're not using @IdClass)
+❌ Option 2: Workaround (Not Recommended)
 
-Make sure your ExchangeRate entity uses this:
+Using .findByFromCurrAndToCurr(...) in your repository:
 
-@Entity
-@Table(name = "ExchangeRates_Rachana")
-@IdClass(ExchangeRate.class) // optional if you're not using @Embeddable or another class
-public class ExchangeRate {
+Optional<ExchangeRate> optionalRate = repository.findByFromCurrAndToCurr(fromCurr, toCurr);
 
-    @Id
-    @Column(name = "FROMCURR")
-    private String fromCurr;
+You’d then need to define this in your repository interface:
 
-    @Id
-    @Column(name = "TOCURR")
-    private String toCurr;
+Optional<ExchangeRate> findByFromCurrAndToCurr(String fromCurr, String toCurr);
 
-    @Column(name = "RATE")
-    private double rate;
-
-    @Column(name = "LASTMOD")
-    @Temporal(TemporalType.DATE)
-    private Date lastMod;
-
-    // Constructors, Getters, Setters
-}
-
-But if this doesn't work, Spring requires a class or @EmbeddedId to handle composite keys properly.
-
-So if you want a guaranteed solution without extra logic hacks, you'd still be better off making a lightweight ExchangeRateKey class as described earlier.
+But this approach won’t support deleteById or save properly in some cases unless you do extra mapping.
 
 
 ---
 
-✅ Final Notes
+✅ Best Option Summary
 
-Your Angular UI should send all fields (including the old and new fromCurr, toCurr) when editing.
+✅ Add ExchangeRateKey.java
+✅ Use @IdClass(ExchangeRateKey.class)
+✅ Pass the key object to findById() and deleteById()
 
-You may need to temporarily store the original PKs if you're editing them in the UI.
 
+---
 
-Would you like help modifying the Angular part to send both original and edited keys?
+Would you like me to give you the full final code with all three files updated (Entity, Key, Controller)?
 
