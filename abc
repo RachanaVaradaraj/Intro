@@ -1,13 +1,176 @@
-<mat-form-field appearance="fill">
-  <mat-label>From Currency</mat-label>
-  <mat-select [(ngModel)]="formData.fromCurr">
-    <mat-option *ngFor="let curr of fromCurrencies" [value]="curr">{{ curr }}</mat-option>
-  </mat-select>
-</mat-form-field>
+Based on the screenshots of your Angular component files (exchange-rates.component.ts and exchange-rates.component.html), I’ve revised your code to:
 
-<mat-form-field appearance="fill">
-  <mat-label>To Currency</mat-label>
-  <mat-select [(ngModel)]="formData.toCurr">
-    <mat-option *ngFor="let curr of toCurrencies" [value]="curr">{{ curr }}</mat-option>
-  </mat-select>
-</mat-form-field>
+1. Ensure dropdowns for From Currency and To Currency are populated from the backend.
+
+
+2. Bind data correctly for saving.
+
+
+3. Fix the popup logic and data handling (e.g., formData usage).
+
+
+4. Format and align code properly for clarity.
+
+
+
+
+---
+
+✅ exchange-rates.component.ts (TypeScript Logic)
+
+import { Component, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+
+@Component({
+  selector: 'app-exchange-rates',
+  templateUrl: './exchange-rates.component.html',
+  styleUrls: ['./exchange-rates.component.css']
+})
+export class ExchangeRatesComponent implements OnInit {
+  exchangeRates: any[] = [];
+  fromCurrencies: string[] = [];
+  toCurrencies: string[] = [];
+
+  isPopupOpen = false;
+
+  newExchangeRate = {
+    fromCurr: '',
+    toCurr: '',
+    rate: null,
+    lastMod: new Date()
+  };
+
+  constructor(private http: HttpClient) {}
+
+  ngOnInit(): void {
+    this.loadExchangeRates();
+  }
+
+  loadExchangeRates(): void {
+    this.http.get<any[]>('http://localhost:8080/api/exchange-rates')
+      .subscribe(data => {
+        this.exchangeRates = data;
+      });
+  }
+
+  openAddPopup(): void {
+    this.newExchangeRate = {
+      fromCurr: '',
+      toCurr: '',
+      rate: null,
+      lastMod: new Date()
+    };
+
+    this.http.get<string[]>('http://localhost:8080/api/exchange-rates/from-currencies')
+      .subscribe(data => this.fromCurrencies = data);
+
+    this.http.get<string[]>('http://localhost:8080/api/exchange-rates/to-currencies')
+      .subscribe(data => this.toCurrencies = data);
+
+    this.isPopupOpen = true;
+  }
+
+  closePopup(): void {
+    this.isPopupOpen = false;
+  }
+
+  addExchangeRate(): void {
+    this.http.post('http://localhost:8080/api/exchange-rates', this.newExchangeRate)
+      .subscribe(() => {
+        this.loadExchangeRates();
+        this.closePopup();
+      });
+  }
+}
+
+
+---
+
+✅ exchange-rates.component.html (Template/UI)
+
+<div class="container">
+  <h2>Exchange Rates</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>From Currency</th>
+        <th>To Currency</th>
+        <th>Rate</th>
+        <th>Last Modified</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let rate of exchangeRates">
+        <td>{{ rate.fromCurr }}</td>
+        <td>{{ rate.toCurr }}</td>
+        <td>{{ rate.rate }}</td>
+        <td>{{ rate.lastMod | date: 'yyyy-MM-dd' }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <button (click)="openAddPopup()">Add Exchange Rate</button>
+
+  <!-- Add Popup -->
+  <div class="popup" *ngIf="isPopupOpen">
+    <div class="popup-content">
+      <h3>Add Exchange Entry</h3>
+
+      <mat-form-field appearance="fill">
+        <mat-label>From Currency</mat-label>
+        <mat-select [(ngModel)]="newExchangeRate.fromCurr">
+          <mat-option *ngFor="let curr of fromCurrencies" [value]="curr">{{ curr }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="fill">
+        <mat-label>To Currency</mat-label>
+        <mat-select [(ngModel)]="newExchangeRate.toCurr">
+          <mat-option *ngFor="let curr of toCurrencies" [value]="curr">{{ curr }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <label>Rate:</label>
+      <input type="number" [(ngModel)]="newExchangeRate.rate" />
+
+      <label>Last Modified:</label>
+      <input type="date" [(ngModel)]="newExchangeRate.lastMod" />
+
+      <div class="actions">
+        <button (click)="addExchangeRate()">Save</button>
+        <button (click)="closePopup()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+---
+
+✅ Add Required Modules in app.module.ts:
+
+Make sure you have the following Angular Material and Forms modules imported:
+
+import { FormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+
+@NgModule({
+  imports: [
+    FormsModule,
+    HttpClientModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatInputModule
+  ]
+})
+export class AppModule {}
+
+
+---
+
+If you also need help styling (exchange-rates.component.css) or editing support for Edit/Delete functionality, let me know and I’ll include that too.
+
