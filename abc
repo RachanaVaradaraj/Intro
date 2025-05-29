@@ -1,44 +1,21 @@
-Thanks for clarifying! Since you're building a standalone Angular 17 component and want the integration with your Spring Boot backend without a separate service file, I’ll embed the HTTP logic directly into your component.
-
-Here's the complete code for your Angular 17 standalone component with full CRUD operations connected to your Spring Boot + Oracle backend (table: EXCHANGERATES_RACHANA).
+Sure! Below is the complete and corrected code for both Angular (frontend) and Spring Boot (backend) to make edit and delete functionality work properly with your current setup.
 
 
 ---
 
-✅ Angular 17 Standalone Component: exchange-rate.component.ts
+✅ Angular (Frontend)
+
+exchange-rates.component.ts
 
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
-import { MatIconModule } from '@angular/material/icon';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatInputModule } from '@angular/material/input';
-import { MatNativeDateModule } from '@angular/material/core';
-
-interface ExchangeRate {
-  fromCurr: string;
-  toCurr: string;
-  rate: number;
-  lastMod: string;
-}
+import { HttpClient } from '@angular/common/http';
 
 @Component({
-  selector: 'app-exchange-rate',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    HttpClientModule,
-    MatIconModule,
-    MatDatepickerModule,
-    MatInputModule,
-    MatNativeDateModule
-  ],
-  templateUrl: './exchange-rate.component.html',
-  styleUrl: './exchange-rate.component.css'
+  selector: 'app-exchange-rates',
+  templateUrl: './exchange-rates.component.html',
+  styleUrls: ['./exchange-rates.component.css']
 })
-export class ExchangeRateComponent implements OnInit {
+export class ExchangeRatesComponent implements OnInit {
   rates: ExchangeRate[] = [];
   newRate: ExchangeRate = { fromCurr: '', toCurr: '', rate: 0, lastMod: '' };
   editingRate: ExchangeRate | null = null;
@@ -57,10 +34,10 @@ export class ExchangeRateComponent implements OnInit {
   }
 
   save(): void {
-    const payload = this.editingRate ?? this.newRate;
+    const payload = this.editingRate ? this.editingRate : this.newRate;
     const request = this.editingRate
-      ? this.http.put<ExchangeRate>(this.apiUrl, payload)
-      : this.http.post<ExchangeRate>(this.apiUrl, payload);
+      ? this.http.put(`${this.apiUrl}/${payload.fromCurr}`, payload)
+      : this.http.post(this.apiUrl, payload);
 
     request.subscribe(() => {
       this.resetForm();
@@ -73,11 +50,8 @@ export class ExchangeRateComponent implements OnInit {
   }
 
   delete(rate: ExchangeRate): void {
-    this.http.request('delete', this.apiUrl, {
-      body: { fromCurr: rate.fromCurr, toCurr: rate.toCurr }
-    }).subscribe(() => {
-      this.fetchRates();
-    });
+    this.http.delete(`${this.apiUrl}/${rate.fromCurr}`)
+      .subscribe(() => this.fetchRates());
   }
 
   resetForm(): void {
@@ -86,60 +60,87 @@ export class ExchangeRateComponent implements OnInit {
   }
 }
 
-
----
-
-✅ HTML Template: exchange-rate.component.html
-
-<h2>Exchange Rates</h2>
-<table>
-  <thead>
-    <tr>
-      <th>From</th>
-      <th>To</th>
-      <th>Rate</th>
-      <th>Last Modified</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let rate of rates">
-      <td>{{ rate.fromCurr }}</td>
-      <td>{{ rate.toCurr }}</td>
-      <td>{{ rate.rate }}</td>
-      <td>{{ rate.lastMod }}</td>
-      <td>
-        <button (click)="edit(rate)">Edit</button>
-        <button (click)="delete(rate)">Delete</button>
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-<h3>{{ editingRate ? 'Edit' : 'Add' }} Exchange Rate</h3>
-<form (ngSubmit)="save()">
-  <input name="fromCurr" [(ngModel)]="(editingRate || newRate).fromCurr" placeholder="From Currency" required>
-  <input name="toCurr" [(ngModel)]="(editingRate || newRate).toCurr" placeholder="To Currency" required>
-  <input name="rate" type="number" [(ngModel)]="(editingRate || newRate).rate" placeholder="Rate" required>
-  <input name="lastMod" type="date" [(ngModel)]="(editingRate || newRate).lastMod" required>
-  <button type="submit">Save</button>
-  <button type="button" (click)="resetForm()">Cancel</button>
-</form>
+interface ExchangeRate {
+  fromCurr: string;
+  toCurr: string;
+  rate: number;
+  lastMod: string;
+}
 
 
 ---
 
-✅ Summary of Features
+✅ Spring Boot (Backend)
 
-✅ Fetch data from Spring Boot
-✅ Add new exchange rate
-✅ Edit existing rate
-✅ Delete rate
-✅ All operations persist to Oracle DB through Spring Boot REST API
-✅ Uses HttpClient directly in the standalone component (no service file required)
+ExchangeRateController.java
+
+package com.example.recon_connect.controller;
+
+import com.example.recon_connect.entity.ExchangeRate;
+import com.example.recon_connect.repository.ExchangeRateRepository;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api/exchange-rates")
+@CrossOrigin(origins = "*")
+public class ExchangeRateController {
+
+    private final ExchangeRateRepository repository;
+
+    public ExchangeRateController(ExchangeRateRepository repository) {
+        this.repository = repository;
+    }
+
+    @GetMapping
+    public List<ExchangeRate> getAll() {
+        return repository.findAll();
+    }
+
+    @PostMapping
+    public ExchangeRate add(@RequestBody ExchangeRate rate) {
+        return repository.save(rate);
+    }
+
+    @PutMapping("/{fromCurr}")
+    public ExchangeRate update(@PathVariable String fromCurr, @RequestBody ExchangeRate rate) {
+        Optional<ExchangeRate> existing = repository.findById(fromCurr);
+        if (existing.isPresent()) {
+            ExchangeRate existingRate = existing.get();
+            existingRate.setToCurr(rate.getToCurr());
+            existingRate.setRate(rate.getRate());
+            existingRate.setLastMod(rate.getLastMod());
+            return repository.save(existingRate);
+        } else {
+            return repository.save(rate);
+        }
+    }
+
+    @DeleteMapping("/{fromCurr}")
+    public void delete(@PathVariable String fromCurr) {
+        repository.deleteById(fromCurr);
+    }
+}
 
 
 ---
 
-Would you like me to zip this up into a ready-to-import Angular module or update the CSS to match the FIS Data Integrity Manager styling?
+🔁 Summary
+
+Functionality	Angular	Spring Boot
+
+Edit	PUT /{fromCurr}	Updates existing exchange rate
+Delete	DELETE /{fromCurr}	Deletes by primary key fromCurr
+Add	POST	Adds a new entry
+Fetch	GET	Gets all records
+
+
+
+---
+
+If you're using a composite primary key (fromCurr + toCurr), let me know — the solution will require @EmbeddedId changes in the backend.
+
+Would you like me to help wire this to your exchange-rates.component.html template too?
 
