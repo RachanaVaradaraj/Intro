@@ -1,18 +1,22 @@
-Sure! Here's the complete code for both the Angular component and the Spring Boot controller, updated so that:
+Thanks for your patience. Here's the complete and corrected code for your Angular 17 exchange rate component that ensures:
 
-Editing correctly updates the row instead of adding a new one.
+1. Edit works properly — including updating the row in place instead of adding a new row.
 
-fromCurr is disabled during edit (since it’s the primary key).
 
-Delete works as expected.
+2. All fields are editable, including fromCurr.
+
+
+3. The table reflects updated data after an edit.
+
+
+4. Data is sent to the backend using PUT with the correct identification logic.
+
 
 
 
 ---
 
-✅ Angular (Frontend)
-
-exchange-rates.component.ts
+✅ exchange-rates.component.ts
 
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
@@ -32,7 +36,8 @@ interface ExchangeRate {
 export class ExchangeRatesComponent implements OnInit {
   rates: ExchangeRate[] = [];
   newRate: ExchangeRate = { fromCurr: '', toCurr: '', rate: 0, lastMod: '' };
-  editingRate: ExchangeRate | null = null;
+  isEditing: boolean = false;
+  originalFromCurr: string = ''; // Track original primary key
   apiUrl = 'http://localhost:8080/api/exchange-rates';
 
   constructor(private http: HttpClient) {}
@@ -48,145 +53,102 @@ export class ExchangeRatesComponent implements OnInit {
   }
 
   save(): void {
-    const payload = this.editingRate ? this.editingRate : this.newRate;
+    const payload = { ...this.newRate };
 
-    const request = this.editingRate
-      ? this.http.put(`${this.apiUrl}/${this.editingRate.fromCurr}`, payload)
-      : this.http.post(this.apiUrl, payload);
+    if (this.isEditing) {
+      this.http.put(`${this.apiUrl}/${this.originalFromCurr}`, payload).subscribe(() => {
+        this.fetchRates();
+        this.resetForm();
+      });
+    } else {
+      this.http.post<ExchangeRate>(this.apiUrl, payload).subscribe(() => {
+        this.fetchRates();
+        this.resetForm();
+      });
+    }
+  }
 
-    request.subscribe(() => {
-      this.resetForm();
+  edit(rate: ExchangeRate): void {
+    this.newRate = { ...rate };
+    this.originalFromCurr = rate.fromCurr; // Save original key
+    this.isEditing = true;
+  }
+
+  delete(rate: ExchangeRate): void {
+    this.http.delete(`${this.apiUrl}/${rate.fromCurr}`).subscribe(() => {
       this.fetchRates();
     });
   }
 
-  edit(rate: ExchangeRate): void {
-    this.editingRate = { ...rate };
-  }
-
-  delete(rate: ExchangeRate): void {
-    this.http
-      .delete(`${this.apiUrl}/${rate.fromCurr}`)
-      .subscribe(() => this.fetchRates());
-  }
-
   resetForm(): void {
     this.newRate = { fromCurr: '', toCurr: '', rate: 0, lastMod: '' };
-    this.editingRate = null;
+    this.isEditing = false;
+    this.originalFromCurr = '';
   }
 }
 
 
 ---
 
-exchange-rates.component.html
+✅ exchange-rates.component.html
 
-<div>
-  <h2>{{ editingRate ? 'Edit Exchange Rate' : 'Add Exchange Rate' }}</h2>
+<div class="form-container">
+  <input [(ngModel)]="newRate.fromCurr" placeholder="From Currency">
+  <input [(ngModel)]="newRate.toCurr" placeholder="To Currency">
+  <input type="number" [(ngModel)]="newRate.rate" placeholder="Rate">
+  <input type="date" [(ngModel)]="newRate.lastMod" placeholder="Last Modified">
 
-  <form (ngSubmit)="save()">
-    <input
-      type="text"
-      placeholder="From Currency"
-      [(ngModel)]="editingRate ? editingRate.fromCurr : newRate.fromCurr"
-      [disabled]="editingRate !== null"
-      name="fromCurr"
-      required
-    />
-    <input
-      type="text"
-      placeholder="To Currency"
-      [(ngModel)]="editingRate ? editingRate.toCurr : newRate.toCurr"
-      name="toCurr"
-      required
-    />
-    <input
-      type="number"
-      placeholder="Rate"
-      [(ngModel)]="editingRate ? editingRate.rate : newRate.rate"
-      name="rate"
-      required
-    />
-    <input
-      type="date"
-      [(ngModel)]="editingRate ? editingRate.lastMod : newRate.lastMod"
-      name="lastMod"
-      required
-    />
-    <button type="submit">{{ editingRate ? 'Update' : 'Add' }}</button>
-    <button type="button" (click)="resetForm()">Cancel</button>
-  </form>
-
-  <table>
-    <thead>
-      <tr>
-        <th>From</th>
-        <th>To</th>
-        <th>Rate</th>
-        <th>Last Modified</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let rate of rates">
-        <td>{{ rate.fromCurr }}</td>
-        <td>{{ rate.toCurr }}</td>
-        <td>{{ rate.rate }}</td>
-        <td>{{ rate.lastMod }}</td>
-        <td>
-          <button (click)="edit(rate)">Edit</button>
-          <button (click)="delete(rate)">Delete</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <button (click)="save()">{{ isEditing ? 'Update' : 'Add' }}</button>
+  <button (click)="resetForm()">Clear</button>
 </div>
+
+<table>
+  <thead>
+    <tr>
+      <th>From</th>
+      <th>To</th>
+      <th>Rate</th>
+      <th>Last Modified</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let rate of rates">
+      <td>{{ rate.fromCurr }}</td>
+      <td>{{ rate.toCurr }}</td>
+      <td>{{ rate.rate }}</td>
+      <td>{{ rate.lastMod }}</td>
+      <td>
+        <button (click)="edit(rate)">Edit</button>
+        <button (click)="delete(rate)">Delete</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 
 ---
 
-✅ Spring Boot (Backend)
+✅ exchange-rate.controller.java (Backend)
 
-ExchangeRateController.java
+@PutMapping("/{fromCurr}")
+public ExchangeRate update(@PathVariable String fromCurr, @RequestBody ExchangeRate rate) {
+    Optional<ExchangeRate> existing = repository.findById(fromCurr);
 
-@RestController
-@RequestMapping("/api/exchange-rates")
-@CrossOrigin(origins = "*")
-public class ExchangeRateController {
+    if (existing.isPresent()) {
+        ExchangeRate existingRate = existing.get();
+        existingRate.setFromCurr(rate.getFromCurr());
+        existingRate.setToCurr(rate.getToCurr());
+        existingRate.setRate(rate.getRate());
+        existingRate.setLastMod(rate.getLastMod());
 
-    private final ExchangeRateRepository repository;
-
-    public ExchangeRateController(ExchangeRateRepository repository) {
-        this.repository = repository;
-    }
-
-    @GetMapping
-    public List<ExchangeRate> getAll() {
-        return repository.findAll();
-    }
-
-    @PostMapping
-    public ExchangeRate add(@RequestBody ExchangeRate rate) {
-        return repository.save(rate);
-    }
-
-    @PutMapping("/{fromCurr}")
-    public ExchangeRate update(@PathVariable String fromCurr, @RequestBody ExchangeRate rate) {
-        Optional<ExchangeRate> existing = repository.findById(fromCurr);
-        if (existing.isPresent()) {
-            ExchangeRate existingRate = existing.get();
-            existingRate.setToCurr(rate.getToCurr());
-            existingRate.setRate(rate.getRate());
-            existingRate.setLastMod(rate.getLastMod());
-            return repository.save(existingRate);
-        } else {
-            return repository.save(rate); // Or return an error if strict update
+        if (!fromCurr.equals(rate.getFromCurr())) {
+            repository.deleteById(fromCurr); // Handle PK change
         }
-    }
 
-    @DeleteMapping("/{fromCurr}")
-    public void delete(@PathVariable String fromCurr) {
-        repository.deleteById(fromCurr);
+        return repository.save(existingRate);
+    } else {
+        return repository.save(rate);
     }
 }
 
@@ -195,10 +157,12 @@ public class ExchangeRateController {
 
 Let me know if you want:
 
-A popup form instead of inline.
+Editing via popup dialog instead of inline form
 
-Validation messages.
+Better CSS styling to match a corporate theme
 
-Spring Boot error handling for missing records or invalid input.
+Confirmation before delete
 
+
+Ready to help!
 
