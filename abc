@@ -1,145 +1,92 @@
-Great! Here's how you can add dropdowns for fromCurr and toCurr in the Add section of your Angular component, assuming you're already fetching the distinct values for those from your Spring Boot backend.
+Thanks for the image. I can see your Spring Boot controller code, and it’s almost correct. Here's a corrected and cleaned-up version with improvements:
 
 
 ---
 
-✅ Full Working Add Popup (with Dropdowns for fromCurr and toCurr)
+✅ Corrected ExchangeRateController.java
 
-exchange-rates.component.ts (Standalone)
+package com.example.recon_connect.controller;
 
-Make sure this is your ExchangeRatesComponent setup:
+import com.example.recon_connect.entity.ExchangeRate;
+import com.example.recon_connect.repository.ExchangeRateRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
+import java.util.Optional;
 
-import { Component, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+@CrossOrigin(origins = "*") // Allow requests from Angular (adjust origin if needed)
+@RestController
+@RequestMapping("/api/exchange-rates")
+public class ExchangeRateController {
 
-export interface ExchangeRate {
-  fromCurr: string;
-  toCurr: string;
-  rate: number;
-  lastMod: string;
-}
+    private final ExchangeRateRepository repository;
 
-@Component({
-  selector: 'app-exchange-rates',
-  standalone: true,
-  templateUrl: './exchange-rates.component.html',
-  styleUrls: ['./exchange-rates.component.css'],
-})
-export class ExchangeRatesComponent implements OnInit {
-  rates: ExchangeRate[] = [];
-  newRate: ExchangeRate = { fromCurr: '', toCurr: '', rate: 0, lastMod: '' };
-  isEditing: boolean = false;
-  originalFromCurr: string = '';
-  apiUrl = 'http://localhost:8080/api/exchange-rates';
-  fromCurrencies: string[] = [];
-  toCurrencies: string[] = [];
-
-  constructor(private http: HttpClient) {}
-
-  ngOnInit(): void {
-    this.fetchRates();
-    this.fetchCurrencies();
-  }
-
-  fetchRates(): void {
-    this.http.get<ExchangeRate[]>(this.apiUrl).subscribe(data => {
-      this.rates = data;
-    });
-  }
-
-  fetchCurrencies(): void {
-    this.http.get<string[]>(`${this.apiUrl}/from-currencies`).subscribe(data => {
-      this.fromCurrencies = data;
-    });
-    this.http.get<string[]>(`${this.apiUrl}/to-currencies`).subscribe(data => {
-      this.toCurrencies = data;
-    });
-  }
-
-  save(): void {
-    const payload = { ...this.newRate };
-    if (this.isEditing) {
-      this.http.put(`${this.apiUrl}/${this.originalFromCurr}`, payload).subscribe(() => {
-        this.fetchRates();
-        this.resetForm();
-      });
-    } else {
-      this.http.post(this.apiUrl, payload).subscribe(() => {
-        this.fetchRates();
-        this.resetForm();
-      });
+    @Autowired
+    public ExchangeRateController(ExchangeRateRepository repository) {
+        this.repository = repository;
     }
-  }
 
-  edit(rate: ExchangeRate): void {
-    this.newRate = { ...rate };
-    this.originalFromCurr = rate.fromCurr;
-    this.isEditing = true;
-  }
+    @GetMapping
+    public List<ExchangeRate> getAll() {
+        return repository.findAll();
+    }
 
-  delete(fromCurr: string): void {
-    this.http.delete(`${this.apiUrl}/${fromCurr}`).subscribe(() => {
-      this.fetchRates();
-    });
-  }
+    @GetMapping("/from-currencies")
+    public List<String> getFromCurrencies() {
+        return repository.findDistinctFromCurr();
+    }
 
-  resetForm(): void {
-    this.newRate = { fromCurr: '', toCurr: '', rate: 0, lastMod: '' };
-    this.isEditing = false;
-  }
+    @GetMapping("/to-currencies")
+    public List<String> getToCurrencies() {
+        return repository.findDistinctToCurr();
+    }
+
+    @PostMapping
+    public ExchangeRate add(@RequestBody ExchangeRate rate) {
+        return repository.save(rate);
+    }
+
+    @PutMapping("/{fromCurr}")
+    public ExchangeRate update(@PathVariable String fromCurr, @RequestBody ExchangeRate rate) {
+        Optional<ExchangeRate> existing = repository.findById(fromCurr);
+        if (existing.isPresent()) {
+            ExchangeRate existingRate = existing.get();
+            existingRate.setFromCurr(rate.getFromCurr());
+            existingRate.setToCurr(rate.getToCurr());
+            existingRate.setRate(rate.getRate());
+            existingRate.setLastMod(rate.getLastMod());
+            return repository.save(existingRate);
+        } else {
+            throw new RuntimeException("Exchange rate not found for: " + fromCurr);
+        }
+    }
+
+    @DeleteMapping("/{fromCurr}")
+    public void delete(@PathVariable String fromCurr) {
+        repository.deleteById(fromCurr);
+    }
 }
 
 
 ---
 
-exchange-rates.component.html
+✅ Notes
 
-Replace your form section with this:
+✅ @RequestBody is now correctly added to add() and update() methods.
 
-<div class="popup-form">
-  <label>From Currency</label>
-  <select [(ngModel)]="newRate.fromCurr">
-    <option *ngFor="let from of fromCurrencies" [value]="from">{{ from }}</option>
-  </select>
+✅ @CrossOrigin(origins = "*") allows requests from Angular frontend.
 
-  <label>To Currency</label>
-  <select [(ngModel)]="newRate.toCurr">
-    <option *ngFor="let to of toCurrencies" [value]="to">{{ to }}</option>
-  </select>
+✅ Endpoint paths follow REST naming conventions (/from-currencies, /to-currencies, /{fromCurr}).
 
-  <label>Rate</label>
-  <input type="number" [(ngModel)]="newRate.rate" />
+✅ Exception handling can be improved later, but for now, throws a RuntimeException if the record isn't found.
 
-  <label>Last Modified</label>
-  <input type="date" [(ngModel)]="newRate.lastMod" />
-
-  <button (click)="save()">{{ isEditing ? 'Update' : 'Add' }}</button>
-</div>
-
-Make sure your form fields are styled properly, and [(ngModel)] is enabled by importing FormsModule.
 
 
 ---
 
-✅ Add This to main.ts or app.config.ts if Standalone:
+✅ Next Steps
 
-If you're using standalone components, make sure to import FormsModule:
+Make sure your Angular request matches the expected JSON format and that the Content-Type: application/json header is set.
 
-import { bootstrapApplication } from '@angular/platform-browser';
-import { provideHttpClient } from '@angular/common/http';
-import { ExchangeRatesComponent } from './app/components/exchange-rates/exchange-rates.component';
-import { importProvidersFrom } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-
-bootstrapApplication(ExchangeRatesComponent, {
-  providers: [
-    provideHttpClient(),
-    importProvidersFrom(FormsModule)
-  ]
-});
-
-
----
-
-Let me know if you'd like a full popup modal instead of inline form, or need to adjust styling to match your FIS Data Integrity Manager layout.
+Let me know if you want help validating your Angular service or request format!
 
