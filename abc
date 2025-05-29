@@ -1,22 +1,21 @@
-Based on the screenshots of your Angular component files (exchange-rates.component.ts and exchange-rates.component.html), I’ve revised your code to:
+Thanks for the clarification!
 
-1. Ensure dropdowns for From Currency and To Currency are populated from the backend.
+You want:
 
-
-2. Bind data correctly for saving.
-
-
-3. Fix the popup logic and data handling (e.g., formData usage).
-
-
-4. Format and align code properly for clarity.
-
-
+✅ A popup form to add exchange rate data
+✅ fromCurr and toCurr as dropdowns that fetch values from backend
+✅ When all fields are filled and submitted → insert into DB via backend call
+✅ The table should show the newly added row after that
 
 
 ---
 
-✅ exchange-rates.component.ts (TypeScript Logic)
+✅ Here's the corrected and working version:
+
+
+---
+
+🟦 exchange-rates.component.ts
 
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
@@ -37,7 +36,7 @@ export class ExchangeRatesComponent implements OnInit {
     fromCurr: '',
     toCurr: '',
     rate: null,
-    lastMod: new Date()
+    lastMod: ''
   };
 
   constructor(private http: HttpClient) {}
@@ -48,9 +47,7 @@ export class ExchangeRatesComponent implements OnInit {
 
   loadExchangeRates(): void {
     this.http.get<any[]>('http://localhost:8080/api/exchange-rates')
-      .subscribe(data => {
-        this.exchangeRates = data;
-      });
+      .subscribe(data => this.exchangeRates = data);
   }
 
   openAddPopup(): void {
@@ -58,7 +55,7 @@ export class ExchangeRatesComponent implements OnInit {
       fromCurr: '',
       toCurr: '',
       rate: null,
-      lastMod: new Date()
+      lastMod: ''
     };
 
     this.http.get<string[]>('http://localhost:8080/api/exchange-rates/from-currencies')
@@ -86,7 +83,7 @@ export class ExchangeRatesComponent implements OnInit {
 
 ---
 
-✅ exchange-rates.component.html (Template/UI)
+🟩 exchange-rates.component.html
 
 <div class="container">
   <h2>Exchange Rates</h2>
@@ -115,21 +112,17 @@ export class ExchangeRatesComponent implements OnInit {
   <!-- Add Popup -->
   <div class="popup" *ngIf="isPopupOpen">
     <div class="popup-content">
-      <h3>Add Exchange Entry</h3>
+      <h3>Add Exchange Rate</h3>
 
-      <mat-form-field appearance="fill">
-        <mat-label>From Currency</mat-label>
-        <mat-select [(ngModel)]="newExchangeRate.fromCurr">
-          <mat-option *ngFor="let curr of fromCurrencies" [value]="curr">{{ curr }}</mat-option>
-        </mat-select>
-      </mat-form-field>
+      <label>From Currency:</label>
+      <select [(ngModel)]="newExchangeRate.fromCurr">
+        <option *ngFor="let curr of fromCurrencies" [value]="curr">{{ curr }}</option>
+      </select>
 
-      <mat-form-field appearance="fill">
-        <mat-label>To Currency</mat-label>
-        <mat-select [(ngModel)]="newExchangeRate.toCurr">
-          <mat-option *ngFor="let curr of toCurrencies" [value]="curr">{{ curr }}</mat-option>
-        </mat-select>
-      </mat-form-field>
+      <label>To Currency:</label>
+      <select [(ngModel)]="newExchangeRate.toCurr">
+        <option *ngFor="let curr of toCurrencies" [value]="curr">{{ curr }}</option>
+      </select>
 
       <label>Rate:</label>
       <input type="number" [(ngModel)]="newExchangeRate.rate" />
@@ -148,29 +141,19 @@ export class ExchangeRatesComponent implements OnInit {
 
 ---
 
-✅ Add Required Modules in app.module.ts:
+✅ Make sure your backend has:
 
-Make sure you have the following Angular Material and Forms modules imported:
+GET /api/exchange-rates/from-currencies → returns distinct fromCurr strings
 
-import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatInputModule } from '@angular/material/input';
+GET /api/exchange-rates/to-currencies → returns distinct toCurr strings
 
-@NgModule({
-  imports: [
-    FormsModule,
-    HttpClientModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatInputModule
-  ]
-})
-export class AppModule {}
+POST /api/exchange-rates → accepts { fromCurr, toCurr, rate, lastMod } as body and saves it
+
+GET /api/exchange-rates → returns all records
+
 
 
 ---
 
-If you also need help styling (exchange-rates.component.css) or editing support for Edit/Delete functionality, let me know and I’ll include that too.
+Let me know if you'd like this styled like the FIS UI or want Edit/Delete support too.
 
