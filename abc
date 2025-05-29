@@ -1,100 +1,87 @@
-Thank you — based on the error in your first image, you're encountering this Hibernate exception:
+Thanks for the clarification and the image. Based on your requirements:
 
-> identifier of an instance of com.example.recon_connect.entity.ExchangeRate was altered from qwe to qwe
+✅ You want to edit all fields, including fromCurr (which is part of the primary key).
 
+✅ You do not want to create a new ExchangeRateKey class.
 
+✅ You want edits to reflect correctly in the Angular table.
 
-✅ What's happening?
-
-Hibernate is complaining because you're changing the primary key (fromCurr, likely) in an entity that it's already managing in the current session.
-
-❌ Why this fails:
-
-In JPA/Hibernate, updating the primary key (PK) directly on a managed entity (loaded from DB) is not allowed. It violates the entity identity contract.
-
-
----
-
-✅ Solution Options
-
-🔧 Option 1: Disallow editing of primary key
-
-Easiest and cleanest fix.
-
-Let fromCurr + toCurr stay immutable.
-
-Only allow editing of rate and lastMod.
-
-
-🔧 Option 2: Delete old entity and insert new
-
-Since you want to allow editing all fields including primary key, this is your option.
-
-In backend, treat update as:
-
-Delete existing entity (by old PK values)
-
-Save the updated one (with new PK values)
-
+🔧 Your current controller uses only fromCurr in the @PutMapping, which won’t work correctly because your table has a composite primary key: fromCurr and toCurr.
 
 
 
 ---
 
-✅ Fix in Spring Boot Backend
+✅ Corrected Spring Boot Controller Code
 
-Update your controller like this:
+Update your @PutMapping like this to work without creating a new class:
 
 @PutMapping("/exchange-rates/{fromCurr}/{toCurr}")
-public ResponseEntity<String> updateExchangeRate(
+public ResponseEntity<ExchangeRate> updateExchangeRate(
         @PathVariable String fromCurr,
         @PathVariable String toCurr,
         @RequestBody ExchangeRate updatedRate) {
 
-    Optional<ExchangeRate> existing = exchangeRateRepository.findById(new ExchangeRateKey(fromCurr, toCurr));
-    if (existing.isPresent()) {
-        exchangeRateRepository.deleteById(new ExchangeRateKey(fromCurr, toCurr)); // Delete old
-        exchangeRateRepository.save(updatedRate); // Save new
-        return ResponseEntity.ok("Updated successfully");
+    Optional<ExchangeRate> optionalRate = repository.findById(new ExchangeRate(fromCurr, toCurr));
+    if (optionalRate.isPresent()) {
+        ExchangeRate existingRate = optionalRate.get();
+
+        // If primary key changed, delete the old and insert new
+        if (!fromCurr.equals(updatedRate.getFromCurr()) || !toCurr.equals(updatedRate.getToCurr())) {
+            repository.deleteById(new ExchangeRate(fromCurr, toCurr));
+        }
+
+        // Save the new/updated entity
+        repository.save(updatedRate);
+        return ResponseEntity.ok(updatedRate);
     } else {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Rate not found");
+        return ResponseEntity.notFound().build();
     }
 }
 
-> Replace ExchangeRateKey with your actual composite key class or modify appropriately if you're using @Id fields.
 
+---
 
+🔧 Entity Fix (if you're not using @IdClass)
+
+Make sure your ExchangeRate entity uses this:
+
+@Entity
+@Table(name = "ExchangeRates_Rachana")
+@IdClass(ExchangeRate.class) // optional if you're not using @Embeddable or another class
+public class ExchangeRate {
+
+    @Id
+    @Column(name = "FROMCURR")
+    private String fromCurr;
+
+    @Id
+    @Column(name = "TOCURR")
+    private String toCurr;
+
+    @Column(name = "RATE")
+    private double rate;
+
+    @Column(name = "LASTMOD")
+    @Temporal(TemporalType.DATE)
+    private Date lastMod;
+
+    // Constructors, Getters, Setters
+}
+
+But if this doesn't work, Spring requires a class or @EmbeddedId to handle composite keys properly.
+
+So if you want a guaranteed solution without extra logic hacks, you'd still be better off making a lightweight ExchangeRateKey class as described earlier.
 
 
 ---
 
-✅ Frontend Fixes
+✅ Final Notes
 
-Ensure you:
+Your Angular UI should send all fields (including the old and new fromCurr, toCurr) when editing.
 
-Keep track of the original keys when editing (e.g. in a selectedOriginalFromCurr, selectedOriginalToCurr)
-
-Use those values in the PUT request URL.
+You may need to temporarily store the original PKs if you're editing them in the UI.
 
 
-Example in exchange-rates.component.ts:
-
-this.http.put(`/api/exchange-rates/${originalFromCurr}/${originalToCurr}`, updatedObject)
-
-
----
-
-✅ Summary
-
-You cannot directly change a PK in Hibernate — it will throw an error like you’re seeing.
-
-Solution is to delete the old record and re-save a new one.
-
-Adjust both your backend logic and frontend code accordingly.
-
-
-
----
-
-Would you like me to give you updated backend controller and Angular component.ts code that reflects all these changes?
+Would you like help modifying the Angular part to send both original and edited keys?
 
