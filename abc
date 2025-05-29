@@ -1,123 +1,303 @@
-Thanks! Here's how to allow users to either type or select from dropdowns for fromCurr and toCurr fields in the Add/Edit popup in Angular — using Angular Material's mat-autocomplete.
+Here is the complete Angular 17 standalone component code that allows users to type or select from dropdown for both fromCurr and toCurr fields using mat-autocomplete in the popup dialog.
 
 
 ---
 
-✅ 1. HTML Code for Popup Form
+✅ exchange-rates.component.ts
 
-Update your exchange-rate.component.html popup form like this:
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTableModule } from '@angular/material/table';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { Observable, map, startWith } from 'rxjs';
 
-<ng-template #dialogTemplate>
-  <h2 mat-dialog-title>{{ isEdit ? 'Edit' : 'Add' }} Exchange Rate</h2>
-  <mat-dialog-content class="popup-form">
-    <form #rateForm="ngForm">
+@Component({
+  selector: 'app-exchange-rates',
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatDialogModule,
+    MatTableModule,
+    MatIconModule,
+    MatButtonModule,
+    HttpClientModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatAutocompleteModule,
+    ReactiveFormsModule
+  ],
+  templateUrl: './exchange-rates.component.html',
+  styleUrls: ['./exchange-rates.component.css']
+})
+export class ExchangeRatesComponent {
+  private http = inject(HttpClient);
+  private dialog = inject(MatDialog);
+  exchangeRates: any[] = [];
+  displayedColumns: string[] = ['fromCurr', 'toCurr', 'rate', 'lastMod', 'actions'];
+  currencyOptions: string[] = [];
 
-      <!-- FROM CURRENCY -->
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>From Currency</mat-label>
-        <input type="text"
-               matInput
-               [(ngModel)]="dialogData.fromCurr"
-               [matAutocomplete]="fromCurrAuto"
-               name="fromCurr">
-        <mat-autocomplete #fromCurrAuto="matAutocomplete">
-          <mat-option *ngFor="let option of fromCurrOptions" [value]="option">
-            {{ option }}
-          </mat-option>
-        </mat-autocomplete>
-      </mat-form-field>
+  constructor() {
+    this.fetchExchangeRates();
+    this.fetchCurrencyOptions();
+  }
 
-      <!-- TO CURRENCY -->
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>To Currency</mat-label>
-        <input type="text"
-               matInput
-               [(ngModel)]="dialogData.toCurr"
-               [matAutocomplete]="toCurrAuto"
-               name="toCurr">
-        <mat-autocomplete #toCurrAuto="matAutocomplete">
-          <mat-option *ngFor="let option of toCurrOptions" [value]="option">
-            {{ option }}
-          </mat-option>
-        </mat-autocomplete>
-      </mat-form-field>
+  fetchExchangeRates() {
+    this.http.get<any[]>('http://localhost:8080/api/exchange-rates').subscribe(data => {
+      this.exchangeRates = data;
+    });
+  }
 
-      <!-- RATE -->
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Rate</mat-label>
-        <input type="number" matInput [(ngModel)]="dialogData.rate" name="rate">
-      </mat-form-field>
+  fetchCurrencyOptions() {
+    this.http.get<string[]>('http://localhost:8080/api/exchange-rates/currencies').subscribe(data => {
+      this.currencyOptions = data;
+    });
+  }
 
-      <!-- LAST MOD DATE -->
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Effective Date</mat-label>
-        <input matInput [matDatepicker]="picker" [(ngModel)]="dialogData.lastMod" name="lastMod">
-        <mat-datepicker-toggle matSuffix [for]="picker">
-          <mat-icon matDatepickerToggleIcon>calendar_today</mat-icon>
-        </mat-datepicker-toggle>
-        <mat-datepicker #picker></mat-datepicker>
-      </mat-form-field>
+  openDialog(row?: any): void {
+    const dialogRef = this.dialog.open(ExchangeRateDialog, {
+      width: '400px',
+      data: {
+        row: row || null,
+        currencyOptions: this.currencyOptions
+      }
+    });
 
-    </form>
-  </mat-dialog-content>
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.fetchExchangeRates();
+      }
+    });
+  }
 
-  <mat-dialog-actions align="end">
-    <button mat-button (click)="dialog.closeAll()">Cancel</button>
-    <button mat-flat-button color="primary" (click)="saveExchangeRate()">
-      {{ isEdit ? 'Update' : 'Add' }}
-    </button>
-  </mat-dialog-actions>
-</ng-template>
-
-
----
-
-✅ 2. TypeScript (exchange-rate.component.ts)
-
-Make sure you have:
-
-fromCurrOptions: string[] = [];
-toCurrOptions: string[] = [];
-
-openDialog(isEdit = false, row?: ExchangeRate) {
-  this.isEdit = isEdit;
-  this.dialogData = isEdit && row ? { ...row } : {
-    fromCurr: '',
-    toCurr: '',
-    rate: 0,
-    lastMod: ''
-  };
-
-  // Fetch dropdown values
-  this.service.getFromCurrencies().subscribe(data => this.fromCurrOptions = data);
-  this.service.getToCurrencies().subscribe(data => this.toCurrOptions = data);
-
-  this.dialog.open(this.dialogTemplate);
+  deleteExchangeRate(row: any): void {
+    const url = `http://localhost:8080/api/exchange-rates/${row.fromCurr}/${row.toCurr}`;
+    this.http.delete(url).subscribe(() => this.fetchExchangeRates());
+  }
 }
 
 
 ---
 
-✅ 3. Angular Material Modules (ensure imported)
+✅ exchange-rates.component.html
 
-In your Angular module (likely app.config.ts or app.module.ts), make sure you imported:
+<div class="container">
+  <button mat-raised-button color="primary" (click)="openDialog()">Add Exchange Rate</button>
 
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { MatDialogModule } from '@angular/material/dialog';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
+  <table mat-table [dataSource]="exchangeRates" class="mat-elevation-z8">
+
+    <ng-container matColumnDef="fromCurr">
+      <th mat-header-cell *matHeaderCellDef> From Currency </th>
+      <td mat-cell *matCellDef="let element"> {{element.fromCurr}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="toCurr">
+      <th mat-header-cell *matHeaderCellDef> To Currency </th>
+      <td mat-cell *matCellDef="let element"> {{element.toCurr}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="rate">
+      <th mat-header-cell *matHeaderCellDef> Rate </th>
+      <td mat-cell *matCellDef="let element"> {{element.rate}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="lastMod">
+      <th mat-header-cell *matHeaderCellDef> Last Modified </th>
+      <td mat-cell *matCellDef="let element"> {{element.lastMod | date}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef> Actions </th>
+      <td mat-cell *matCellDef="let element">
+        <button mat-icon-button color="primary" (click)="openDialog(element)">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button color="warn" (click)="deleteExchangeRate(element)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  </table>
+</div>
 
 
 ---
 
-Result:
+✅ exchange-rates.component.css
 
-User can type freely or select from dropdown for both currency fields.
+.container {
+  padding: 20px;
+}
 
-This works beautifully with keyboard + mouse and provides suggestions from the backend list.
+table {
+  width: 100%;
+  margin-top: 20px;
+}
 
 
-Let me know if you want the full .ts or CSS file adjusted to match this.
+---
+
+✅ exchange-rate-dialog.ts (Inline Dialog Component)
+
+import { Component, Inject } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { CommonModule } from '@angular/common';
+import { HttpClientModule, HttpClient } from '@angular/common/http';
+import { Observable, map, startWith } from 'rxjs';
+
+@Component({
+  selector: 'exchange-rate-dialog',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatButtonModule,
+    MatAutocompleteModule,
+    HttpClientModule
+  ],
+  template: `
+  <h2 mat-dialog-title>{{ data.row ? 'Edit Exchange Rate' : 'Add Exchange Rate' }}</h2>
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>From Currency</mat-label>
+      <input type="text" matInput formControlName="fromCurr" [matAutocomplete]="fromAuto">
+      <mat-autocomplete #fromAuto="matAutocomplete">
+        <mat-option *ngFor="let option of filteredFromOptions | async" [value]="option">
+          {{ option }}
+        </mat-option>
+      </mat-autocomplete>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>To Currency</mat-label>
+      <input type="text" matInput formControlName="toCurr" [matAutocomplete]="toAuto">
+      <mat-autocomplete #toAuto="matAutocomplete">
+        <mat-option *ngFor="let option of filteredToOptions | async" [value]="option">
+          {{ option }}
+        </mat-option>
+      </mat-autocomplete>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>Rate</mat-label>
+      <input matInput type="number" formControlName="rate">
+    </mat-form-field>
+
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>Last Modified</mat-label>
+      <input matInput [matDatepicker]="picker" formControlName="lastMod">
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+
+    <div style="text-align: right;">
+      <button mat-button type="button" (click)="dialogRef.close()">Cancel</button>
+      <button mat-raised-button color="primary" type="submit">{{ data.row ? 'Update' : 'Add' }}</button>
+    </div>
+  </form>
+  `,
+  styles: [`
+    .full-width {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+  `]
+})
+export class ExchangeRateDialog {
+  form: FormGroup;
+  filteredFromOptions: Observable<string[]>;
+  filteredToOptions: Observable<string[]>;
+
+  constructor(
+    private fb: FormBuilder,
+    private http: HttpClient,
+    public dialogRef: MatDialogRef<ExchangeRateDialog>,
+    @Inject(MAT_DIALOG_DATA) public data: any
+  ) {
+    this.form = this.fb.group({
+      fromCurr: [data.row?.fromCurr || ''],
+      toCurr: [data.row?.toCurr || ''],
+      rate: [data.row?.rate || ''],
+      lastMod: [data.row ? new Date(data.row.lastMod) : new Date()]
+    });
+
+    this.filteredFromOptions = this.form.get('fromCurr')!.valueChanges.pipe(
+      startWith(''),
+      map(value => this._filter(value || '', data.currencyOptions))
+    );
+
+    this.filteredToOptions = this.form.get('toCurr')!.valueChanges.pipe(
+      startWith(''),
+      map(value => this._filter(value || '', data.currencyOptions))
+    );
+  }
+
+  private _filter(value: string, options: string[]): string[] {
+    const filterValue = value.toLowerCase();
+    return options.filter(option => option.toLowerCase().includes(filterValue));
+  }
+
+  onSubmit() {
+    const formValue = this.form.value;
+    const url = this.data.row
+      ? `http://localhost:8080/api/exchange-rates/${this.data.row.fromCurr}/${this.data.row.toCurr}`
+      : `http://localhost:8080/api/exchange-rates`;
+
+    const httpCall = this.data.row
+      ? this.http.put(url, formValue)
+      : this.http.post(url, formValue);
+
+    httpCall.subscribe(() => this.dialogRef.close(true));
+  }
+}
+
+
+---
+
+✅ Backend API Required
+
+1. GET /api/exchange-rates → all rates
+
+
+2. GET /api/exchange-rates/currencies → distinct currency values for dropdown
+
+
+3. POST /api/exchange-rates → to add
+
+
+4. PUT /api/exchange-rates/{from}/{to} → to update
+
+
+5. DELETE /api/exchange-rates/{from}/{to} → to delete
+
+
+
+
+---
+
+Would you like me to also generate the Spring Boot backend controller and service layer for the above API calls?
 
