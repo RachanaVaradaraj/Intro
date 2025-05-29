@@ -1,111 +1,286 @@
-Thanks for the screenshot — it clearly shows two issues:
+Here’s the complete solution that covers both frontend (Angular) and backend (Spring Boot) as per your requirements:
 
 
 ---
 
-❌ ERROR 1: Property 'dialogTemplate' does not exist on type 'ExchangeRateComponent'
+✅ Goal:
 
-This happens because you're trying to use a template reference (this.dialogTemplate) from code, but it hasn't been declared in the .ts file.
-
-
----
-
-❌ ERROR 2: Property 'dialogRef' has no initializer and is not definitely assigned in the constructor
-
-This line is unnecessary and incorrect for this setup.
+1. Show a table of all exchange rate data.
 
 
----
-
-✅ FIX: Complete and Correct exchange-rate.component.ts
-
-We need to:
-
-1. Use ViewChild('dialogTemplate') to get the template reference.
-
-
-2. Remove the unnecessary @Inject(...) declarations.
+2. In the Add popup, fetch only distinct fromCurr and toCurr values from the database to display in dropdowns with a search button.
 
 
 
 
 ---
 
-✅ FIXED exchange-rate.component.ts
+🧩 Spring Boot (Backend)
 
-import { Component, ViewChild, TemplateRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { FormsModule } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
+1. ExchangeRate.java (Entity)
+
+package com.recon_connect.entity;
+
+import jakarta.persistence.*;
+import java.util.Date;
+
+@Entity
+@Table(name = "ExchangeRates_Rachana")
+public class ExchangeRate {
+    @Id
+    private String fromCurr;
+
+    private String toCurr;
+    private double rate;
+
+    @Temporal(TemporalType.DATE)
+    private Date lastMod;
+
+    // Getters and Setters
+}
+
+
+---
+
+2. ExchangeRateRepository.java
+
+package com.recon_connect.repository;
+
+import com.recon_connect.entity.ExchangeRate;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+import java.util.List;
+
+public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, String> {
+
+    @Query("SELECT DISTINCT e.fromCurr FROM ExchangeRate e")
+    List<String> findDistinctFromCurr();
+
+    @Query("SELECT DISTINCT e.toCurr FROM ExchangeRate e")
+    List<String> findDistinctToCurr();
+}
+
+
+---
+
+3. ExchangeRateController.java
+
+package com.recon_connect.controller;
+
+import com.recon_connect.entity.ExchangeRate;
+import com.recon_connect.repository.ExchangeRateRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/exchange-rates")
+@CrossOrigin(origins = "*")
+public class ExchangeRateController {
+
+    @Autowired
+    private ExchangeRateRepository repository;
+
+    @GetMapping
+    public List<ExchangeRate> getAllRates() {
+        return repository.findAll();
+    }
+
+    @GetMapping("/from-currencies")
+    public List<String> getFromCurrencies() {
+        return repository.findDistinctFromCurr();
+    }
+
+    @GetMapping("/to-currencies")
+    public List<String> getToCurrencies() {
+        return repository.findDistinctToCurr();
+    }
+
+    @PostMapping
+    public ExchangeRate addRate(@RequestBody ExchangeRate rate) {
+        return repository.save(rate);
+    }
+}
+
+
+---
+
+🎯 Angular (Frontend)
+
+🔹 exchange-rate.service.ts
+
+import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
-@Component({
-  selector: 'app-exchange-rate',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-  ],
-  templateUrl: './exchange-rate.component.html',
-  styleUrls: ['./exchange-rate.component.css'],
-})
-export class ExchangeRateComponent {
-  exchangeRates: any[] = [];
+@Injectable({ providedIn: 'root' })
+export class ExchangeRateService {
+  private apiUrl = 'http://localhost:8080/api/exchange-rates';
 
-  @ViewChild('dialogTemplate') dialogTemplate!: TemplateRef<any>;
+  constructor(private http: HttpClient) {}
 
-  constructor(private dialog: MatDialog, private http: HttpClient) {
-    this.fetchRates();
+  getAll(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}`);
   }
 
-  fetchRates() {
-    this.http.get<any[]>('http://localhost:8080/exchange-rates').subscribe(data => {
-      this.exchangeRates = data;
-    });
+  getFromCurrencies(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.apiUrl}/from-currencies`);
   }
 
-  openPopup(mode: 'Add' | 'Edit', data: any = null): void {
-    const dialogRef = this.dialog.open(this.dialogTemplate, {
-      data: { mode, rowData: data ? { ...data } : {} },
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        if (mode === 'Add') {
-          this.http.post('http://localhost:8080/exchange-rates', result).subscribe(() => this.fetchRates());
-        } else if (mode === 'Edit') {
-          const from = data.fromCurr;
-          const to = data.toCurr;
-          this.http.put(`http://localhost:8080/exchange-rates/${from}/${to}`, result).subscribe(() => this.fetchRates());
-        }
-      }
-    });
+  getToCurrencies(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.apiUrl}/to-currencies`);
   }
 
-  deleteRate(row: any) {
-    this.http.delete(`http://localhost:8080/exchange-rates/${row.fromCurr}/${row.toCurr}`).subscribe(() => {
-      this.fetchRates();
-    });
+  addRate(rate: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}`, rate);
   }
 }
 
 
 ---
 
-✅ With these changes, your component should now compile successfully.
+🔹 exchange-rate.component.ts
 
-Let me know if you want me to send the full working zip with exchange-rate folder structure.
+import { Component, OnInit } from '@angular/core';
+import { ExchangeRateService } from './exchange-rate.service';
+import { MatDialog } from '@angular/material/dialog';
+
+@Component({
+  selector: 'app-exchange-rate',
+  templateUrl: './exchange-rate.component.html',
+  styleUrls: ['./exchange-rate.component.css']
+})
+export class ExchangeRateComponent implements OnInit {
+  rates: any[] = [];
+
+  constructor(private service: ExchangeRateService, private dialog: MatDialog) {}
+
+  ngOnInit(): void {
+    this.loadRates();
+  }
+
+  loadRates() {
+    this.service.getAll().subscribe(data => this.rates = data);
+  }
+
+  openAddPopup() {
+    const dialogRef = this.dialog.open(AddEditPopupComponent, {
+      width: '400px',
+      data: null
+    });
+
+    dialogRef.afterClosed().subscribe(() => this.loadRates());
+  }
+}
+
+
+---
+
+🔹 add-edit-popup.component.ts
+
+import { Component, Inject, OnInit } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { ExchangeRateService } from './exchange-rate.service';
+import { FormBuilder, FormGroup } from '@angular/forms';
+
+@Component({
+  selector: 'app-add-edit-popup',
+  templateUrl: './add-edit-popup.component.html',
+  styleUrls: ['./add-edit-popup.component.css']
+})
+export class AddEditPopupComponent implements OnInit {
+  form: FormGroup;
+  fromCurrencies: string[] = [];
+  toCurrencies: string[] = [];
+
+  constructor(
+    public dialogRef: MatDialogRef<AddEditPopupComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: any,
+    private service: ExchangeRateService,
+    private fb: FormBuilder
+  ) {
+    this.form = this.fb.group({
+      fromCurr: [''],
+      toCurr: [''],
+      rate: [''],
+      lastMod: ['']
+    });
+  }
+
+  ngOnInit(): void {
+    this.service.getFromCurrencies().subscribe(data => this.fromCurrencies = data);
+    this.service.getToCurrencies().subscribe(data => this.toCurrencies = data);
+  }
+
+  save(): void {
+    if (this.form.valid) {
+      this.service.addRate(this.form.value).subscribe(() => {
+        this.dialogRef.close();
+      });
+    }
+  }
+
+  cancel(): void {
+    this.dialogRef.close();
+  }
+}
+
+
+---
+
+🔹 add-edit-popup.component.html
+
+<h2 mat-dialog-title>Add Exchange Rate</h2>
+<div mat-dialog-content>
+  <form [formGroup]="form">
+    <mat-form-field appearance="outline" style="width: 100%;">
+      <mat-label>From Currency</mat-label>
+      <mat-select formControlName="fromCurr">
+        <mat-option *ngFor="let curr of fromCurrencies" [value]="curr">{{ curr }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" style="width: 100%;">
+      <mat-label>To Currency</mat-label>
+      <mat-select formControlName="toCurr">
+        <mat-option *ngFor="let curr of toCurrencies" [value]="curr">{{ curr }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" style="width: 100%;">
+      <mat-label>Rate</mat-label>
+      <input matInput type="number" formControlName="rate" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" style="width: 100%;">
+      <mat-label>Last Modified</mat-label>
+      <input matInput [matDatepicker]="picker" formControlName="lastMod">
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+  </form>
+</div>
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" (click)="save()">Save</button>
+</div>
+
+
+---
+
+✅ Final Notes
+
+The popup is fully dynamic with dropdowns populated from backend.
+
+You can add filters/search bars in mat-select with MatSelectSearch or similar libraries later.
+
+Ensure CORS is properly configured on Spring Boot if accessing from different ports.
+
+
+
+---
+
+Would you like me to zip this up as a sample project or help with the dropdown filter functionality next?
 
