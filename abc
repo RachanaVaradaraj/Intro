@@ -1,130 +1,269 @@
-Thanks for pointing that out. The error Expected 0 arguments but found 2 in the line:
-
-Optional<ExchangeRate> optionalRate = repository.findById(new ExchangeRate(fromCurr, toCurr));
-
-…is because you're trying to call findById() with an ExchangeRate object instead of the correct composite key type.
+Thanks! Here's the complete code and steps to add the popup form (for both Add and Edit actions) within your existing standalone exchange-rate component using Angular Material.
 
 
 ---
 
-🔧 Fixing the Core Issue
+✅ Functionality Overview
 
-Your ExchangeRate table uses a composite primary key: fromCurr and toCurr. For Spring Data JPA to work correctly with findById(), you must provide a key object — either via:
+A single popup (dialog) is used for both Add and Edit actions.
 
-Option 1: Create a key class (Recommended by Spring)
+Currency selector opens another inline dialog.
 
-If you don’t want this, skip to Option 2 (but that uses a workaround).
+Exchange Rate and Effective Date are editable.
 
+Uses Angular Material components: MatDialog, MatFormField, MatInput, MatDatepicker, etc.
 
----
+Fully styled to look like the FIS Data Integrity Manager.
 
-✅ ✅ Option 1: Proper Way — Use @IdClass
-
-1. Create the key class ExchangeRateKey.java:
-
-import java.io.Serializable;
-import java.util.Objects;
-
-public class ExchangeRateKey implements Serializable {
-    private String fromCurr;
-    private String toCurr;
-
-    // Constructors
-    public ExchangeRateKey() {}
-    public ExchangeRateKey(String fromCurr, String toCurr) {
-        this.fromCurr = fromCurr;
-        this.toCurr = toCurr;
-    }
-
-    // equals and hashCode
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ExchangeRateKey)) return false;
-        ExchangeRateKey that = (ExchangeRateKey) o;
-        return fromCurr.equals(that.fromCurr) && toCurr.equals(that.toCurr);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(fromCurr, toCurr);
-    }
-}
-
-2. Update your ExchangeRate entity:
-
-@Entity
-@IdClass(ExchangeRateKey.class)
-@Table(name = "ExchangeRates_Rachana")
-public class ExchangeRate {
-
-    @Id
-    private String fromCurr;
-
-    @Id
-    private String toCurr;
-
-    private Double rate;
-
-    @Temporal(TemporalType.DATE)
-    private Date lastMod;
-
-    // Getters/Setters
-}
 
 
 ---
 
-✅ 3. Update your controller method:
+🔧 1. Install Angular Material (if not already)
 
-@PutMapping("/exchange-rates/{fromCurr}/{toCurr}")
-public ResponseEntity<ExchangeRate> updateExchangeRate(
-        @PathVariable String fromCurr,
-        @PathVariable String toCurr,
-        @RequestBody ExchangeRate updatedRate) {
+ng add @angular/material
 
-    ExchangeRateKey key = new ExchangeRateKey(fromCurr, toCurr);
-    Optional<ExchangeRate> optionalRate = repository.findById(key);
 
-    if (optionalRate.isPresent()) {
-        // Handle PK change
-        if (!fromCurr.equals(updatedRate.getFromCurr()) || !toCurr.equals(updatedRate.getToCurr())) {
-            repository.deleteById(key); // remove old
+---
+
+🧩 2. Update exchange-rate.component.ts
+
+import { Component, Inject } from '@angular/core';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+
+@Component({
+  selector: 'app-exchange-rate',
+  standalone: true,
+  templateUrl: './exchange-rate.component.html',
+  styleUrl: './exchange-rate.component.css',
+  imports: [MatDialog]
+})
+export class ExchangeRateComponent {
+  exchangeRates = [
+    { fromCurr: 'USD', toCurr: 'INR', rate: 83.2, date: '2025-05-28' },
+    { fromCurr: 'EUR', toCurr: 'INR', rate: 90.5, date: '2025-05-28' }
+  ];
+
+  constructor(public dialog: MatDialog) {}
+
+  openDialog(mode: 'Add' | 'Edit', data: any = null): void {
+    const dialogRef = this.dialog.open(PopupDialog, {
+      width: '400px',
+      data: mode === 'Edit' ? { ...data, mode } : { mode }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        if (mode === 'Add') {
+          this.exchangeRates.push(result);
+        } else {
+          const index = this.exchangeRates.findIndex(
+            r => r.fromCurr === data.fromCurr && r.toCurr === data.toCurr
+          );
+          if (index !== -1) this.exchangeRates[index] = result;
         }
+      }
+    });
+  }
 
-        ExchangeRate saved = repository.save(updatedRate); // insert new
-        return ResponseEntity.ok(saved);
-    } else {
-        return ResponseEntity.notFound().build();
+  deleteRate(row: any): void {
+    this.exchangeRates = this.exchangeRates.filter(
+      r => !(r.fromCurr === row.fromCurr && r.toCurr === row.toCurr)
+    );
+  }
+}
+
+@Component({
+  selector: 'popup-dialog',
+  standalone: true,
+  template: `
+    <h2 mat-dialog-title>{{ data.mode }} Exchange Rate</h2>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <mat-form-field appearance="fill" class="full-width">
+        <mat-label>From Currency</mat-label>
+        <input matInput formControlName="fromCurr" readonly (click)="openCurrencySelector('fromCurr')" />
+        <button mat-icon-button matSuffix (click)="openCurrencySelector('fromCurr')" type="button">
+          <mat-icon>search</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" class="full-width">
+        <mat-label>To Currency</mat-label>
+        <input matInput formControlName="toCurr" readonly (click)="openCurrencySelector('toCurr')" />
+        <button mat-icon-button matSuffix (click)="openCurrencySelector('toCurr')" type="button">
+          <mat-icon>search</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" class="full-width">
+        <mat-label>Exchange Rate</mat-label>
+        <input matInput type="number" formControlName="rate" />
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" class="full-width">
+        <mat-label>Effective Date</mat-label>
+        <input matInput [matDatepicker]="picker" formControlName="date" />
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+
+      <div class="dialog-actions">
+        <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid">Save</button>
+        <button mat-button (click)="onNoClick()">Cancel</button>
+      </div>
+    </form>
+
+    <ng-template #currencyList>
+      <mat-dialog-content>
+        <mat-selection-list #currencyOptions>
+          <mat-list-option *ngFor="let c of currencies" [value]="c">{{ c }}</mat-list-option>
+        </mat-selection-list>
+      </mat-dialog-content>
+      <mat-dialog-actions>
+        <button mat-button (click)="selectCurrency(currencyOptions.selectedOptions.selected[0]?.value)">Select</button>
+      </mat-dialog-actions>
+    </ng-template>
+  `,
+  styles: [`
+    .full-width { width: 100%; }
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
     }
+  `],
+  imports: [
+    FormBuilder, MatDialogRef, MAT_DIALOG_DATA,
+    MatFormFieldModule, MatInputModule, MatIconModule, MatButtonModule, MatDatepickerModule, MatNativeDateModule,
+    ReactiveFormsModule, MatDialogModule, MatSelectionList, MatListOption
+  ]
+})
+export class PopupDialog {
+  form: FormGroup;
+  selectedField: string = '';
+  currencies = ['USD', 'INR', 'EUR', 'JPY', 'SGD', 'GBP'];
+
+  constructor(
+    public dialogRef: MatDialogRef<PopupDialog>,
+    @Inject(MAT_DIALOG_DATA) public data: any,
+    private fb: FormBuilder,
+    private dialog: MatDialog
+  ) {
+    this.form = this.fb.group({
+      fromCurr: [data.fromCurr || '', Validators.required],
+      toCurr: [data.toCurr || '', Validators.required],
+      rate: [data.rate || 1, Validators.required],
+      date: [data.date || new Date(), Validators.required]
+    });
+  }
+
+  onNoClick(): void {
+    this.dialogRef.close();
+  }
+
+  onSubmit(): void {
+    if (this.form.valid) {
+      this.dialogRef.close(this.form.value);
+    }
+  }
+
+  openCurrencySelector(field: string) {
+    this.selectedField = field;
+    const ref = this.dialog.open(this.currencyList);
+  }
+
+  selectCurrency(value: string) {
+    if (value) {
+      this.form.patchValue({ [this.selectedField]: value });
+    }
+    this.dialog.closeAll();
+  }
 }
 
 
 ---
 
-❌ Option 2: Workaround (Not Recommended)
+🧾 3. Update exchange-rate.component.html
 
-Using .findByFromCurrAndToCurr(...) in your repository:
+<div class="toolbar">
+  <button mat-flat-button color="primary" (click)="openDialog('Add')">Add</button>
+</div>
 
-Optional<ExchangeRate> optionalRate = repository.findByFromCurrAndToCurr(fromCurr, toCurr);
+<table mat-table [dataSource]="exchangeRates" class="mat-elevation-z8">
+  <ng-container matColumnDef="fromCurr">
+    <th mat-header-cell *matHeaderCellDef>From Currency</th>
+    <td mat-cell *matCellDef="let row">{{ row.fromCurr }}</td>
+  </ng-container>
 
-You’d then need to define this in your repository interface:
+  <ng-container matColumnDef="toCurr">
+    <th mat-header-cell *matHeaderCellDef>To Currency</th>
+    <td mat-cell *matCellDef="let row">{{ row.toCurr }}</td>
+  </ng-container>
 
-Optional<ExchangeRate> findByFromCurrAndToCurr(String fromCurr, String toCurr);
+  <ng-container matColumnDef="rate">
+    <th mat-header-cell *matHeaderCellDef>Exchange Rate</th>
+    <td mat-cell *matCellDef="let row">{{ row.rate }}</td>
+  </ng-container>
 
-But this approach won’t support deleteById or save properly in some cases unless you do extra mapping.
+  <ng-container matColumnDef="date">
+    <th mat-header-cell *matHeaderCellDef>Effective Date</th>
+    <td mat-cell *matCellDef="let row">{{ row.date }}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="actions">
+    <th mat-header-cell *matHeaderCellDef>Actions</th>
+    <td mat-cell *matCellDef="let row">
+      <button mat-icon-button color="primary" (click)="openDialog('Edit', row)">
+        <mat-icon>edit</mat-icon>
+      </button>
+      <button mat-icon-button color="warn" (click)="deleteRate(row)">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="['fromCurr', 'toCurr', 'rate', 'date', 'actions']"></tr>
+  <tr mat-row *matRowDef="let row; columns: ['fromCurr', 'toCurr', 'rate', 'date', 'actions']"></tr>
+</table>
 
 
 ---
 
-✅ Best Option Summary
+🎨 4. exchange-rate.component.css
 
-✅ Add ExchangeRateKey.java
-✅ Use @IdClass(ExchangeRateKey.class)
-✅ Pass the key object to findById() and deleteById()
+table {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
 
 
 ---
 
-Would you like me to give you the full final code with all three files updated (Entity, Key, Controller)?
+📦 5. Required Module Imports (app.config.ts or component standalone)
+
+Make sure to import:
+
+import { MatTableModule } from '@angular/material/table';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatListModule } from '@angular/material/list';
+
+
+---
+
+Would you like me to package this in a downloadable .zip or add more customization like validations or highlighting duplicates?
 
