@@ -1,160 +1,279 @@
-Here is the complete and minimal update to your code that allows users to either type or select the currency from a dropdown using <input list="...">.
+Thanks for the clarification and files. Based on the screenshots and files, you're dealing with a Spring Boot + Angular application to manage exchange rates, and you want:
+
+1. To allow duplicate fromCurr and toCurr combinations in the database.
+
+
+2. To properly fetch and display all data in the Angular table UI.
+
+
+
+Below is the complete working code setup for both the backend (Spring Boot) and frontend (Angular) to achieve this.
 
 
 ---
 
-✅ exchange-rates.component.ts
+✅ Spring Boot Backend
 
-Ensure this code is in your exchange-rates.component.ts:
+ExchangeRate.java (Entity)
+
+package com.recon_connect.entity;
+
+import jakarta.persistence.*;
+import java.util.Date;
+
+@Entity
+@Table(name = "ExchangeRates_Rachana")
+public class ExchangeRate {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String fromCurr;
+    private String toCurr;
+    private Double rate;
+
+    @Temporal(TemporalType.DATE)
+    private Date lastMod;
+
+    // Getters and setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getFromCurr() { return fromCurr; }
+    public void setFromCurr(String fromCurr) { this.fromCurr = fromCurr; }
+
+    public String getToCurr() { return toCurr; }
+    public void setToCurr(String toCurr) { this.toCurr = toCurr; }
+
+    public Double getRate() { return rate; }
+    public void setRate(Double rate) { this.rate = rate; }
+
+    public Date getLastMod() { return lastMod; }
+    public void setLastMod(Date lastMod) { this.lastMod = lastMod; }
+}
+
+ExchangeRateRepository.java
+
+package com.recon_connect.repository;
+
+import com.recon_connect.entity.ExchangeRate;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long> {
+}
+
+ExchangeRateController.java
+
+package com.recon_connect.controller;
+
+import com.recon_connect.entity.ExchangeRate;
+import com.recon_connect.repository.ExchangeRateRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/exchange-rates")
+@CrossOrigin(origins = "*")
+public class ExchangeRateController {
+
+    @Autowired
+    private ExchangeRateRepository repository;
+
+    @GetMapping
+    public List<ExchangeRate> getAllRates() {
+        return repository.findAll();
+    }
+
+    @PostMapping
+    public ExchangeRate createRate(@RequestBody ExchangeRate rate) {
+        return repository.save(rate);
+    }
+
+    @PutMapping("/{id}")
+    public ExchangeRate updateRate(@PathVariable Long id, @RequestBody ExchangeRate rate) {
+        rate.setId(id);
+        return repository.save(rate);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteRate(@PathVariable Long id) {
+        repository.deleteById(id);
+    }
+
+    @GetMapping("/currencies")
+    public List<String> getDistinctCurrencies() {
+        return repository.findAll()
+                .stream()
+                .flatMap(e -> List.of(e.getFromCurr(), e.getToCurr()).stream())
+                .distinct()
+                .toList();
+    }
+}
+
+
+---
+
+✅ Angular Frontend (exchange-rates standalone component)
+
+exchange-rates.component.ts
 
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-
-interface ExchangeRate {
-  fromCurr: string;
-  toCurr: string;
-  rate: number;
-  lastMod: string;
-}
+import { MatDialog } from '@angular/material/dialog';
+import { FormBuilder, FormGroup } from '@angular/forms';
 
 @Component({
   selector: 'app-exchange-rates',
+  standalone: true,
   templateUrl: './exchange-rates.component.html',
-  styleUrls: ['./exchange-rates.component.css']
+  styleUrls: ['./exchange-rates.component.css'],
+  imports: [MatDialog],
 })
 export class ExchangeRatesComponent implements OnInit {
-  apiUrl = 'http://localhost:8080/api/exchange-rates';
-  rates: ExchangeRate[] = [];
-  newRate: ExchangeRate = { fromCurr: '', toCurr: '', rate: 0, lastMod: '' };
-  isEditing = false;
-  originalFromCurr = '';
+  rates: any[] = [];
+  form: FormGroup;
+  editingId: number | null = null;
+  currencies: string[] = [];
 
-  fromCurrencies: string[] = [];
-  toCurrencies: string[] = [];
-
-  constructor(private http: HttpClient) {}
-
-  ngOnInit(): void {
-    this.fetchRates();
-    this.fetchCurrencies();
+  constructor(private http: HttpClient, private fb: FormBuilder, private dialog: MatDialog) {
+    this.form = this.fb.group({
+      fromCurr: [''],
+      toCurr: [''],
+      rate: [''],
+      lastMod: ['']
+    });
   }
 
-  fetchRates(): void {
-    this.http.get<ExchangeRate[]>(this.apiUrl).subscribe(data => {
+  ngOnInit() {
+    this.getRates();
+    this.getCurrencies();
+  }
+
+  getRates() {
+    this.http.get<any[]>('http://localhost:8080/api/exchange-rates').subscribe(data => {
       this.rates = data;
     });
   }
 
-  fetchCurrencies(): void {
-    this.http.get<string[]>(`${this.apiUrl}/from-currencies`).subscribe(data => {
-      this.fromCurrencies = data;
-    });
-
-    this.http.get<string[]>(`${this.apiUrl}/to-currencies`).subscribe(data => {
-      this.toCurrencies = data;
+  getCurrencies() {
+    this.http.get<string[]>('http://localhost:8080/api/exchange-rates/currencies').subscribe(data => {
+      this.currencies = data;
     });
   }
 
-  save(): void {
-    const payload = { ...this.newRate };
-    if (this.isEditing) {
-      this.http.put(`${this.apiUrl}/${this.originalFromCurr}`, payload).subscribe(() => {
-        this.fetchRates();
-        this.resetForm();
-      });
+  saveRate() {
+    if (this.editingId !== null) {
+      this.http.put(`http://localhost:8080/api/exchange-rates/${this.editingId}`, this.form.value)
+        .subscribe(() => {
+          this.getRates();
+          this.cancelEdit();
+        });
     } else {
-      this.http.post(this.apiUrl, payload).subscribe(() => {
-        this.fetchRates();
-        this.resetForm();
-      });
+      this.http.post('http://localhost:8080/api/exchange-rates', this.form.value)
+        .subscribe(() => {
+          this.getRates();
+          this.form.reset();
+        });
     }
   }
 
-  edit(rate: ExchangeRate): void {
-    this.newRate = { ...rate };
-    this.originalFromCurr = rate.fromCurr;
-    this.isEditing = true;
-  }
-
-  delete(fromCurr: string): void {
-    this.http.delete(`${this.apiUrl}/${fromCurr}`).subscribe(() => {
-      this.fetchRates();
+  editRate(rate: any) {
+    this.editingId = rate.id;
+    this.form.setValue({
+      fromCurr: rate.fromCurr,
+      toCurr: rate.toCurr,
+      rate: rate.rate,
+      lastMod: rate.lastMod
     });
   }
 
-  resetForm(): void {
-    this.newRate = { fromCurr: '', toCurr: '', rate: 0, lastMod: '' };
-    this.isEditing = false;
+  cancelEdit() {
+    this.editingId = null;
+    this.form.reset();
   }
+
+  deleteRate(id: number) {
+    this.http.delete(`http://localhost:8080/api/exchange-rates/${id}`)
+      .subscribe(() => this.getRates());
+  }
+}
+
+exchange-rates.component.html
+
+<div>
+  <form [formGroup]="form" (ngSubmit)="saveRate()">
+    <select formControlName="fromCurr">
+      <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
+    </select>
+    <select formControlName="toCurr">
+      <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
+    </select>
+    <input formControlName="rate" placeholder="Rate" type="number" />
+    <input formControlName="lastMod" placeholder="YYYY-MM-DD" type="date" />
+    <button type="submit">{{ editingId ? 'Update' : 'Add' }}</button>
+    <button type="button" (click)="cancelEdit()" *ngIf="editingId">Cancel</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>From</th>
+        <th>To</th>
+        <th>Rate</th>
+        <th>Last Modified</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let rate of rates">
+        <td>{{ rate.fromCurr }}</td>
+        <td>{{ rate.toCurr }}</td>
+        <td>{{ rate.rate }}</td>
+        <td>{{ rate.lastMod }}</td>
+        <td>
+          <button (click)="editRate(rate)">Edit</button>
+          <button (click)="deleteRate(rate.id)">Delete</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+exchange-rates.component.css
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+}
+form {
+  margin-bottom: 1rem;
+}
+select, input {
+  margin-right: 0.5rem;
 }
 
 
 ---
 
-✅ exchange-rates.component.html
+✅ Summary
 
-Update the form section like this:
+The database allows duplicates of fromCurr + toCurr because id is the primary key.
 
-<div class="popup-form">
-  <label>From Currency</label>
-  <input list="fromCurrList" [(ngModel)]="newRate.fromCurr" />
-  <datalist id="fromCurrList">
-    <option *ngFor="let from of fromCurrencies" [value]="from"></option>
-  </datalist>
+Angular properly fetches all records using the /api/exchange-rates endpoint.
 
-  <label>To Currency</label>
-  <input list="toCurrList" [(ngModel)]="newRate.toCurr" />
-  <datalist id="toCurrList">
-    <option *ngFor="let to of toCurrencies" [value]="to"></option>
-  </datalist>
+A simple UI is provided to Add, Edit, and Delete records.
 
-  <label>Rate</label>
-  <input type="number" [(ngModel)]="newRate.rate" />
-
-  <label>Last Modified</label>
-  <input type="date" [(ngModel)]="newRate.lastMod" />
-
-  <button (click)="save()">{{ isEditing ? 'Update' : 'Add' }}</button>
-  <button (click)="resetForm()">Clear</button>
-</div>
-
-Below your form, you already have the table:
-
-<table>
-  <thead>
-    <tr>
-      <th>From</th>
-      <th>To</th>
-      <th>Rate</th>
-      <th>Last Modified</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let rate of rates">
-      <td>{{ rate.fromCurr }}</td>
-      <td>{{ rate.toCurr }}</td>
-      <td>{{ rate.rate }}</td>
-      <td>{{ rate.lastMod }}</td>
-      <td>
-        <button (click)="edit(rate)">Edit</button>
-        <button (click)="delete(rate.fromCurr)">Delete</button>
-      </td>
-    </tr>
-  </tbody>
-</table>
+All rates, even duplicates, are shown in the table.
 
 
----
+If you'd like to integrate a popup for the Add/Edit form (like FIS Data Integrity Manager), I can update the Angular component to use MatDialog.
 
-✅ This setup ensures:
-
-Users can type or pick a currency.
-
-Dropdowns are populated from backend.
-
-Save, Edit, Delete, and Clear actions are all preserved.
-
-
-Let me know if you'd like validations or to restrict to only dropdown values.
+Let me know if you'd like that version.
 
