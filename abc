@@ -1,159 +1,220 @@
-Thanks for the clarification!
+Here is the complete Spring Boot backend code to support the Angular frontend with the following features:
 
-You want:
-
-✅ A popup form to add exchange rate data
-✅ fromCurr and toCurr as dropdowns that fetch values from backend
-✅ When all fields are filled and submitted → insert into DB via backend call
-✅ The table should show the newly added row after that
+✅ CRUD for exchange rates
+✅ Endpoints to fetch distinct fromCurr and toCurr values
+✅ Connected to Oracle table ExchangeRates_Rachana
 
 
 ---
 
-✅ Here's the corrected and working version:
+✅ 1. ExchangeRate.java (Entity)
 
+package com.recon_connect.entity;
 
----
+import jakarta.persistence.*;
+import java.util.Date;
 
-🟦 exchange-rates.component.ts
+@Entity
+@Table(name = "ExchangeRates_Rachana")
+@IdClass(ExchangeRateId.class)
+public class ExchangeRate {
+    
+    @Id
+    @Column(name = "FROMCURR")
+    private String fromCurr;
 
-import { Component, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+    @Id
+    @Column(name = "TOCURR")
+    private String toCurr;
 
-@Component({
-  selector: 'app-exchange-rates',
-  templateUrl: './exchange-rates.component.html',
-  styleUrls: ['./exchange-rates.component.css']
-})
-export class ExchangeRatesComponent implements OnInit {
-  exchangeRates: any[] = [];
-  fromCurrencies: string[] = [];
-  toCurrencies: string[] = [];
+    @Column(name = "RATE")
+    private Double rate;
 
-  isPopupOpen = false;
+    @Column(name = "LASTMOD")
+    @Temporal(TemporalType.DATE)
+    private Date lastMod;
 
-  newExchangeRate = {
-    fromCurr: '',
-    toCurr: '',
-    rate: null,
-    lastMod: ''
-  };
+    // Getters and Setters
+    public String getFromCurr() { return fromCurr; }
+    public void setFromCurr(String fromCurr) { this.fromCurr = fromCurr; }
 
-  constructor(private http: HttpClient) {}
+    public String getToCurr() { return toCurr; }
+    public void setToCurr(String toCurr) { this.toCurr = toCurr; }
 
-  ngOnInit(): void {
-    this.loadExchangeRates();
-  }
+    public Double getRate() { return rate; }
+    public void setRate(Double rate) { this.rate = rate; }
 
-  loadExchangeRates(): void {
-    this.http.get<any[]>('http://localhost:8080/api/exchange-rates')
-      .subscribe(data => this.exchangeRates = data);
-  }
-
-  openAddPopup(): void {
-    this.newExchangeRate = {
-      fromCurr: '',
-      toCurr: '',
-      rate: null,
-      lastMod: ''
-    };
-
-    this.http.get<string[]>('http://localhost:8080/api/exchange-rates/from-currencies')
-      .subscribe(data => this.fromCurrencies = data);
-
-    this.http.get<string[]>('http://localhost:8080/api/exchange-rates/to-currencies')
-      .subscribe(data => this.toCurrencies = data);
-
-    this.isPopupOpen = true;
-  }
-
-  closePopup(): void {
-    this.isPopupOpen = false;
-  }
-
-  addExchangeRate(): void {
-    this.http.post('http://localhost:8080/api/exchange-rates', this.newExchangeRate)
-      .subscribe(() => {
-        this.loadExchangeRates();
-        this.closePopup();
-      });
-  }
+    public Date getLastMod() { return lastMod; }
+    public void setLastMod(Date lastMod) { this.lastMod = lastMod; }
 }
 
 
 ---
 
-🟩 exchange-rates.component.html
+✅ 2. ExchangeRateId.java (Composite Key)
 
-<div class="container">
-  <h2>Exchange Rates</h2>
+package com.recon_connect.entity;
 
-  <table>
-    <thead>
-      <tr>
-        <th>From Currency</th>
-        <th>To Currency</th>
-        <th>Rate</th>
-        <th>Last Modified</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let rate of exchangeRates">
-        <td>{{ rate.fromCurr }}</td>
-        <td>{{ rate.toCurr }}</td>
-        <td>{{ rate.rate }}</td>
-        <td>{{ rate.lastMod | date: 'yyyy-MM-dd' }}</td>
-      </tr>
-    </tbody>
-  </table>
+import java.io.Serializable;
+import java.util.Objects;
 
-  <button (click)="openAddPopup()">Add Exchange Rate</button>
+public class ExchangeRateId implements Serializable {
+    private String fromCurr;
+    private String toCurr;
 
-  <!-- Add Popup -->
-  <div class="popup" *ngIf="isPopupOpen">
-    <div class="popup-content">
-      <h3>Add Exchange Rate</h3>
+    public ExchangeRateId() {}
 
-      <label>From Currency:</label>
-      <select [(ngModel)]="newExchangeRate.fromCurr">
-        <option *ngFor="let curr of fromCurrencies" [value]="curr">{{ curr }}</option>
-      </select>
+    public ExchangeRateId(String fromCurr, String toCurr) {
+        this.fromCurr = fromCurr;
+        this.toCurr = toCurr;
+    }
 
-      <label>To Currency:</label>
-      <select [(ngModel)]="newExchangeRate.toCurr">
-        <option *ngFor="let curr of toCurrencies" [value]="curr">{{ curr }}</option>
-      </select>
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ExchangeRateId)) return false;
+        ExchangeRateId that = (ExchangeRateId) o;
+        return Objects.equals(fromCurr, that.fromCurr) && Objects.equals(toCurr, that.toCurr);
+    }
 
-      <label>Rate:</label>
-      <input type="number" [(ngModel)]="newExchangeRate.rate" />
-
-      <label>Last Modified:</label>
-      <input type="date" [(ngModel)]="newExchangeRate.lastMod" />
-
-      <div class="actions">
-        <button (click)="addExchangeRate()">Save</button>
-        <button (click)="closePopup()">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
+    @Override
+    public int hashCode() {
+        return Objects.hash(fromCurr, toCurr);
+    }
+}
 
 
 ---
 
-✅ Make sure your backend has:
+✅ 3. ExchangeRateRepository.java
 
-GET /api/exchange-rates/from-currencies → returns distinct fromCurr strings
+package com.recon_connect.repository;
 
-GET /api/exchange-rates/to-currencies → returns distinct toCurr strings
+import com.recon_connect.entity.ExchangeRate;
+import com.recon_connect.entity.ExchangeRateId;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import java.util.List;
 
-POST /api/exchange-rates → accepts { fromCurr, toCurr, rate, lastMod } as body and saves it
+public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, ExchangeRateId> {
+    
+    @Query("SELECT DISTINCT e.fromCurr FROM ExchangeRate e")
+    List<String> findDistinctFromCurr();
 
-GET /api/exchange-rates → returns all records
-
+    @Query("SELECT DISTINCT e.toCurr FROM ExchangeRate e")
+    List<String> findDistinctToCurr();
+}
 
 
 ---
 
-Let me know if you'd like this styled like the FIS UI or want Edit/Delete support too.
+✅ 4. ExchangeRateController.java
+
+package com.recon_connect.controller;
+
+import com.recon_connect.entity.ExchangeRate;
+import com.recon_connect.entity.ExchangeRateId;
+import com.recon_connect.repository.ExchangeRateRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api/exchange-rates")
+@CrossOrigin(origins = "http://localhost:4200")
+public class ExchangeRateController {
+
+    @Autowired
+    private ExchangeRateRepository repository;
+
+    @GetMapping
+    public List<ExchangeRate> getAllRates() {
+        return repository.findAll();
+    }
+
+    @GetMapping("/fromCurrs")
+    public List<String> getFromCurrs() {
+        return repository.findDistinctFromCurr();
+    }
+
+    @GetMapping("/toCurrs")
+    public List<String> getToCurrs() {
+        return repository.findDistinctToCurr();
+    }
+
+    @PostMapping
+    public ExchangeRate addRate(@RequestBody ExchangeRate rate) {
+        return repository.save(rate);
+    }
+
+    @PutMapping("/{fromCurr}/{toCurr}")
+    public ExchangeRate updateRate(@PathVariable String fromCurr, @PathVariable String toCurr,
+                                   @RequestBody ExchangeRate updatedRate) {
+        ExchangeRateId id = new ExchangeRateId(fromCurr, toCurr);
+        Optional<ExchangeRate> optional = repository.findById(id);
+
+        if (optional.isPresent()) {
+            ExchangeRate existing = optional.get();
+            existing.setRate(updatedRate.getRate());
+            existing.setLastMod(updatedRate.getLastMod());
+            existing.setFromCurr(updatedRate.getFromCurr());
+            existing.setToCurr(updatedRate.getToCurr());
+            return repository.save(existing);
+        } else {
+            throw new RuntimeException("Rate not found");
+        }
+    }
+
+    @DeleteMapping("/{fromCurr}/{toCurr}")
+    public void deleteRate(@PathVariable String fromCurr, @PathVariable String toCurr) {
+        ExchangeRateId id = new ExchangeRateId(fromCurr, toCurr);
+        repository.deleteById(id);
+    }
+}
+
+
+---
+
+✅ 5. ReconApplication.java (Main class)
+
+package com.recon_connect;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ReconApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ReconApplication.class, args);
+    }
+}
+
+
+---
+
+✅ 6. application.properties
+
+spring.datasource.url=jdbc:oracle:thin:@localhost:1521:xe
+spring.datasource.username=your_db_username
+spring.datasource.password=your_db_password
+spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
+spring.jpa.hibernate.ddl-auto=none
+spring.jpa.show-sql=true
+spring.jpa.database-platform=org.hibernate.dialect.Oracle12cDialect
+
+
+---
+
+Let me know if you want:
+
+SQL to create the ExchangeRates_Rachana table
+
+A sample dataset
+
+Help setting up CORS for production
+
+
+Ready to continue when you are!
 
