@@ -1,4 +1,11 @@
-Sure! Below is the complete and corrected code for both Angular (frontend) and Spring Boot (backend) to make edit and delete functionality work properly with your current setup.
+Sure! Here's the complete code for both the Angular component and the Spring Boot controller, updated so that:
+
+Editing correctly updates the row instead of adding a new one.
+
+fromCurr is disabled during edit (since it’s the primary key).
+
+Delete works as expected.
+
 
 
 ---
@@ -9,6 +16,13 @@ exchange-rates.component.ts
 
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+
+interface ExchangeRate {
+  fromCurr: string;
+  toCurr: string;
+  rate: number;
+  lastMod: string;
+}
 
 @Component({
   selector: 'app-exchange-rates',
@@ -35,8 +49,9 @@ export class ExchangeRatesComponent implements OnInit {
 
   save(): void {
     const payload = this.editingRate ? this.editingRate : this.newRate;
+
     const request = this.editingRate
-      ? this.http.put(`${this.apiUrl}/${payload.fromCurr}`, payload)
+      ? this.http.put(`${this.apiUrl}/${this.editingRate.fromCurr}`, payload)
       : this.http.post(this.apiUrl, payload);
 
     request.subscribe(() => {
@@ -50,7 +65,8 @@ export class ExchangeRatesComponent implements OnInit {
   }
 
   delete(rate: ExchangeRate): void {
-    this.http.delete(`${this.apiUrl}/${rate.fromCurr}`)
+    this.http
+      .delete(`${this.apiUrl}/${rate.fromCurr}`)
       .subscribe(() => this.fetchRates());
   }
 
@@ -60,12 +76,71 @@ export class ExchangeRatesComponent implements OnInit {
   }
 }
 
-interface ExchangeRate {
-  fromCurr: string;
-  toCurr: string;
-  rate: number;
-  lastMod: string;
-}
+
+---
+
+exchange-rates.component.html
+
+<div>
+  <h2>{{ editingRate ? 'Edit Exchange Rate' : 'Add Exchange Rate' }}</h2>
+
+  <form (ngSubmit)="save()">
+    <input
+      type="text"
+      placeholder="From Currency"
+      [(ngModel)]="editingRate ? editingRate.fromCurr : newRate.fromCurr"
+      [disabled]="editingRate !== null"
+      name="fromCurr"
+      required
+    />
+    <input
+      type="text"
+      placeholder="To Currency"
+      [(ngModel)]="editingRate ? editingRate.toCurr : newRate.toCurr"
+      name="toCurr"
+      required
+    />
+    <input
+      type="number"
+      placeholder="Rate"
+      [(ngModel)]="editingRate ? editingRate.rate : newRate.rate"
+      name="rate"
+      required
+    />
+    <input
+      type="date"
+      [(ngModel)]="editingRate ? editingRate.lastMod : newRate.lastMod"
+      name="lastMod"
+      required
+    />
+    <button type="submit">{{ editingRate ? 'Update' : 'Add' }}</button>
+    <button type="button" (click)="resetForm()">Cancel</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>From</th>
+        <th>To</th>
+        <th>Rate</th>
+        <th>Last Modified</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let rate of rates">
+        <td>{{ rate.fromCurr }}</td>
+        <td>{{ rate.toCurr }}</td>
+        <td>{{ rate.rate }}</td>
+        <td>{{ rate.lastMod }}</td>
+        <td>
+          <button (click)="edit(rate)">Edit</button>
+          <button (click)="delete(rate)">Delete</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
 
 ---
@@ -73,15 +148,6 @@ interface ExchangeRate {
 ✅ Spring Boot (Backend)
 
 ExchangeRateController.java
-
-package com.example.recon_connect.controller;
-
-import com.example.recon_connect.entity.ExchangeRate;
-import com.example.recon_connect.repository.ExchangeRateRepository;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/exchange-rates")
@@ -114,7 +180,7 @@ public class ExchangeRateController {
             existingRate.setLastMod(rate.getLastMod());
             return repository.save(existingRate);
         } else {
-            return repository.save(rate);
+            return repository.save(rate); // Or return an error if strict update
         }
     }
 
@@ -127,20 +193,12 @@ public class ExchangeRateController {
 
 ---
 
-🔁 Summary
+Let me know if you want:
 
-Functionality	Angular	Spring Boot
+A popup form instead of inline.
 
-Edit	PUT /{fromCurr}	Updates existing exchange rate
-Delete	DELETE /{fromCurr}	Deletes by primary key fromCurr
-Add	POST	Adds a new entry
-Fetch	GET	Gets all records
+Validation messages.
 
+Spring Boot error handling for missing records or invalid input.
 
-
----
-
-If you're using a composite primary key (fromCurr + toCurr), let me know — the solution will require @EmbeddedId changes in the backend.
-
-Would you like me to help wire this to your exchange-rates.component.html template too?
 
