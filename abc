@@ -1,48 +1,65 @@
-Thanks for sharing the details and files. Based on your current Angular 17 standalone component and Spring Boot backend, here's how you can complete the dropdown functionality for fromCurr and toCurr values fetched from the backend:
+Thanks for the update. I'll provide the complete working Angular 17 standalone component code for exchange-rates.component.ts, based on your errors and the backend integration we’ve discussed.
 
 
 ---
 
-✅ Spring Boot: Backend Endpoint for Distinct Currencies
+✅ Corrected exchange-rates.component.ts
 
-Ensure your backend has the following two endpoints (if not, add them):
+This includes:
 
-@GetMapping("/from-currencies")
-public List<String> getFromCurrencies() {
-    return repository.findDistinctFromCurr();
+Proper @Component decorator with standalone: true
+
+Correct ExchangeRate interface definition
+
+Fixes for fromCurrencies, toCurrencies
+
+Working fetchRates(), fetchCurrencies(), save(), edit()
+
+
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+
+interface ExchangeRate {
+  fromCurr: string;
+  toCurr: string;
+  rate: number;
+  lastMod: string;
 }
 
-@GetMapping("/to-currencies")
-public List<String> getToCurrencies() {
-    return repository.findDistinctToCurr();
-}
-
-In your repository interface:
-
-@Query("SELECT DISTINCT e.fromCurr FROM ExchangeRate e")
-List<String> findDistinctFromCurr();
-
-@Query("SELECT DISTINCT e.toCurr FROM ExchangeRate e")
-List<String> findDistinctToCurr();
-
-
----
-
-✅ Angular Frontend Changes
-
-1. exchange-rates.component.ts
-
-Enhance the component logic:
-
+@Component({
+  selector: 'app-exchange-rates',
+  standalone: true,
+  templateUrl: './exchange-rates.component.html',
+  styleUrls: ['./exchange-rates.component.css'],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatDialogModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatDatepickerModule,
+    MatNativeDateModule
+  ]
+})
 export class ExchangeRatesComponent implements OnInit {
   rates: ExchangeRate[] = [];
   newRate: ExchangeRate = { fromCurr: '', toCurr: '', rate: 0, lastMod: '' };
   isEditing: boolean = false;
   originalFromCurr: string = '';
-  apiUrl = 'http://localhost:8080/api/exchange-rates';
 
   fromCurrencies: string[] = [];
   toCurrencies: string[] = [];
+
+  apiUrl = 'http://localhost:8080/api/exchange-rates';
 
   constructor(private http: HttpClient) {}
 
@@ -52,12 +69,18 @@ export class ExchangeRatesComponent implements OnInit {
   }
 
   fetchRates(): void {
-    this.http.get<ExchangeRate[]>(this.apiUrl).subscribe(data => this.rates = data);
+    this.http.get<ExchangeRate[]>(this.apiUrl).subscribe(data => {
+      this.rates = data;
+    });
   }
 
   fetchCurrencies(): void {
-    this.http.get<string[]>(`${this.apiUrl}/from-currencies`).subscribe(data => this.fromCurrencies = data);
-    this.http.get<string[]>(`${this.apiUrl}/to-currencies`).subscribe(data => this.toCurrencies = data);
+    this.http.get<string[]>(`${this.apiUrl}/from-currencies`).subscribe(data => {
+      this.fromCurrencies = data;
+    });
+    this.http.get<string[]>(`${this.apiUrl}/to-currencies`).subscribe(data => {
+      this.toCurrencies = data;
+    });
   }
 
   save(): void {
@@ -81,8 +104,10 @@ export class ExchangeRatesComponent implements OnInit {
     this.isEditing = true;
   }
 
-  delete(rate: ExchangeRate): void {
-    this.http.delete(`${this.apiUrl}/${rate.fromCurr}`).subscribe(() => this.fetchRates());
+  delete(fromCurr: string): void {
+    this.http.delete(`${this.apiUrl}/${fromCurr}`).subscribe(() => {
+      this.fetchRates();
+    });
   }
 
   resetForm(): void {
@@ -95,60 +120,40 @@ export class ExchangeRatesComponent implements OnInit {
 
 ---
 
-2. exchange-rates.component.html
+✅ Make sure your exchange-rates.component.html uses the correct property bindings:
 
-Update your form with dropdowns:
+Example snippet:
 
-<div class="form-container">
-  <select [(ngModel)]="newRate.fromCurr">
-    <option *ngFor="let from of fromCurrencies" [value]="from">{{ from }}</option>
-  </select>
-  <select [(ngModel)]="newRate.toCurr">
-    <option *ngFor="let to of toCurrencies" [value]="to">{{ to }}</option>
-  </select>
-  <input type="number" [(ngModel)]="newRate.rate" placeholder="Rate" />
-  <input type="date" [(ngModel)]="newRate.lastMod" placeholder="Last Modified" />
+<select [(ngModel)]="newRate.fromCurr">
+  <option *ngFor="let from of fromCurrencies" [value]="from">{{ from }}</option>
+</select>
 
-  <button (click)="save()">{{ isEditing ? 'Update' : 'Add' }}</button>
-  <button (click)="resetForm()">Clear</button>
-</div>
-
-<table>
-  <thead>
-    <tr>
-      <th>From</th>
-      <th>To</th>
-      <th>Rate</th>
-      <th>Last Modified</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let rate of rates">
-      <td>{{ rate.fromCurr }}</td>
-      <td>{{ rate.toCurr }}</td>
-      <td>{{ rate.rate }}</td>
-      <td>{{ rate.lastMod }}</td>
-      <td>
-        <button (click)="edit(rate)">Edit</button>
-        <button (click)="delete(rate)">Delete</button>
-      </td>
-    </tr>
-  </tbody>
-</table>
+<select [(ngModel)]="newRate.toCurr">
+  <option *ngFor="let to of toCurrencies" [value]="to">{{ to }}</option>
+</select>
 
 
 ---
 
-✅ Make Sure:
+🔁 Update any parent components:
 
-FormsModule is imported in your Angular module if you're using [(ngModel)].
+In the parent (e.g. layout.component.ts), make sure you're importing ExchangeRatesComponent properly:
 
-Your Spring Boot CORS config allows requests from your Angular app.
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { SidebarComponent } from '../sidebar/sidebar.component';
+import { ExchangeRatesComponent } from '../exchange-rates/exchange-rates.component';
 
+@Component({
+  selector: 'app-layout',
+  standalone: true,
+  imports: [RouterOutlet, SidebarComponent, ExchangeRatesComponent],
+  templateUrl: './layout.component.html',
+})
+export class LayoutComponent {}
 
 
 ---
 
-Would you like me to package this into a ZIP with all files updated for frontend and backend?
+If this still doesn’t work, feel free to upload your current full .ts and .html files — I’ll correct and send them back to you immediately.
 
