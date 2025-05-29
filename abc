@@ -1,118 +1,158 @@
-Thanks for the image! Here’s how you can fix each of the TypeScript errors shown in your screenshot. You're running into common Angular issues mostly due to import mismatches and incorrect references.
+Here is the complete edited TypeScript code for your exchange-rate.component.ts with the popup form integrated inside the same standalone component using Angular Material and MatDialog. This includes:
 
+All required imports
 
----
+Inline popup logic (for Add and Edit)
 
-✅ FIXES:
+Fix for MAT_DIALOG_DATA injection in standalone setup
 
-
----
-
-❌ Error: Cannot find name MatListOption
-
-Fix: Import MatListModule and MatListOption properly
-
-📌 Add to your exchange-rate.component.ts imports:
-
-import { MatListModule } from '@angular/material/list';
-import { MatListOption } from '@angular/material/list';
-
-📌 Also make sure you add MatListModule to the imports array of your @Component() if you're using a standalone component.
 
 
 ---
 
-❌ Error: currencyList does not exist on type PopupDialog
+✅ exchange-rate.component.ts
 
-You're trying to use this.currencyList, but it's a #currencyList template reference (not a class variable).
-
-📌 Fix: Replace this line:
-
-const ref = this.dialog.open(this.currencyList);
-
-✅ With:
-
-const ref = this.dialog.openDialogs.find(d => d.componentInstance === this);
-
-🚀 But more correctly, use a real dialog component instead of ng-template for the currency selector popup. Since you're not creating a separate component, let's simplify the logic:
-
-✅ Replace currency selector logic:
-
-Instead of using a template ref #currencyList, just open a dialog with a list using a simple MatDialog with hardcoded currencies (we'll implement it below).
-
-
----
-
-❌ Error: ExchangeRatesComponent is not exported or found
-
-Cause: You're importing ExchangeRatesComponent, but in your file it's declared as ExchangeRateComponent (singular Rate).
-
-📌 Fix:
-
-import { ExchangeRateComponent } from './exchange-rate.component';
-
-Make sure the filename and class name match:
-
-File: exchange-rate.component.ts
-
-Class: export class ExchangeRateComponent
-
-
-✅ Also, if you are using this component in routing or elsewhere, make sure you are importing the correct name.
-
-
----
-
-❌ Error: 'imports' must be an array of components/directives...
-
-This happens when you pass something other than Components/Directives/Pipes/NgModules into the imports array.
-
-📌 Fix: Ensure your imports array only includes valid modules/components. If you're using ExchangeRateComponent as a standalone component, you must ensure it is marked as such:
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { HttpClient } from '@angular/common/http';
+import { MatTableModule } from '@angular/material/table';
+import { MatSelectModule } from '@angular/material/select';
+import { MatToolbarModule } from '@angular/material/toolbar';
 
 @Component({
   standalone: true,
-  ...
+  selector: 'app-exchange-rate',
+  templateUrl: './exchange-rate.component.html',
+  styleUrls: ['./exchange-rate.component.css'],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatIconModule,
+    MatButtonModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatDialogModule,
+    MatTableModule,
+    MatSelectModule,
+    MatToolbarModule
+  ],
 })
-export class ExchangeRateComponent {}
+export class ExchangeRateComponent {
+  exchangeRates: any[] = [];
+  displayedColumns: string[] = ['fromCurr', 'toCurr', 'rate', 'lastMod', 'actions'];
 
-And when you import it in another component or route, it must be like this:
+  constructor(private dialog: MatDialog, private http: HttpClient) {
+    this.loadExchangeRates();
+  }
 
-imports: [ExchangeRateComponent] // If it's standalone
+  loadExchangeRates(): void {
+    this.http.get<any[]>('http://localhost:8080/api/exchange-rates').subscribe(data => {
+      this.exchangeRates = data;
+    });
+  }
 
+  openAddDialog(): void {
+    const dialogRef = this.dialog.open(PopupDialog, {
+      data: null,
+      width: '400px'
+    });
 
----
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.http.post('http://localhost:8080/api/exchange-rates', result).subscribe(() => {
+          this.loadExchangeRates();
+        });
+      }
+    });
+  }
 
-✅ TO-DO: Final Fix Summary
+  openEditDialog(row: any): void {
+    const dialogRef = this.dialog.open(PopupDialog, {
+      data: row,
+      width: '400px'
+    });
 
-1. ✅ Correct all imports:
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.http.put(`http://localhost:8080/api/exchange-rates/${row.fromCurr}/${row.toCurr}`, result)
+          .subscribe(() => this.loadExchangeRates());
+      }
+    });
+  }
 
+  deleteRate(row: any): void {
+    const url = `http://localhost:8080/api/exchange-rates/${row.fromCurr}/${row.toCurr}`;
+    this.http.delete(url).subscribe(() => this.loadExchangeRates());
+  }
+}
 
+// ---------- Popup Dialog Component Inline ----------
+@Component({
+  selector: 'popup-dialog',
+  standalone: true,
+  templateUrl: './popup-dialog.component.html',
+  styleUrls: ['./popup-dialog.component.css'],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatSelectModule
+  ],
+  providers: [
+    { provide: MAT_DIALOG_DATA, useValue: {} }
+  ]
+})
+export class PopupDialog {
+  dialogRef = inject(MatDialogRef<PopupDialog>);
+  data = inject(MAT_DIALOG_DATA);
+  private fb = inject(FormBuilder);
 
-import { MatDialogModule } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
-import { MatListModule, MatListOption } from '@angular/material/list';
+  currencies = ['USD', 'INR', 'EUR', 'JPY', 'SGD', 'GBP'];
 
-2. ✅ Fix the component name mismatch: Ensure you're using ExchangeRateComponent, not ExchangeRatesComponent.
+  form: FormGroup = this.fb.group({
+    fromCurr: [this.data?.fromCurr || ''],
+    toCurr: [this.data?.toCurr || ''],
+    rate: [this.data?.rate || ''],
+    lastMod: [this.data?.lastMod || '']
+  });
 
+  save(): void {
+    if (this.form.valid) {
+      this.dialogRef.close(this.form.value);
+    }
+  }
 
-3. ✅ Simplify currency selector (if #currencyList fails): Move the popup to a separate inline dialog or directly set value with a simple prompt:
-
-
-
-const selected = prompt('Enter currency (e.g. USD, INR, etc):');
-if (selected) {
-  this.form.patchValue({ [this.selectedField]: selected });
+  cancel(): void {
+    this.dialogRef.close();
+  }
 }
 
 
 ---
 
-If you want, I can revise the complete working version of your exchange-rate.component.ts and .html using your current structure. Would you like that?
+✅ What You Need to Do Next
+
+1. Ensure you create popup-dialog.component.html and popup-dialog.component.css files in the same folder as your exchange-rate.component.ts.
+
+
+2. Let me know if you want help creating the popup form HTML (popup-dialog.component.html) — I can give you the full UI as per the FIS Data Integrity Manager layout you’re replicating.
+
+
+
+Would you like the complete HTML next?
 
