@@ -1,44 +1,41 @@
-Great — you chose Option A, where everything (main table, add/edit popup, styles, logic) lives inside the single exchange-rate standalone component using Angular 17.
+Thanks for the screenshot — it clearly shows two issues:
 
 
 ---
 
-✅ GOAL
+❌ ERROR 1: Property 'dialogTemplate' does not exist on type 'ExchangeRateComponent'
 
-A single Angular 17 standalone component: exchange-rate.component.
+This happens because you're trying to use a template reference (this.dialogTemplate) from code, but it hasn't been declared in the .ts file.
 
-Popup form inside MatDialog via ng-template (not separate component).
 
-Supports Add, Edit (including editing primary keys), and Delete.
+---
 
-Datepicker with calendar icon.
+❌ ERROR 2: Property 'dialogRef' has no initializer and is not definitely assigned in the constructor
 
-Fully styled like FIS Data Integrity Manager.
+This line is unnecessary and incorrect for this setup.
 
-Works with your Spring Boot backend.
+
+---
+
+✅ FIX: Complete and Correct exchange-rate.component.ts
+
+We need to:
+
+1. Use ViewChild('dialogTemplate') to get the template reference.
+
+
+2. Remove the unnecessary @Inject(...) declarations.
+
 
 
 
 ---
 
-📁 Final Files
+✅ FIXED exchange-rate.component.ts
 
-You will end up with just these 3 files:
-
-exchange-rate.component.ts
-exchange-rate.component.html
-exchange-rate.component.css
-
-
----
-
-🔧 STEP-BY-STEP INSTRUCTIONS
-
-1. exchange-rate.component.ts
-
-import { Component, Inject } from '@angular/core';
+import { Component, ViewChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatDialog, MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -47,7 +44,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { HttpClient } from '@angular/common/http';
-import { formatDate } from '@angular/common';
 
 @Component({
   selector: 'app-exchange-rate',
@@ -68,7 +64,9 @@ import { formatDate } from '@angular/common';
 })
 export class ExchangeRateComponent {
   exchangeRates: any[] = [];
-  selectedRow: any = null;
+
+  @ViewChild('dialogTemplate') dialogTemplate!: TemplateRef<any>;
+
   constructor(private dialog: MatDialog, private http: HttpClient) {
     this.fetchRates();
   }
@@ -89,8 +87,8 @@ export class ExchangeRateComponent {
         if (mode === 'Add') {
           this.http.post('http://localhost:8080/exchange-rates', result).subscribe(() => this.fetchRates());
         } else if (mode === 'Edit') {
-          const from = data.originalFromCurr || data.fromCurr;
-          const to = data.originalToCurr || data.toCurr;
+          const from = data.fromCurr;
+          const to = data.toCurr;
           this.http.put(`http://localhost:8080/exchange-rates/${from}/${to}`, result).subscribe(() => this.fetchRates());
         }
       }
@@ -102,156 +100,12 @@ export class ExchangeRateComponent {
       this.fetchRates();
     });
   }
-
-  // Needed for opening inline template dialog
-  @Inject(MAT_DIALOG_DATA) public dialogData: any;
-  @Inject(MatDialogRef) public dialogRef: MatDialogRef<any>;
 }
 
 
 ---
 
-2. exchange-rate.component.html
+✅ With these changes, your component should now compile successfully.
 
-<div class="container">
-  <h2>Exchange Rates</h2>
-  <button mat-raised-button color="primary" (click)="openPopup('Add')">Add Exchange Rate</button>
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th>From Currency</th>
-          <th>To Currency</th>
-          <th>Rate</th>
-          <th>Last Modified</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let row of exchangeRates">
-          <td>{{ row.fromCurr }}</td>
-          <td>{{ row.toCurr }}</td>
-          <td>{{ row.rate }}</td>
-          <td>{{ row.lastMod | date: 'yyyy-MM-dd' }}</td>
-          <td>
-            <button mat-icon-button color="accent" (click)="openPopup('Edit', row)">
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button mat-icon-button color="warn" (click)="deleteRate(row)">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<ng-template #dialogTemplate let-data="data" let-dialogRef="dialogRef">
-  <div class="popup">
-    <h2>{{ data.mode }} Exchange Rate</h2>
-    <form #form="ngForm">
-      <mat-form-field appearance="fill">
-        <mat-label>From Currency</mat-label>
-        <input matInput [(ngModel)]="data.rowData.fromCurr" name="fromCurr" required />
-      </mat-form-field>
-
-      <mat-form-field appearance="fill">
-        <mat-label>To Currency</mat-label>
-        <input matInput [(ngModel)]="data.rowData.toCurr" name="toCurr" required />
-      </mat-form-field>
-
-      <mat-form-field appearance="fill">
-        <mat-label>Rate</mat-label>
-        <input type="number" matInput [(ngModel)]="data.rowData.rate" name="rate" required />
-      </mat-form-field>
-
-      <mat-form-field appearance="fill">
-        <mat-label>Last Modified</mat-label>
-        <input matInput [matDatepicker]="picker" [(ngModel)]="data.rowData.lastMod" name="lastMod" required />
-        <mat-datepicker-toggle matSuffix [for]="picker">
-          <mat-icon matDatepickerToggleIcon>calendar_today</mat-icon>
-        </mat-datepicker-toggle>
-        <mat-datepicker #picker></mat-datepicker>
-      </mat-form-field>
-
-      <div class="popup-actions">
-        <button mat-raised-button color="primary" (click)="dialogRef.close(data.rowData)">Save</button>
-        <button mat-button (click)="dialogRef.close()">Cancel</button>
-      </div>
-    </form>
-  </div>
-</ng-template>
-
-
----
-
-3. exchange-rate.component.css
-
-.container {
-  padding: 16px;
-}
-
-h2 {
-  margin-bottom: 16px;
-}
-
-.table-container {
-  max-height: 400px;
-  overflow-y: auto;
-  margin-top: 16px;
-  border: 1px solid #ccc;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th, td {
-  padding: 8px 12px;
-  border-bottom: 1px solid #ddd;
-}
-
-th {
-  background-color: #f0f0f0;
-}
-
-.popup {
-  padding: 20px;
-  width: 400px;
-}
-
-mat-form-field {
-  display: block;
-  width: 100%;
-  margin-bottom: 16px;
-}
-
-.popup-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-
----
-
-✅ Final Notes
-
-Ensure your backend endpoints match these:
-
-GET /exchange-rates
-
-POST /exchange-rates
-
-PUT /exchange-rates/{fromCurr}/{toCurr}
-
-DELETE /exchange-rates/{fromCurr}/{toCurr}
-
-
-Add HttpClientModule to your AppModule.
-
-
-Would you like me to create a zip of this ready-to-run exchange-rate folder?
+Let me know if you want me to send the full working zip with exchange-rate folder structure.
 
