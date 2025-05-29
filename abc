@@ -1,168 +1,100 @@
-Thanks for your patience. Here's the complete and corrected code for your Angular 17 exchange rate component that ensures:
+Thank you — based on the error in your first image, you're encountering this Hibernate exception:
 
-1. Edit works properly — including updating the row in place instead of adding a new row.
-
-
-2. All fields are editable, including fromCurr.
+> identifier of an instance of com.example.recon_connect.entity.ExchangeRate was altered from qwe to qwe
 
 
-3. The table reflects updated data after an edit.
+
+✅ What's happening?
+
+Hibernate is complaining because you're changing the primary key (fromCurr, likely) in an entity that it's already managing in the current session.
+
+❌ Why this fails:
+
+In JPA/Hibernate, updating the primary key (PK) directly on a managed entity (loaded from DB) is not allowed. It violates the entity identity contract.
 
 
-4. Data is sent to the backend using PUT with the correct identification logic.
+---
+
+✅ Solution Options
+
+🔧 Option 1: Disallow editing of primary key
+
+Easiest and cleanest fix.
+
+Let fromCurr + toCurr stay immutable.
+
+Only allow editing of rate and lastMod.
+
+
+🔧 Option 2: Delete old entity and insert new
+
+Since you want to allow editing all fields including primary key, this is your option.
+
+In backend, treat update as:
+
+Delete existing entity (by old PK values)
+
+Save the updated one (with new PK values)
 
 
 
 
 ---
 
-✅ exchange-rates.component.ts
+✅ Fix in Spring Boot Backend
 
-import { Component, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+Update your controller like this:
 
-interface ExchangeRate {
-  fromCurr: string;
-  toCurr: string;
-  rate: number;
-  lastMod: string;
-}
+@PutMapping("/exchange-rates/{fromCurr}/{toCurr}")
+public ResponseEntity<String> updateExchangeRate(
+        @PathVariable String fromCurr,
+        @PathVariable String toCurr,
+        @RequestBody ExchangeRate updatedRate) {
 
-@Component({
-  selector: 'app-exchange-rates',
-  templateUrl: './exchange-rates.component.html',
-  styleUrls: ['./exchange-rates.component.css']
-})
-export class ExchangeRatesComponent implements OnInit {
-  rates: ExchangeRate[] = [];
-  newRate: ExchangeRate = { fromCurr: '', toCurr: '', rate: 0, lastMod: '' };
-  isEditing: boolean = false;
-  originalFromCurr: string = ''; // Track original primary key
-  apiUrl = 'http://localhost:8080/api/exchange-rates';
-
-  constructor(private http: HttpClient) {}
-
-  ngOnInit(): void {
-    this.fetchRates();
-  }
-
-  fetchRates(): void {
-    this.http.get<ExchangeRate[]>(this.apiUrl).subscribe(data => {
-      this.rates = data;
-    });
-  }
-
-  save(): void {
-    const payload = { ...this.newRate };
-
-    if (this.isEditing) {
-      this.http.put(`${this.apiUrl}/${this.originalFromCurr}`, payload).subscribe(() => {
-        this.fetchRates();
-        this.resetForm();
-      });
-    } else {
-      this.http.post<ExchangeRate>(this.apiUrl, payload).subscribe(() => {
-        this.fetchRates();
-        this.resetForm();
-      });
-    }
-  }
-
-  edit(rate: ExchangeRate): void {
-    this.newRate = { ...rate };
-    this.originalFromCurr = rate.fromCurr; // Save original key
-    this.isEditing = true;
-  }
-
-  delete(rate: ExchangeRate): void {
-    this.http.delete(`${this.apiUrl}/${rate.fromCurr}`).subscribe(() => {
-      this.fetchRates();
-    });
-  }
-
-  resetForm(): void {
-    this.newRate = { fromCurr: '', toCurr: '', rate: 0, lastMod: '' };
-    this.isEditing = false;
-    this.originalFromCurr = '';
-  }
-}
-
-
----
-
-✅ exchange-rates.component.html
-
-<div class="form-container">
-  <input [(ngModel)]="newRate.fromCurr" placeholder="From Currency">
-  <input [(ngModel)]="newRate.toCurr" placeholder="To Currency">
-  <input type="number" [(ngModel)]="newRate.rate" placeholder="Rate">
-  <input type="date" [(ngModel)]="newRate.lastMod" placeholder="Last Modified">
-
-  <button (click)="save()">{{ isEditing ? 'Update' : 'Add' }}</button>
-  <button (click)="resetForm()">Clear</button>
-</div>
-
-<table>
-  <thead>
-    <tr>
-      <th>From</th>
-      <th>To</th>
-      <th>Rate</th>
-      <th>Last Modified</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let rate of rates">
-      <td>{{ rate.fromCurr }}</td>
-      <td>{{ rate.toCurr }}</td>
-      <td>{{ rate.rate }}</td>
-      <td>{{ rate.lastMod }}</td>
-      <td>
-        <button (click)="edit(rate)">Edit</button>
-        <button (click)="delete(rate)">Delete</button>
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-
----
-
-✅ exchange-rate.controller.java (Backend)
-
-@PutMapping("/{fromCurr}")
-public ExchangeRate update(@PathVariable String fromCurr, @RequestBody ExchangeRate rate) {
-    Optional<ExchangeRate> existing = repository.findById(fromCurr);
-
+    Optional<ExchangeRate> existing = exchangeRateRepository.findById(new ExchangeRateKey(fromCurr, toCurr));
     if (existing.isPresent()) {
-        ExchangeRate existingRate = existing.get();
-        existingRate.setFromCurr(rate.getFromCurr());
-        existingRate.setToCurr(rate.getToCurr());
-        existingRate.setRate(rate.getRate());
-        existingRate.setLastMod(rate.getLastMod());
-
-        if (!fromCurr.equals(rate.getFromCurr())) {
-            repository.deleteById(fromCurr); // Handle PK change
-        }
-
-        return repository.save(existingRate);
+        exchangeRateRepository.deleteById(new ExchangeRateKey(fromCurr, toCurr)); // Delete old
+        exchangeRateRepository.save(updatedRate); // Save new
+        return ResponseEntity.ok("Updated successfully");
     } else {
-        return repository.save(rate);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Rate not found");
     }
 }
+
+> Replace ExchangeRateKey with your actual composite key class or modify appropriately if you're using @Id fields.
+
+
 
 
 ---
 
-Let me know if you want:
+✅ Frontend Fixes
 
-Editing via popup dialog instead of inline form
+Ensure you:
 
-Better CSS styling to match a corporate theme
+Keep track of the original keys when editing (e.g. in a selectedOriginalFromCurr, selectedOriginalToCurr)
 
-Confirmation before delete
+Use those values in the PUT request URL.
 
 
-Ready to help!
+Example in exchange-rates.component.ts:
+
+this.http.put(`/api/exchange-rates/${originalFromCurr}/${originalToCurr}`, updatedObject)
+
+
+---
+
+✅ Summary
+
+You cannot directly change a PK in Hibernate — it will throw an error like you’re seeing.
+
+Solution is to delete the old record and re-save a new one.
+
+Adjust both your backend logic and frontend code accordingly.
+
+
+
+---
+
+Would you like me to give you updated backend controller and Angular component.ts code that reflects all these changes?
 
