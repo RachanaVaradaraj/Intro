@@ -1,8 +1,103 @@
-import { MatDialogModule, MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
+Based on your HTML and the image, the Cancel button is present in the DOM but not visible likely due to either:
+
+1. CSS hiding it
+
+
+2. *ngIf="editingId" is not truthy
+
+
+3. Layout constraints (e.g. display, margin, float, etc.)
+
+
+
+
+---
+
+✅ Fix 1: Make Sure editingId Is Set Properly
+
+Ensure editingId is assigned when editing starts. For example:
+
+editRate(rate: any) {
+  this.editingId = rate.id; // Make sure 'rate.id' exists and is assigned
+  this.form.patchValue(rate);
+}
+
+
+---
+
+✅ Fix 2: Adjust HTML Button Section
+
+Make sure both buttons are styled and inside a proper block layout:
+
+<div class="button-row">
+  <button type="submit">
+    {{ editingId ? 'Update' : 'Add' }}
+  </button>
+  <button type="button" (click)="cancelEdit()" *ngIf="editingId">
+    Cancel
+  </button>
+</div>
+
+
+---
+
+✅ Fix 3: Complete CSS to Display Buttons
+
+Add this to your exchange-rates.component.css or global styles.css:
+
+.button-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+button {
+  padding: 6px 12px;
+  font-size: 14px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button[type="button"] {
+  background-color: #f44336; /* Red cancel button */
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+
+---
+
+✅ Fix 4: Ensure editingId Has a Value
+
+In your .ts:
+
+cancelEdit() {
+  this.editingId = null;
+  this.form.reset();
+}
+
+
+---
+
+✅ Fix 5: Component Imports (if you're using Angular Material)
+
+Ensure these are in your app.module.ts or imported into your standalone component:
+
+import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
+
+
+---
+
+Would you like me to give you the updated .ts, .html, and .css files all together for clarity?
+
