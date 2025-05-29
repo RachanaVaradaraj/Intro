@@ -1,286 +1,231 @@
-Here is the complete working setup for both Spring Boot and Angular where:
+Thank you for the clarification. Since you're working only within the exchange-rate component (with no separate exchange-rate.service.ts), I'll now provide the complete working Angular code (TS, HTML, and CSS) using only 3 files (exchange-rate.component.ts, .html, and .css), where:
 
-All exchange rates are fetched and shown in a table.
+The table fetches and shows all exchange rate rows.
 
-Add popup includes:
+The Add popup fetches only fromCurr and toCurr column values from the backend and displays them as dropdowns.
 
-fromCurr and toCurr as dropdowns (fetched from DB),
-
-rate and lastMod fields as editable inputs.
-
+The popup includes fields for rate and lastMod.
 
 
 
 ---
 
-🛠 SPRING BOOT BACKEND
-
-1. ExchangeRate.java (Entity)
-
-package com.recon_connect.entity;
-
-import jakarta.persistence.*;
-import java.util.Date;
-
-@Entity
-@Table(name = "ExchangeRates_Rachana")
-public class ExchangeRate {
-
-    @Id
-    @Column(name = "FROMCURR")
-    private String fromCurr;
-
-    @Column(name = "TOCURR")
-    private String toCurr;
-
-    @Column(name = "RATE")
-    private Double rate;
-
-    @Column(name = "LASTMOD")
-    private Date lastMod;
-
-    // Getters and Setters
-}
-
-
----
-
-2. ExchangeRateRepository.java
-
-package com.recon_connect.repository;
-
-import com.recon_connect.entity.ExchangeRate;
-import org.springframework.data.jpa.repository.*;
-import org.springframework.stereotype.Repository;
-import java.util.List;
-
-@Repository
-public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, String> {
-
-    @Query("SELECT DISTINCT e.fromCurr FROM ExchangeRate e")
-    List<String> findDistinctFromCurr();
-
-    @Query("SELECT DISTINCT e.toCurr FROM ExchangeRate e")
-    List<String> findDistinctToCurr();
-}
-
-
----
-
-3. ExchangeRateController.java
-
-package com.recon_connect.controller;
-
-import com.recon_connect.entity.ExchangeRate;
-import com.recon_connect.repository.ExchangeRateRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.*;
-
-@RestController
-@RequestMapping("/api/exchange-rates")
-@CrossOrigin(origins = "*")
-public class ExchangeRateController {
-
-    @Autowired
-    private ExchangeRateRepository repo;
-
-    @GetMapping
-    public List<ExchangeRate> getAllRates() {
-        return repo.findAll();
-    }
-
-    @GetMapping("/from-currencies")
-    public List<String> getFromCurrencies() {
-        return repo.findDistinctFromCurr();
-    }
-
-    @GetMapping("/to-currencies")
-    public List<String> getToCurrencies() {
-        return repo.findDistinctToCurr();
-    }
-
-    @PostMapping
-    public ExchangeRate addExchangeRate(@RequestBody ExchangeRate rate) {
-        return repo.save(rate);
-    }
-}
-
-
----
-
-🧩 ANGULAR FRONTEND
-
-1. exchange-rate.service.ts
-
-import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-
-@Injectable({ providedIn: 'root' })
-export class ExchangeRateService {
-  private baseUrl = 'http://localhost:8080/api/exchange-rates';
-
-  constructor(private http: HttpClient) {}
-
-  getAllRates(): Observable<any[]> {
-    return this.http.get<any[]>(this.baseUrl);
-  }
-
-  getFromCurrencies(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.baseUrl}/from-currencies`);
-  }
-
-  getToCurrencies(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.baseUrl}/to-currencies`);
-  }
-
-  addRate(rate: any): Observable<any> {
-    return this.http.post<any>(this.baseUrl, rate);
-  }
-}
-
-
----
-
-2. exchange-rate.component.ts
+✅ exchange-rate.component.ts
 
 import { Component, OnInit } from '@angular/core';
-import { ExchangeRateService } from './exchange-rate.service';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-exchange-rate',
   templateUrl: './exchange-rate.component.html',
-  styleUrls: ['./exchange-rate.component.css'],
+  styleUrls: ['./exchange-rate.component.css']
 })
 export class ExchangeRateComponent implements OnInit {
   exchangeRates: any[] = [];
   fromCurrencies: string[] = [];
   toCurrencies: string[] = [];
+
   isPopupOpen = false;
 
-  formData: any = {
+  newExchangeRate = {
     fromCurr: '',
     toCurr: '',
     rate: null,
     lastMod: new Date()
   };
 
-  constructor(private service: ExchangeRateService) {}
+  constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
-    this.loadRates();
+    this.loadExchangeRates();
   }
 
-  loadRates(): void {
-    this.service.getAllRates().subscribe(data => this.exchangeRates = data);
+  loadExchangeRates(): void {
+    this.http.get<any[]>('http://localhost:8080/api/exchange-rates')
+      .subscribe(data => {
+        this.exchangeRates = data;
+      });
   }
 
   openAddPopup(): void {
-    this.formData = {
+    this.isPopupOpen = true;
+    this.newExchangeRate = {
       fromCurr: '',
       toCurr: '',
       rate: null,
       lastMod: new Date()
     };
 
-    this.service.getFromCurrencies().subscribe(data => this.fromCurrencies = data);
-    this.service.getToCurrencies().subscribe(data => this.toCurrencies = data);
-    this.isPopupOpen = true;
+    this.http.get<string[]>('http://localhost:8080/api/exchange-rates/from-currencies')
+      .subscribe(data => this.fromCurrencies = data);
+
+    this.http.get<string[]>('http://localhost:8080/api/exchange-rates/to-currencies')
+      .subscribe(data => this.toCurrencies = data);
   }
 
-  saveRate(): void {
-    this.service.addRate(this.formData).subscribe(() => {
-      this.loadRates();
-      this.isPopupOpen = false;
-    });
+  closePopup(): void {
+    this.isPopupOpen = false;
+  }
+
+  addExchangeRate(): void {
+    this.http.post('http://localhost:8080/api/exchange-rates', this.newExchangeRate)
+      .subscribe(() => {
+        this.closePopup();
+        this.loadExchangeRates();
+      });
   }
 }
 
 
 ---
 
-3. exchange-rate.component.html
+✅ exchange-rate.component.html
 
-<!-- Table -->
-<table mat-table [dataSource]="exchangeRates" class="mat-elevation-z8">
-  <ng-container matColumnDef="fromCurr">
-    <th mat-header-cell *matHeaderCellDef>From</th>
-    <td mat-cell *matCellDef="let el">{{ el.fromCurr }}</td>
-  </ng-container>
+<div class="container">
+  <h2>Exchange Rates</h2>
 
-  <ng-container matColumnDef="toCurr">
-    <th mat-header-cell *matHeaderCellDef>To</th>
-    <td mat-cell *matCellDef="let el">{{ el.toCurr }}</td>
-  </ng-container>
+  <table>
+    <thead>
+      <tr>
+        <th>From Currency</th>
+        <th>To Currency</th>
+        <th>Rate</th>
+        <th>Last Modified</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let rate of exchangeRates">
+        <td>{{ rate.fromCurr }}</td>
+        <td>{{ rate.toCurr }}</td>
+        <td>{{ rate.rate }}</td>
+        <td>{{ rate.lastMod | date:'yyyy-MM-dd' }}</td>
+      </tr>
+    </tbody>
+  </table>
 
-  <ng-container matColumnDef="rate">
-    <th mat-header-cell *matHeaderCellDef>Rate</th>
-    <td mat-cell *matCellDef="let el">{{ el.rate }}</td>
-  </ng-container>
+  <button (click)="openAddPopup()">Add</button>
 
-  <ng-container matColumnDef="lastMod">
-    <th mat-header-cell *matHeaderCellDef>Last Modified</th>
-    <td mat-cell *matCellDef="let el">{{ el.lastMod | date }}</td>
-  </ng-container>
+  <!-- Popup -->
+  <div class="popup" *ngIf="isPopupOpen">
+    <div class="popup-content">
+      <h3>Add Exchange Rate</h3>
 
-  <tr mat-header-row *matHeaderRowDef="['fromCurr', 'toCurr', 'rate', 'lastMod']"></tr>
-  <tr mat-row *matRowDef="let row; columns: ['fromCurr', 'toCurr', 'rate', 'lastMod'];"></tr>
-</table>
+      <label>From Currency:</label>
+      <select [(ngModel)]="newExchangeRate.fromCurr">
+        <option *ngFor="let curr of fromCurrencies" [value]="curr">{{ curr }}</option>
+      </select>
 
-<!-- Add Button -->
-<button mat-raised-button color="primary" (click)="openAddPopup()">Add Exchange Rate</button>
+      <label>To Currency:</label>
+      <select [(ngModel)]="newExchangeRate.toCurr">
+        <option *ngFor="let curr of toCurrencies" [value]="curr">{{ curr }}</option>
+      </select>
 
-<!-- Add Popup -->
-<div *ngIf="isPopupOpen" class="popup-form">
-  <mat-form-field appearance="fill">
-    <mat-label>From Currency</mat-label>
-    <mat-select [(value)]="formData.fromCurr">
-      <mat-option *ngFor="let curr of fromCurrencies" [value]="curr">{{ curr }}</mat-option>
-    </mat-select>
-  </mat-form-field>
+      <label>Rate:</label>
+      <input type="number" [(ngModel)]="newExchangeRate.rate" />
 
-  <mat-form-field appearance="fill">
-    <mat-label>To Currency</mat-label>
-    <mat-select [(value)]="formData.toCurr">
-      <mat-option *ngFor="let curr of toCurrencies" [value]="curr">{{ curr }}</mat-option>
-    </mat-select>
-  </mat-form-field>
+      <label>Last Modified:</label>
+      <input type="date" [(ngModel)]="newExchangeRate.lastMod" />
 
-  <mat-form-field appearance="fill">
-    <mat-label>Rate</mat-label>
-    <input matInput type="number" [(ngModel)]="formData.rate">
-  </mat-form-field>
-
-  <mat-form-field appearance="fill">
-    <mat-label>Last Modified</mat-label>
-    <input matInput [matDatepicker]="picker" [(ngModel)]="formData.lastMod">
-    <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-    <mat-datepicker #picker></mat-datepicker>
-  </mat-form-field>
-
-  <button mat-raised-button color="accent" (click)="saveRate()">Save</button>
+      <div class="actions">
+        <button (click)="addExchangeRate()">Save</button>
+        <button (click)="closePopup()">Cancel</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 
 ---
 
-✅ OPTIONAL: Add styling (popup-form class)
+✅ exchange-rate.component.css
 
-.popup-form {
-  background: #fff;
+.container {
   padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 15px;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: center;
+}
+
+button {
+  margin-top: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.popup-content {
+  background: #fff;
+  margin: 100px auto;
+  padding: 20px;
+  width: 400px;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.popup-content label {
+  display: block;
+  margin: 10px 0 5px;
+}
+
+.popup-content input,
+.popup-content select {
+  width: 100%;
+  padding: 6px;
+  margin-bottom: 10px;
+}
+
+.actions {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  max-width: 400px;
+  justify-content: space-between;
 }
 
 
 ---
 
-Let me know if you’d like the edit popup or filtering functionality next.
+✅ Required Angular Module Setup
+
+Ensure these modules are imported in your AppModule:
+
+import { FormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
+
+@NgModule({
+  imports: [
+    FormsModule,
+    HttpClientModule
+  ]
+})
+
+
+---
+
+Would you now like the matching Spring Boot code to provide the following endpoints?
+
+GET /api/exchange-rates → all exchange rate rows
+
+GET /api/exchange-rates/from-currencies → unique fromCurr
+
+GET /api/exchange-rates/to-currencies → unique toCurr
+
+POST /api/exchange-rates → add new row
+
+
+Let me know and I’ll provide that too.
 
