@@ -1,22 +1,39 @@
-Thank you for the clarification. Since you're working only within the exchange-rate component (with no separate exchange-rate.service.ts), I'll now provide the complete working Angular code (TS, HTML, and CSS) using only 3 files (exchange-rate.component.ts, .html, and .css), where:
+Here’s the complete Angular 17 standalone component code for your Exchange Rate feature. It does the following:
 
-The table fetches and shows all exchange rate rows.
+✅ Features:
 
-The Add popup fetches only fromCurr and toCurr column values from the backend and displays them as dropdowns.
+Displays all exchange rate rows in a table
 
-The popup includes fields for rate and lastMod.
+Opens a popup on “Add” with:
+
+fromCurr dropdown (fetched from DB)
+
+toCurr dropdown (fetched from DB)
+
+rate input
+
+lastMod date input
+
+
+No external service file used
+
+Written as a standalone Angular 17 component
 
 
 
 ---
 
-✅ exchange-rate.component.ts
+✅ exchange-rate.component.ts (Standalone)
 
 import { Component, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
 
 @Component({
   selector: 'app-exchange-rate',
+  standalone: true,
+  imports: [CommonModule, FormsModule, HttpClientModule],
   templateUrl: './exchange-rate.component.html',
   styleUrls: ['./exchange-rate.component.css']
 })
@@ -48,7 +65,6 @@ export class ExchangeRateComponent implements OnInit {
   }
 
   openAddPopup(): void {
-    this.isPopupOpen = true;
     this.newExchangeRate = {
       fromCurr: '',
       toCurr: '',
@@ -61,6 +77,8 @@ export class ExchangeRateComponent implements OnInit {
 
     this.http.get<string[]>('http://localhost:8080/api/exchange-rates/to-currencies')
       .subscribe(data => this.toCurrencies = data);
+
+    this.isPopupOpen = true;
   }
 
   closePopup(): void {
@@ -70,8 +88,8 @@ export class ExchangeRateComponent implements OnInit {
   addExchangeRate(): void {
     this.http.post('http://localhost:8080/api/exchange-rates', this.newExchangeRate)
       .subscribe(() => {
-        this.closePopup();
         this.loadExchangeRates();
+        this.closePopup();
       });
   }
 }
@@ -98,14 +116,14 @@ export class ExchangeRateComponent implements OnInit {
         <td>{{ rate.fromCurr }}</td>
         <td>{{ rate.toCurr }}</td>
         <td>{{ rate.rate }}</td>
-        <td>{{ rate.lastMod | date:'yyyy-MM-dd' }}</td>
+        <td>{{ rate.lastMod | date: 'yyyy-MM-dd' }}</td>
       </tr>
     </tbody>
   </table>
 
-  <button (click)="openAddPopup()">Add</button>
+  <button (click)="openAddPopup()">Add Exchange Rate</button>
 
-  <!-- Popup -->
+  <!-- Add Popup -->
   <div class="popup" *ngIf="isPopupOpen">
     <div class="popup-content">
       <h3>Add Exchange Rate</h3>
@@ -199,33 +217,18 @@ button {
 
 ---
 
-✅ Required Angular Module Setup
+✅ Backend API Assumptions
 
-Ensure these modules are imported in your AppModule:
+You need these Spring Boot API endpoints:
 
-import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
+GET /api/exchange-rates → return all rows
 
-@NgModule({
-  imports: [
-    FormsModule,
-    HttpClientModule
-  ]
-})
+GET /api/exchange-rates/from-currencies → return unique fromCurr
+
+GET /api/exchange-rates/to-currencies → return unique toCurr
+
+POST /api/exchange-rates → add new rate
 
 
----
-
-Would you now like the matching Spring Boot code to provide the following endpoints?
-
-GET /api/exchange-rates → all exchange rate rows
-
-GET /api/exchange-rates/from-currencies → unique fromCurr
-
-GET /api/exchange-rates/to-currencies → unique toCurr
-
-POST /api/exchange-rates → add new row
-
-
-Let me know and I’ll provide that too.
+Let me know if you need the Spring Boot code too — I’ll generate it for you right away.
 
