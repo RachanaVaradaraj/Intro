@@ -1,86 +1,200 @@
-Great! To update the Add Exchange Rate form with a searchable and sortable dropdown for selecting currencies (just like the one in your screenshot), you can use Angular Material's MatSelect with mat-select-search or integrate a custom dropdown like PrimeNG or ng-select with sorting and search built in.
+Great! Below is the complete working solution for your Angular 17 standalone component with the following features for the Add popup only:
 
-I'll show the solution using ng-select since it supports both search and custom sorting.
+✅ Searchable dropdown
+✅ Sort toggle (Ascending ↔ Descending)
+✅ Custom dropdown height with scroll
+✅ Search icon next to the dropdown (for From/To Currency)
 
 
 ---
 
-✅ Step-by-step Changes (Only for Add Section):
+✅ exchange-rate.component.ts
 
-1. Install ng-select:
-
-Run this in your Angular project:
-
-npm install @ng-select/ng-select
-``>
-
-Import the module in your `app.module.ts` (or standalone component):
-```ts
+import { Component, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { NgIf, NgFor } from '@angular/common';
 import { NgSelectModule } from '@ng-select/ng-select';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
 
-@NgModule({
+@Component({
+  selector: 'app-exchange-rate',
+  standalone: true,
   imports: [
-    // other modules...
-    NgSelectModule
-  ]
+    CommonModule,
+    FormsModule,
+    NgIf,
+    NgFor,
+    NgSelectModule,
+    MatDialogModule,
+    MatButtonModule
+  ],
+  templateUrl: './exchange-rate.component.html',
+  styleUrl: './exchange-rate.component.css'
 })
+export class ExchangeRateComponent implements OnInit {
+  currencyList: string[] = [];
+  isAscending: boolean = true;
 
-2. Replace the dropdowns in Add Form HTML:
+  newExchangeRate = {
+    fromCurr: '',
+    toCurr: '',
+    rate: 1,
+    lastMod: new Date().toISOString().split('T')[0]
+  };
 
-Update the From Currency and To Currency fields in the Add popup like this:
+  constructor(private http: HttpClient, public dialog: MatDialog) {}
+
+  ngOnInit(): void {
+    this.getCurrencyList();
+  }
+
+  getCurrencyList() {
+    this.http.get<string[]>('http://localhost:8080/currencies').subscribe(data => {
+      this.currencyList = data;
+    });
+  }
+
+  toggleSort() {
+    this.isAscending = !this.isAscending;
+  }
+
+  getSortedCurrencies(): string[] {
+    return [...this.currencyList].sort((a, b) =>
+      this.isAscending ? a.localeCompare(b) : b.localeCompare(a)
+    );
+  }
+
+  openSearch(field: 'from' | 'to') {
+    alert(`Search button clicked for ${field === 'from' ? 'From Currency' : 'To Currency'}`);
+    // You can replace this with a custom MatDialog if needed
+  }
+}
+
+
+---
+
+✅ exchange-rate.component.html (Add popup section)
+
+<h3>Add Exchange Rate</h3>
+
+<!-- SORT TOGGLE -->
+<div style="margin-bottom: 10px;">
+  <label style="margin-right: 10px;">Sort:</label>
+  <button type="button" (click)="toggleSort()">
+    {{ isAscending ? 'Sort Ascending ⬆' : 'Sort Descending ⬇' }}
+  </button>
+</div>
 
 <!-- FROM CURRENCY -->
-<label>From Currency</label>
-<ng-select
-  [items]="currencyList"
-  bindLabel=""
-  [(ngModel)]="newExchangeRate.fromCurr"
-  [searchable]="true"
-  [clearable]="true"
-  placeholder="Select currency"
-  [compareWith]="compareStrings"
-  [sortFn]="customSortFn">
-</ng-select>
+<div class="dropdown-field">
+  <label>From Currency</label>
+  <div class="dropdown-wrapper">
+    <ng-select
+      [items]="getSortedCurrencies()"
+      bindLabel=""
+      [(ngModel)]="newExchangeRate.fromCurr"
+      [searchable]="true"
+      [clearable]="true"
+      placeholder="Select From Currency"
+      [virtualScroll]="true"
+      [maxHeight]="'200px'">
+    </ng-select>
+    <button class="search-btn" (click)="openSearch('from')" type="button">🔍</button>
+  </div>
+</div>
 
 <!-- TO CURRENCY -->
-<label>To Currency</label>
-<ng-select
-  [items]="currencyList"
-  bindLabel=""
-  [(ngModel)]="newExchangeRate.toCurr"
-  [searchable]="true"
-  [clearable]="true"
-  placeholder="Select currency"
-  [compareWith]="compareStrings"
-  [sortFn]="customSortFn">
-</ng-select>
+<div class="dropdown-field">
+  <label>To Currency</label>
+  <div class="dropdown-wrapper">
+    <ng-select
+      [items]="getSortedCurrencies()"
+      bindLabel=""
+      [(ngModel)]="newExchangeRate.toCurr"
+      [searchable]="true"
+      [clearable]="true"
+      placeholder="Select To Currency"
+      [virtualScroll]="true"
+      [maxHeight]="'200px'">
+    </ng-select>
+    <button class="search-btn" (click)="openSearch('to')" type="button">🔍</button>
+  </div>
+</div>
 
-3. In your Component .ts:
+<!-- EXCHANGE RATE AND DATE -->
+<div>
+  <label>Exchange Rate</label>
+  <input type="number" [(ngModel)]="newExchangeRate.rate" step="0.01" />
+</div>
 
-Make sure you have a list of currencies populated:
+<div>
+  <label>Effective Date</label>
+  <input type="date" [(ngModel)]="newExchangeRate.lastMod" />
+</div>
 
-currencyList: string[] = [];
-
-ngOnInit() {
-  this.fetchCurrencies();
-}
-
-fetchCurrencies() {
-  this.http.get<string[]>('/api/currencies').subscribe(data => {
-    this.currencyList = data;
-  });
-}
-
-compareStrings(a: string, b: string): boolean {
-  return a?.toLowerCase() === b?.toLowerCase();
-}
-
-customSortFn = (a: string, b: string) => a.localeCompare(b); // optional: for sorting
+<!-- ACTION BUTTONS -->
+<div>
+  <button (click)="save()">Save</button>
+  <button (click)="cancel()">Cancel</button>
+</div>
 
 
 ---
 
-This will turn your currency inputs into searchable, sortable dropdowns (like your screenshot) without affecting the rest of the popup or the table.
+✅ exchange-rate.component.css
 
-Let me know if you're using a specific UI library (like PrimeNG or Material) and want this styled differently.
+.dropdown-field {
+  margin-bottom: 15px;
+}
+
+.dropdown-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+ng-select {
+  flex-grow: 1;
+}
+
+.search-btn {
+  margin-left: 6px;
+  padding: 6px 10px;
+  border: none;
+  background: #e0e0e0;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.search-btn:hover {
+  background-color: #c0c0c0;
+}
+
+
+---
+
+✅ Dependencies
+
+Make sure you have:
+
+npm install @ng-select/ng-select
+
+And NgSelectModule must be in imports of the standalone component (as shown above).
+
+
+---
+
+Let me know if you’d like:
+
+A custom search popup dialog
+
+The same dropdown behavior in the Edit popup
+
+Restricting currency values (e.g. from ≠ to)
+
+
+I'll help with that too.
 
