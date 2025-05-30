@@ -1,180 +1,46 @@
-Here’s a complete Angular 17 standalone component code for your Exchange Rate form and table:
+<div>
+  <form [formGroup]="form" (ngSubmit)="saveRate()">
+    <label>From Currency:</label>
+    <select formControlName="fromCurr" [disabled]="editingId !== null">
+      <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
+    </select>
 
-✅ It includes:
+    <label>To Currency:</label>
+    <select formControlName="toCurr" [disabled]="editingId !== null">
+      <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
+    </select>
 
-Editable Rate field only.
+    <label>Rate:</label>
+    <input formControlName="rate" placeholder="Rate" type="number" />
 
-Disabled From/To currencies during edit.
+    <label>Last Modified:</label>
+    <input formControlName="lastMod" placeholder="YYYY-MM-DD" type="date" [readonly]="editingId !== null" />
 
-Readonly Last Modified field during edit.
+    <button type="submit">{{ editingId ? 'Update' : 'Add' }}</button>
+    <button type="button" (click)="cancelEdit()">Cancel</button>
+  </form>
 
-Add section with both Add and Cancel buttons.
-
-Clean styling and working edit, delete, and cancel logic.
-
-
-
----
-
-✅ exchange-rate.component.ts
-
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-
-@Component({
-  selector: 'app-exchange-rate',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MatButtonModule, MatInputModule, MatSelectModule],
-  templateUrl: './exchange-rate.component.html',
-  styleUrls: ['./exchange-rate.component.css'],
-})
-export class ExchangeRateComponent {
-  form: FormGroup;
-  currencies: string[] = ['USD', 'EUR', 'INR', 'GBP'];
-  rates: any[] = [];
-  editingId: number | null = null;
-
-  constructor(private fb: FormBuilder) {
-    this.form = this.fb.group({
-      fromCurr: [''],
-      toCurr: [''],
-      rate: [''],
-      lastMod: ['']
-    });
-  }
-
-  saveRate() {
-    const newRate = this.form.value;
-
-    if (this.editingId !== null) {
-      // Update
-      const index = this.rates.findIndex(r => r.id === this.editingId);
-      if (index !== -1) {
-        this.rates[index].rate = newRate.rate;
-        this.rates[index].lastMod = newRate.lastMod;
-      }
-      this.editingId = null;
-    } else {
-      // Add
-      const id = new Date().getTime();
-      this.rates.push({ id, ...newRate });
-    }
-
-    this.form.reset();
-  }
-
-  editRate(rate: any) {
-    this.editingId = rate.id;
-    this.form.setValue({
-      fromCurr: rate.fromCurr,
-      toCurr: rate.toCurr,
-      rate: rate.rate,
-      lastMod: rate.lastMod
-    });
-  }
-
-  deleteRate(id: number) {
-    this.rates = this.rates.filter(r => r.id !== id);
-    this.cancelEdit(); // cancel if you're deleting the one being edited
-  }
-
-  cancelEdit() {
-    this.editingId = null;
-    this.form.reset();
-  }
-}
-
-
----
-
-✅ exchange-rate.component.html
-
-<h2>Exchange Rates</h2>
-
-<form [formGroup]="form" (ngSubmit)="saveRate()">
-  <label>From Currency:</label>
-  <select formControlName="fromCurr" [disabled]="editingId !== null">
-    <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
-  </select>
-
-  <label>To Currency:</label>
-  <select formControlName="toCurr" [disabled]="editingId !== null">
-    <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
-  </select>
-
-  <label>Rate:</label>
-  <input formControlName="rate" placeholder="Rate" type="number" />
-
-  <label>Last Modified:</label>
-  <input formControlName="lastMod" placeholder="YYYY-MM-DD" type="date" [readonly]="editingId !== null" />
-
-  <button type="submit">{{ editingId ? 'Update' : 'Add' }}</button>
-  <button type="button" (click)="cancelEdit()">Cancel</button>
-</form>
-
-<br />
-
-<table>
-  <thead>
-    <tr>
-      <th>From</th>
-      <th>To</th>
-      <th>Rate</th>
-      <th>Last Modified</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let rate of rates">
-      <td>{{ rate.fromCurr }}</td>
-      <td>{{ rate.toCurr }}</td>
-      <td>{{ rate.rate }}</td>
-      <td>{{ rate.lastMod }}</td>
-      <td>
-        <button (click)="editRate(rate)">Edit</button>
-        <button (click)="deleteRate(rate.id)">Delete</button>
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-
----
-
-✅ exchange-rate.component.css (Optional Styling)
-
-form {
-  display: flex;
-  flex-direction: column;
-  max-width: 400px;
-  margin-bottom: 20px;
-}
-label {
-  margin-top: 10px;
-}
-input, select {
-  padding: 6px;
-  font-size: 14px;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-th, td {
-  padding: 8px;
-  border: 1px solid #ccc;
-  text-align: left;
-}
-button {
-  margin-right: 5px;
-}
-
-
----
-
-Let me know if you also want this as a popup modal (MatDialog) or if you'd like to hook this up to your Spring Boot backend.
-
+  <table>
+    <thead>
+      <tr>
+        <th>From</th>
+        <th>To</th>
+        <th>Rate</th>
+        <th>Last Modified</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let rate of rates">
+        <td>{{ rate.fromCurr }}</td>
+        <td>{{ rate.toCurr }}</td>
+        <td>{{ rate.rate }}</td>
+        <td>{{ rate.lastMod }}</td>
+        <td>
+          <button (click)="editRate(rate)">Edit</button>
+          <button (click)="deleteRate(rate.id)">Delete</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
