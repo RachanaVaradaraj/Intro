@@ -1,211 +1,102 @@
-Sure! Here's the complete Angular 17 standalone component code with the fixed dropdown opening functionality using MatAutocompleteTrigger. This includes:
-
-exchange-rates.component.ts
-
-exchange-rates.component.html
-
-Corrections for the openPanel() issue
-
+To make the dropdowns (fromCurr and toCurr) searchable and sortable in your Angular 17 popup, you can enhance the existing mat-select dropdowns using Angular Material features along with filtering logic.
 
 
 ---
 
-✅ exchange-rates.component.ts
+✅ Step-by-Step Enhancement
 
-import { Component, OnInit, AfterViewInit, ViewChild } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
+1. Update HTML (exchange-rate.component.html)
 
-@Component({
-  selector: 'app-exchange-rates',
-  standalone: true,
-  templateUrl: './exchange-rates.component.html',
-  styleUrls: ['./exchange-rates.component.css'],
-})
-export class ExchangeRatesComponent implements OnInit, AfterViewInit {
-  form: FormGroup;
-  rates: any[] = [];
-  editingId: number | null = null;
-  currencies: string[] = [];
-  filteredCurrencies: string[] = [];
+Modify your dropdowns to include a search input inside the panel using mat-option and implement sorting:
 
-  @ViewChild('fromCurrInput', { read: MatAutocompleteTrigger }) fromCurrTrigger!: MatAutocompleteTrigger;
-  @ViewChild('toCurrInput', { read: MatAutocompleteTrigger }) toCurrTrigger!: MatAutocompleteTrigger;
+<!-- FROM Currency Dropdown -->
+<mat-form-field appearance="fill" class="full-width">
+  <mat-label>From Currency</mat-label>
+  <mat-select [(ngModel)]="popupData.fromCurr" panelClass="select-panel">
+    <mat-option>
+      <input matInput placeholder="Search..." [(ngModel)]="fromCurrFilter" (click)="$event.stopPropagation()" />
+    </mat-option>
+    <mat-option *ngFor="let currency of filteredFromCurrOptions" [value]="currency">
+      {{ currency }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>
 
-  constructor(private http: HttpClient, private fb: FormBuilder) {
-    this.form = this.fb.group({
-      fromCurr: ['', Validators.required],
-      toCurr: ['', Validators.required],
-      rate: ['', Validators.required],
-      lastMod: ['', Validators.required]
-    });
-  }
+<!-- TO Currency Dropdown -->
+<mat-form-field appearance="fill" class="full-width">
+  <mat-label>To Currency</mat-label>
+  <mat-select [(ngModel)]="popupData.toCurr" panelClass="select-panel">
+    <mat-option>
+      <input matInput placeholder="Search..." [(ngModel)]="toCurrFilter" (click)="$event.stopPropagation()" />
+    </mat-option>
+    <mat-option *ngFor="let currency of filteredToCurrOptions" [value]="currency">
+      {{ currency }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>
 
-  ngOnInit() {
-    this.getRates();
-    this.getCurrencies();
-  }
 
-  ngAfterViewInit() {
-    // Any logic needed post view init
-  }
+---
 
-  getRates() {
-    this.http.get<any[]>('http://localhost:8080/api/exchange-rates')
-      .subscribe(data => {
-        this.rates = data;
-      });
-  }
+2. Update Component TS (exchange-rate.component.ts)
 
-  getCurrencies() {
-    this.http.get<string[]>('http://localhost:8080/api/exchange-rates/currencies')
-      .subscribe(data => {
-        this.currencies = data;
-        this.filteredCurrencies = data;
-      });
-  }
+Add filtering and sorting logic:
 
-  filterCurrencies(event: Event) {
-    const value = (event.target as HTMLInputElement).value;
-    this.filteredCurrencies = this.currencies.filter(curr =>
-      curr.toLowerCase().includes(value.toLowerCase())
-    );
-  }
+fromCurrOptions: string[] = [];
+toCurrOptions: string[] = [];
+fromCurrFilter: string = '';
+toCurrFilter: string = [];
 
-  saveRate() {
-    if (this.editingId !== null) {
-      this.http.put(`http://localhost:8080/api/exchange-rates/${this.editingId}`, this.form.value)
-        .subscribe(() => {
-          this.getRates();
-          this.cancelEdit();
-        });
-    } else {
-      this.http.post('http://localhost:8080/api/exchange-rates', this.form.value)
-        .subscribe(() => {
-          this.getRates();
-          this.form.reset();
-        });
-    }
-  }
+get filteredFromCurrOptions(): string[] {
+  return this.fromCurrOptions
+    .filter(curr => curr.toLowerCase().includes(this.fromCurrFilter.toLowerCase()))
+    .sort();
+}
 
-  editRate(rate: any) {
-    this.editingId = rate.id;
-    this.form.setValue({
-      fromCurr: rate.fromCurr,
-      toCurr: rate.toCurr,
-      rate: rate.rate,
-      lastMod: rate.lastMod
-    });
-  }
+get filteredToCurrOptions(): string[] {
+  return this.toCurrOptions
+    .filter(curr => curr.toLowerCase().includes(this.toCurrFilter.toLowerCase()))
+    .sort();
+}
 
-  cancelEdit() {
-    this.editingId = null;
-    this.form.reset();
-  }
+Also, ensure you update fromCurrOptions and toCurrOptions after fetching them from the service:
 
-  deleteRate(id: number) {
-    this.http.delete(`http://localhost:8080/api/exchange-rates/${id}`)
-      .subscribe(() => this.getRates());
-  }
+this.exchangeRateService.getFromCurrencies().subscribe((data: string[]) => {
+  this.fromCurrOptions = data;
+});
+this.exchangeRateService.getToCurrencies().subscribe((data: string[]) => {
+  this.toCurrOptions = data;
+});
 
-  openFromCurrencyDropdown() {
-    if (this.form.valid && this.fromCurrTrigger) {
-      this.fromCurrTrigger.openPanel();
-    }
-  }
 
-  openToCurrencyDropdown() {
-    if (this.form.valid && this.toCurrTrigger) {
-      this.toCurrTrigger.openPanel();
-    }
-  }
+---
+
+3. Optional: CSS Styling (exchange-rate.component.css)
+
+Style the input inside the dropdown panel:
+
+.select-panel input {
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
 }
 
 
 ---
 
-✅ exchange-rates.component.html
+🧪 Result
 
-<form [formGroup]="form" (ngSubmit)="saveRate()">
-  <mat-form-field>
-    <input matInput
-           #fromCurrInput
-           placeholder="From Currency"
-           formControlName="fromCurr"
-           [matAutocomplete]="fromCurrAuto"
-           (input)="filterCurrencies($event)" />
-    <button mat-icon-button matSuffix (click)="openFromCurrencyDropdown()" type="button">
-      <mat-icon>search</mat-icon>
-    </button>
-    <mat-autocomplete #fromCurrAuto="matAutocomplete">
-      <mat-option *ngFor="let currency of filteredCurrencies" [value]="currency">
-        {{ currency }}
-      </mat-option>
-    </mat-autocomplete>
-  </mat-form-field>
+You’ll now have:
 
-  <mat-form-field>
-    <input matInput
-           #toCurrInput
-           placeholder="To Currency"
-           formControlName="toCurr"
-           [matAutocomplete]="toCurrAuto"
-           (input)="filterCurrencies($event)" />
-    <button mat-icon-button matSuffix (click)="openToCurrencyDropdown()" type="button">
-      <mat-icon>search</mat-icon>
-    </button>
-    <mat-autocomplete #toCurrAuto="matAutocomplete">
-      <mat-option *ngFor="let currency of filteredCurrencies" [value]="currency">
-        {{ currency }}
-      </mat-option>
-    </mat-autocomplete>
-  </mat-form-field>
+A searchable input box at the top of each dropdown.
 
-  <mat-form-field>
-    <input matInput placeholder="Rate" formControlName="rate" type="number" />
-  </mat-form-field>
+Dropdown options that are filtered as you type.
 
-  <mat-form-field>
-    <input matInput placeholder="Last Modified" formControlName="lastMod" type="date" />
-  </mat-form-field>
+Currency values that are sorted alphabetically.
 
-  <button mat-raised-button color="primary" type="submit">
-    {{ editingId ? 'Update' : 'Add' }} Exchange Rate
-  </button>
-  <button *ngIf="editingId" mat-button (click)="cancelEdit()" type="button">Cancel</button>
-</form>
-
-<table mat-table [dataSource]="rates" class="mat-elevation-z8">
-  <!-- Columns here -->
-</table>
 
 
 ---
 
-🧩 Required Imports in app.config.ts or module
-
-Ensure you've imported and included:
-
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-
-export const appConfig = {
-  // ... other config
-  standaloneComponents: [
-    MatFormFieldModule,
-    MatInputModule,
-    MatAutocompleteModule,
-    MatIconModule,
-    MatButtonModule,
-  ]
-};
-
-
----
-
-Let me know if you'd like this integrated with your Spring Boot backend or want a zip file of the complete Angular component.
+Would you like me to update your uploaded files and send them back with these changes applied?
 
