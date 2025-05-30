@@ -1,143 +1,86 @@
-Thanks for your patience. Let's be absolutely clear:
+Great! To update the Add Exchange Rate form with a searchable and sortable dropdown for selecting currencies (just like the one in your screenshot), you can use Angular Material's MatSelect with mat-select-search or integrate a custom dropdown like PrimeNG or ng-select with sorting and search built in.
+
+I'll show the solution using ng-select since it supports both search and custom sorting.
 
 
 ---
 
-✅ Your requirements:
+✅ Step-by-step Changes (Only for Add Section):
 
-❗ Do not change any logic or behavior — especially around dropdowns, form fields, or data flow.
+1. Install ng-select:
 
-✅ Only make the form visually look like a popup.
+Run this in your Angular project:
 
-✅ Must still work the same way as before — same formGroup, same bindings, same methods like saveRate(), editRate(), cancelEdit().
+npm install @ng-select/ng-select
+``>
 
+Import the module in your `app.module.ts` (or standalone component):
+```ts
+import { NgSelectModule } from '@ng-select/ng-select';
 
+@NgModule({
+  imports: [
+    // other modules...
+    NgSelectModule
+  ]
+})
 
----
+2. Replace the dropdowns in Add Form HTML:
 
-✅ Correct Minimal Visual-Only Popup Conversion
+Update the From Currency and To Currency fields in the Add popup like this:
 
-You only need to:
+<!-- FROM CURRENCY -->
+<label>From Currency</label>
+<ng-select
+  [items]="currencyList"
+  bindLabel=""
+  [(ngModel)]="newExchangeRate.fromCurr"
+  [searchable]="true"
+  [clearable]="true"
+  placeholder="Select currency"
+  [compareWith]="compareStrings"
+  [sortFn]="customSortFn">
+</ng-select>
 
-1. Wrap your existing form in a div with popup styles.
+<!-- TO CURRENCY -->
+<label>To Currency</label>
+<ng-select
+  [items]="currencyList"
+  bindLabel=""
+  [(ngModel)]="newExchangeRate.toCurr"
+  [searchable]="true"
+  [clearable]="true"
+  placeholder="Select currency"
+  [compareWith]="compareStrings"
+  [sortFn]="customSortFn">
+</ng-select>
 
+3. In your Component .ts:
 
-2. Show/hide that wrapper based on a flag (showForm: boolean).
+Make sure you have a list of currencies populated:
 
+currencyList: string[] = [];
 
-3. Apply popup-style CSS only to the container, not the logic.
-
-
-
-
----
-
-✅ Your current exchange-rates.component.html (Minimal Visual Popup Only)
-
-Update only the form wrapper and styles like this:
-
-<!-- Add Button -->
-<button mat-raised-button color="primary" (click)="onAdd()">Add</button>
-
-<!-- Form shown only when showForm is true -->
-<div class="popup-container" *ngIf="showForm">
-  <form [formGroup]="form" (ngSubmit)="saveRate()" class="popup-form">
-    <label>From Currency:</label>
-    <select formControlName="fromCurr">
-      <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
-    </select>
-
-    <label>To Currency:</label>
-    <select formControlName="toCurr">
-      <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
-    </select>
-
-    <label>Rate:</label>
-    <input type="number" formControlName="rate" />
-
-    <label>Last Modified:</label>
-    <input type="date" formControlName="lastMod" />
-
-    <div class="popup-buttons">
-      <button type="submit">{{ editingIndex === null ? 'Add' : 'Update' }}</button>
-      <button type="button" (click)="cancelEdit()">Cancel</button>
-    </div>
-  </form>
-</div>
-
-
----
-
-✅ Add to exchange-rates.component.ts
-
-Only add this:
-
-showForm: boolean = false;
-
-onAdd(): void {
-  this.form.reset();
-  this.editingIndex = null;
-  this.showForm = true;
+ngOnInit() {
+  this.fetchCurrencies();
 }
 
-cancelEdit(): void {
-  this.form.reset();
-  this.editingIndex = null;
-  this.showForm = false;
+fetchCurrencies() {
+  this.http.get<string[]>('/api/currencies').subscribe(data => {
+    this.currencyList = data;
+  });
 }
 
-(If editingIndex is already part of your code, no change needed. Use editingId or editingIndex — keep your variable.)
+compareStrings(a: string, b: string): boolean {
+  return a?.toLowerCase() === b?.toLowerCase();
+}
+
+customSortFn = (a: string, b: string) => a.localeCompare(b); // optional: for sorting
 
 
 ---
 
-✅ CSS (exchange-rates.component.css)
+This will turn your currency inputs into searchable, sortable dropdowns (like your screenshot) without affecting the rest of the popup or the table.
 
-This is only visual styling, no logic change:
-
-.popup-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.popup-form {
-  background: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  width: 400px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.3);
-}
-
-.popup-buttons {
-  margin-top: 10px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-
----
-
-✅ Summary
-
-✅ Requirement	✅ Met?
-
-Logic unchanged	✔️
-FormGroup intact	✔️
-Works with your dropdowns	✔️
-Form now looks like popup	✔️
-
-
-
----
-
-If you’d like, I can now apply this visual-only change to your uploaded code files and return them to you as a .zip. Just say the word.
+Let me know if you're using a specific UI library (like PrimeNG or Material) and want this styled differently.
 
