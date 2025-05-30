@@ -1,102 +1,184 @@
-To make the dropdowns (fromCurr and toCurr) searchable and sortable in your Angular 17 popup, you can enhance the existing mat-select dropdowns using Angular Material features along with filtering logic.
+Thanks for the clarification!
 
+Since you're not using a separate Angular service and want the dropdowns to fetch data directly in the component, here's the complete updated Angular 17 standalone component code with:
 
----
+Searchable & sortable dropdowns
 
-✅ Step-by-Step Enhancement
+Popup form
 
-1. Update HTML (exchange-rate.component.html)
+No external service usage
 
-Modify your dropdowns to include a search input inside the panel using mat-option and implement sorting:
+API calls directly in the component
 
-<!-- FROM Currency Dropdown -->
-<mat-form-field appearance="fill" class="full-width">
-  <mat-label>From Currency</mat-label>
-  <mat-select [(ngModel)]="popupData.fromCurr" panelClass="select-panel">
-    <mat-option>
-      <input matInput placeholder="Search..." [(ngModel)]="fromCurrFilter" (click)="$event.stopPropagation()" />
-    </mat-option>
-    <mat-option *ngFor="let currency of filteredFromCurrOptions" [value]="currency">
-      {{ currency }}
-    </mat-option>
-  </mat-select>
-</mat-form-field>
-
-<!-- TO Currency Dropdown -->
-<mat-form-field appearance="fill" class="full-width">
-  <mat-label>To Currency</mat-label>
-  <mat-select [(ngModel)]="popupData.toCurr" panelClass="select-panel">
-    <mat-option>
-      <input matInput placeholder="Search..." [(ngModel)]="toCurrFilter" (click)="$event.stopPropagation()" />
-    </mat-option>
-    <mat-option *ngFor="let currency of filteredToCurrOptions" [value]="currency">
-      {{ currency }}
-    </mat-option>
-  </mat-select>
-</mat-form-field>
 
 
 ---
 
-2. Update Component TS (exchange-rate.component.ts)
+✅ exchange-rate.component.ts
 
-Add filtering and sorting logic:
+import { Component, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { CommonModule } from '@angular/common';
 
-fromCurrOptions: string[] = [];
-toCurrOptions: string[] = [];
-fromCurrFilter: string = '';
-toCurrFilter: string = [];
+@Component({
+  selector: 'app-exchange-rate',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatInputModule,
+    MatButtonModule,
+    MatDatepickerModule,
+    MatNativeDateModule
+  ],
+  templateUrl: './exchange-rate.component.html',
+  styleUrls: ['./exchange-rate.component.css']
+})
+export class ExchangeRateComponent implements OnInit {
+  fromCurrOptions: string[] = [];
+  toCurrOptions: string[] = [];
 
-get filteredFromCurrOptions(): string[] {
-  return this.fromCurrOptions
-    .filter(curr => curr.toLowerCase().includes(this.fromCurrFilter.toLowerCase()))
-    .sort();
+  fromCurrFilter = '';
+  toCurrFilter = '';
+
+  popupData = {
+    fromCurr: '',
+    toCurr: '',
+    rate: null,
+    lastMod: null
+  };
+
+  constructor(private http: HttpClient) {}
+
+  ngOnInit(): void {
+    this.loadCurrencies();
+  }
+
+  loadCurrencies(): void {
+    this.http.get<string[]>('http://localhost:8080/api/exchange-rates/from-currencies')
+      .subscribe(data => this.fromCurrOptions = data);
+
+    this.http.get<string[]>('http://localhost:8080/api/exchange-rates/to-currencies')
+      .subscribe(data => this.toCurrOptions = data);
+  }
+
+  get filteredFromCurrOptions(): string[] {
+    return this.fromCurrOptions
+      .filter(curr => curr.toLowerCase().includes(this.fromCurrFilter.toLowerCase()))
+      .sort();
+  }
+
+  get filteredToCurrOptions(): string[] {
+    return this.toCurrOptions
+      .filter(curr => curr.toLowerCase().includes(this.toCurrFilter.toLowerCase()))
+      .sort();
+  }
+
+  saveData(): void {
+    console.log('Saving:', this.popupData);
+    // Add actual save logic here
+  }
 }
 
-get filteredToCurrOptions(): string[] {
-  return this.toCurrOptions
-    .filter(curr => curr.toLowerCase().includes(this.toCurrFilter.toLowerCase()))
-    .sort();
-}
 
-Also, ensure you update fromCurrOptions and toCurrOptions after fetching them from the service:
+---
 
-this.exchangeRateService.getFromCurrencies().subscribe((data: string[]) => {
-  this.fromCurrOptions = data;
-});
-this.exchangeRateService.getToCurrencies().subscribe((data: string[]) => {
-  this.toCurrOptions = data;
-});
+✅ exchange-rate.component.html
+
+<div class="popup-form">
+  <form (ngSubmit)="saveData()">
+    <!-- From Currency -->
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>From Currency</mat-label>
+      <mat-select [(ngModel)]="popupData.fromCurr" name="fromCurr" panelClass="select-panel">
+        <mat-option>
+          <input
+            matInput
+            placeholder="Search..."
+            [(ngModel)]="fromCurrFilter"
+            (click)="$event.stopPropagation()"
+            name="fromCurrSearch"
+          />
+        </mat-option>
+        <mat-option *ngFor="let curr of filteredFromCurrOptions" [value]="curr">
+          {{ curr }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <!-- To Currency -->
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>To Currency</mat-label>
+      <mat-select [(ngModel)]="popupData.toCurr" name="toCurr" panelClass="select-panel">
+        <mat-option>
+          <input
+            matInput
+            placeholder="Search..."
+            [(ngModel)]="toCurrFilter"
+            (click)="$event.stopPropagation()"
+            name="toCurrSearch"
+          />
+        </mat-option>
+        <mat-option *ngFor="let curr of filteredToCurrOptions" [value]="curr">
+          {{ curr }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <!-- Rate -->
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>Rate</mat-label>
+      <input matInput type="number" [(ngModel)]="popupData.rate" name="rate" />
+    </mat-form-field>
+
+    <!-- Effective Date -->
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>Effective Date</mat-label>
+      <input matInput [matDatepicker]="picker" [(ngModel)]="popupData.lastMod" name="lastMod" />
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" type="submit">Save</button>
+  </form>
+</div>
 
 
 ---
 
-3. Optional: CSS Styling (exchange-rate.component.css)
+✅ exchange-rate.component.css
 
-Style the input inside the dropdown panel:
+.full-width {
+  width: 100%;
+  margin-bottom: 16px;
+}
 
 .select-panel input {
   width: 100%;
   padding: 8px;
   box-sizing: border-box;
+  border: none;
+  outline: none;
+}
+
+.popup-form {
+  padding: 16px;
+  max-width: 400px;
 }
 
 
 ---
 
-🧪 Result
-
-You’ll now have:
-
-A searchable input box at the top of each dropdown.
-
-Dropdown options that are filtered as you type.
-
-Currency values that are sorted alphabetically.
-
-
-
----
-
-Would you like me to update your uploaded files and send them back with these changes applied?
+Would you like me to edit and return your uploaded files (exchange-rate.component.ts, .html, and .css) with this implementation included?
 
