@@ -1,46 +1,53 @@
-<div>
-  <form [formGroup]="form" (ngSubmit)="saveRate()">
-    <label>From Currency:</label>
-    <select formControlName="fromCurr" [disabled]="editingId !== null">
-      <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
-    </select>
+Thanks for checking — and you're right to call it out. Here's the correct and working solution to make the fields truly read-only or disabled when editing in Angular forms.
 
-    <label>To Currency:</label>
-    <select formControlName="toCurr" [disabled]="editingId !== null">
-      <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
-    </select>
 
-    <label>Rate:</label>
-    <input formControlName="rate" placeholder="Rate" type="number" />
+---
 
-    <label>Last Modified:</label>
-    <input formControlName="lastMod" placeholder="YYYY-MM-DD" type="date" [readonly]="editingId !== null" />
+✅ Complete HTML Code with Fixes
 
-    <button type="submit">{{ editingId ? 'Update' : 'Add' }}</button>
-    <button type="button" (click)="cancelEdit()">Cancel</button>
-  </form>
+Update your form in exchange-rates.component.html like this:
 
-  <table>
-    <thead>
-      <tr>
-        <th>From</th>
-        <th>To</th>
-        <th>Rate</th>
-        <th>Last Modified</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let rate of rates">
-        <td>{{ rate.fromCurr }}</td>
-        <td>{{ rate.toCurr }}</td>
-        <td>{{ rate.rate }}</td>
-        <td>{{ rate.lastMod }}</td>
-        <td>
-          <button (click)="editRate(rate)">Edit</button>
-          <button (click)="deleteRate(rate.id)">Delete</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+<form [formGroup]="form" (ngSubmit)="saveRate()">
+
+  <!-- From Currency -->
+  <label>From Currency:</label>
+  <select formControlName="fromCurr" [attr.disabled]="editingId !== null ? true : null">
+    <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
+  </select>
+
+  <!-- To Currency -->
+  <label>To Currency:</label>
+  <select formControlName="toCurr" [attr.disabled]="editingId !== null ? true : null">
+    <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
+  </select>
+
+  <!-- Rate -->
+  <label>Rate:</label>
+  <input formControlName="rate" placeholder="Rate" type="number" />
+
+  <!-- Last Modified -->
+  <label>Last Modified:</label>
+  <input formControlName="lastMod" type="date" placeholder="YYYY-MM-DD" [attr.readonly]="editingId !== null ? true : null" />
+
+  <!-- Save/Update Button -->
+  <button type="submit">{{ editingId ? 'Update' : 'Add' }}</button>
+
+  <!-- Cancel Button -->
+  <button type="button" (click)="cancelEdit()">Cancel</button>
+</form>
+
+
+---
+
+🔧 Key Fix
+
+Use [attr.disabled] and [attr.readonly] instead of [disabled] or [readonly]. This is because disabled is a boolean attribute, and Angular needs null to not apply it at all when in Add mode.
+
+This correctly disables or makes read-only the relevant inputs only when editing.
+
+
+
+---
+
+Let me know if you want these fields to also visually look grayed out (via CSS) or switch to static <span> for read-only appearance.
+
