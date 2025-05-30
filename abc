@@ -1,248 +1,86 @@
-Thanks for uploading the files. I’ve reviewed them, and as per your request, I’ll convert the Add and Edit sections into popup dialogs using MatDialog, while keeping all functionality and styling the same.
+Thanks for the clarification and the uploads.
 
-Here’s the updated implementation for your Angular 17 standalone exchange-rate component, using an inline popup form inside the same component.
+✅ Based on your screenshots and the requirement:
 
+You want to preserve the current dropdowns, edit functionality, and form logic.
 
----
+You only want to add a popup (MatDialog) for the Add/Edit form — using your existing form and logic.
 
-✅ exchange-rate.component.ts
-
-Updates:
-
-Uses MatDialog to open a popup for both Add and Edit actions.
-
-Popup content is defined in the same file using a dialog template reference.
-
-
-import { Component, ViewChild, TemplateRef, Inject } from '@angular/core';
-import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTableModule } from '@angular/material/table';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatSelectModule } from '@angular/material/select';
-
-@Component({
-  selector: 'app-exchange-rate',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatIconModule,
-    MatTableModule,
-    MatButtonModule,
-    MatSelectModule,
-    MatDialogModule,
-  ],
-  templateUrl: './exchange-rate.component.html',
-  styleUrl: './exchange-rate.component.css'
-})
-export class ExchangeRateComponent {
-  @ViewChild('popupTemplate') popupTemplate!: TemplateRef<any>;
-  dialogRef: MatDialogRef<any> | null = null;
-
-  exchangeRates: any[] = [
-    { fromCurr: 'USD', toCurr: 'INR', rate: 83.2, lastMod: new Date() },
-    { fromCurr: 'EUR', toCurr: 'USD', rate: 1.07, lastMod: new Date() },
-  ];
-
-  form: FormGroup;
-  isEdit = false;
-  editIndex: number | null = null;
-
-  constructor(private fb: FormBuilder, private dialog: MatDialog) {
-    this.form = this.fb.group({
-      fromCurr: ['', Validators.required],
-      toCurr: ['', Validators.required],
-      rate: [null, Validators.required],
-      lastMod: [null, Validators.required]
-    });
-  }
-
-  openPopup(edit = false, index: number | null = null) {
-    this.isEdit = edit;
-    this.editIndex = index;
-
-    if (edit && index !== null) {
-      const rate = this.exchangeRates[index];
-      this.form.setValue({
-        fromCurr: rate.fromCurr,
-        toCurr: rate.toCurr,
-        rate: rate.rate,
-        lastMod: new Date(rate.lastMod)
-      });
-    } else {
-      this.form.reset();
-    }
-
-    this.dialogRef = this.dialog.open(this.popupTemplate, {
-      width: '400px'
-    });
-  }
-
-  closePopup() {
-    this.dialogRef?.close();
-  }
-
-  onSubmit() {
-    if (this.form.invalid) return;
-
-    const newRate = this.form.value;
-
-    if (this.isEdit && this.editIndex !== null) {
-      this.exchangeRates[this.editIndex] = newRate;
-    } else {
-      this.exchangeRates.push(newRate);
-    }
-
-    this.closePopup();
-  }
-
-  deleteRate(index: number) {
-    this.exchangeRates.splice(index, 1);
-  }
-}
-
-
----
-
-✅ exchange-rate.component.html
-
-<div class="container">
-  <h2>Exchange Rate Management</h2>
-  <button mat-raised-button color="primary" (click)="openPopup()">Add</button>
-
-  <table mat-table [dataSource]="exchangeRates" class="mat-elevation-z8 scrollable-table">
-    <ng-container matColumnDef="fromCurr">
-      <th mat-header-cell *matHeaderCellDef>From Currency</th>
-      <td mat-cell *matCellDef="let element">{{ element.fromCurr }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="toCurr">
-      <th mat-header-cell *matHeaderCellDef>To Currency</th>
-      <td mat-cell *matCellDef="let element">{{ element.toCurr }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="rate">
-      <th mat-header-cell *matHeaderCellDef>Rate</th>
-      <td mat-cell *matCellDef="let element">{{ element.rate }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="lastMod">
-      <th mat-header-cell *matHeaderCellDef>Last Modified</th>
-      <td mat-cell *matCellDef="let element">{{ element.lastMod | date }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="actions">
-      <th mat-header-cell *matHeaderCellDef>Actions</th>
-      <td mat-cell *matCellDef="let element; let i = index">
-        <button mat-icon-button color="primary" (click)="openPopup(true, i)">
-          <mat-icon>edit</mat-icon>
-        </button>
-        <button mat-icon-button color="warn" (click)="deleteRate(i)">
-          <mat-icon>delete</mat-icon>
-        </button>
-      </td>
-    </ng-container>
-
-    <tr mat-header-row *matHeaderRowDef="['fromCurr', 'toCurr', 'rate', 'lastMod', 'actions']"></tr>
-    <tr mat-row *matRowDef="let row; columns: ['fromCurr', 'toCurr', 'rate', 'lastMod', 'actions'];"></tr>
-  </table>
-
-  <!-- Inline popup -->
-  <ng-template #popupTemplate>
-    <h2 mat-dialog-title>{{ isEdit ? 'Edit Exchange Rate' : 'Add Exchange Rate' }}</h2>
-    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="popup-form">
-      <mat-form-field appearance="fill">
-        <mat-label>From Currency</mat-label>
-        <input matInput formControlName="fromCurr" />
-      </mat-form-field>
-
-      <mat-form-field appearance="fill">
-        <mat-label>To Currency</mat-label>
-        <input matInput formControlName="toCurr" />
-      </mat-form-field>
-
-      <mat-form-field appearance="fill">
-        <mat-label>Rate</mat-label>
-        <input matInput type="number" formControlName="rate" />
-      </mat-form-field>
-
-      <mat-form-field appearance="fill">
-        <mat-label>Last Modified</mat-label>
-        <input matInput [matDatepicker]="picker" formControlName="lastMod" />
-        <mat-datepicker-toggle matSuffix [for]="picker">
-          <mat-icon matDatepickerToggleIcon>calendar_today</mat-icon>
-        </mat-datepicker-toggle>
-        <mat-datepicker #picker></mat-datepicker>
-      </mat-form-field>
-
-      <div class="popup-actions">
-        <button mat-raised-button color="primary" type="submit">
-          {{ isEdit ? 'Update' : 'Add' }}
-        </button>
-        <button mat-button type="button" (click)="closePopup()">Cancel</button>
-      </div>
-    </form>
-  </ng-template>
-</div>
-
-
----
-
-✅ exchange-rate.component.css
-
-You can keep your existing styles. For scrollable tables and popup spacing, you can optionally use:
-
-.container {
-  padding: 20px;
-}
-
-.scrollable-table {
-  max-height: 400px;
-  overflow-y: auto;
-  display: block;
-}
-
-.popup-form {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.popup-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-
----
-
-✅ Summary
-
-✅ Add/Edit uses Angular Material popup.
-
-✅ Form content remains unchanged.
-
-✅ Popup uses the same template logic as before.
-
-✅ No need to create a separate component.
+The table and UI code outside the popup should stay unchanged.
 
 
 
 ---
 
-Would you like me to zip and export these updated files for easy replacement in your project?
+✅ Minimal Steps to Add Popup Without Changing Functionality:
+
+1. Move Form to Template Reference for Dialog
+
+Update your exchange-rates.component.html by wrapping the existing form in an ng-template:
+
+<ng-template #popupTemplate>
+  <form [formGroup]="form" (ngSubmit)="saveRate()">
+    <label>From Currency:</label>
+    <select formControlName="fromCurr" [attr.disabled]="editingId != null ? true : null">
+      <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
+    </select>
+
+    <label>To Currency:</label>
+    <select formControlName="toCurr" [attr.disabled]="editingId != null ? true : null">
+      <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
+    </select>
+
+    <label>Rate:</label>
+    <input formControlName="rate" placeholder="Rate" type="number" />
+
+    <label>Last Modified:</label>
+    <input formControlName="lastMod" type="date" placeholder="YYYY-MM-DD" [attr.disabled]="editingId != null ? true : null"/>
+
+    <button type="submit">{{ editingId ? 'Update' : 'Add' }}</button>
+    <button type="button" (click)="cancelEdit()">Cancel</button>
+  </form>
+</ng-template>
+
+2. Add openPopup() Method in .ts
+
+In your exchange-rates.component.ts, use this method to open the popup:
+
+@ViewChild('popupTemplate') popupTemplate!: TemplateRef<any>;
+
+openPopup(): void {
+  this.editingId = null;
+  this.form.reset();
+  this.dialog.open(this.popupTemplate);
+}
+
+For Edit:
+
+editRate(rate: any): void {
+  this.editingId = rate.id;
+  this.form.setValue({
+    fromCurr: rate.fromCurr,
+    toCurr: rate.toCurr,
+    rate: rate.rate,
+    lastMod: rate.lastMod
+  });
+  this.dialog.open(this.popupTemplate);
+}
+
+3. Keep Your Existing Table UI as Is
+
+Make sure the existing <table> and data loading logic is untouched.
+
+
+---
+
+This approach ensures:
+
+✅ Your dropdowns remain intact.
+
+✅ Editing logic is reused.
+
+✅ Popup opens both on Add and Edit without changing core functionality.
+
+
+Let me know if you want this integrated into the files you uploaded—I can generate the updated code for you directly.
 
