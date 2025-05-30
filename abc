@@ -1,6 +1,65 @@
+Thanks for the image and confirmation — you're using:
+
+Angular 17.3.12 ✅
+
+PrimeNG 17.0.0 ✅
+
+
+Everything looks good in terms of versions.
+
+
+---
+
+🔥 But based on your earlier error, the issue is with how you're importing CSS.
+
+You're using:
+
+@import 'node_modules/primeng/resources/themes/lara-light-blue/theme.css';
+@import 'node_modules/primeng/resources/primeng.min.css';
+
+⛔ This is incorrect in Angular 17 with SCSS.
+
+
+---
+
+✅ Correct Way to Import PrimeNG Styles
+
+In styles.scss or styles.css, use this:
+
+@import 'primeng/resources/themes/lara-light-blue/theme.css';
+@import 'primeng/resources/primeng.min.css';
+@import 'primeicons/primeicons.css';
+
+> ✅ Do not use node_modules/ in the path. Webpack will resolve it automatically.
+
+
+
+
+---
+
+Alternative: Use angular.json
+
+If you're not using SCSS and want to load globally via angular.json, update the styles section like this:
+
 "styles": [
   "node_modules/primeng/resources/themes/lara-light-blue/theme.css",
   "node_modules/primeng/resources/primeng.min.css",
   "node_modules/primeicons/primeicons.css",
   "src/styles.css"
-],
+]
+
+
+---
+
+🧹 Final Tip: Restart the App
+
+After fixing the paths:
+
+Ctrl + C (to stop Angular)
+npm start
+
+
+---
+
+Let me know which method you're using (angular.json or styles.scss), and I’ll guide you precisely.
+
