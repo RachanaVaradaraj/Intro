@@ -1,103 +1,180 @@
-Based on your HTML and the image, the Cancel button is present in the DOM but not visible likely due to either:
+Here’s a complete Angular 17 standalone component code for your Exchange Rate form and table:
 
-1. CSS hiding it
+✅ It includes:
 
+Editable Rate field only.
 
-2. *ngIf="editingId" is not truthy
+Disabled From/To currencies during edit.
 
+Readonly Last Modified field during edit.
 
-3. Layout constraints (e.g. display, margin, float, etc.)
+Add section with both Add and Cancel buttons.
 
+Clean styling and working edit, delete, and cancel logic.
 
 
 
 ---
 
-✅ Fix 1: Make Sure editingId Is Set Properly
+✅ exchange-rate.component.ts
 
-Ensure editingId is assigned when editing starts. For example:
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 
-editRate(rate: any) {
-  this.editingId = rate.id; // Make sure 'rate.id' exists and is assigned
-  this.form.patchValue(rate);
+@Component({
+  selector: 'app-exchange-rate',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, MatButtonModule, MatInputModule, MatSelectModule],
+  templateUrl: './exchange-rate.component.html',
+  styleUrls: ['./exchange-rate.component.css'],
+})
+export class ExchangeRateComponent {
+  form: FormGroup;
+  currencies: string[] = ['USD', 'EUR', 'INR', 'GBP'];
+  rates: any[] = [];
+  editingId: number | null = null;
+
+  constructor(private fb: FormBuilder) {
+    this.form = this.fb.group({
+      fromCurr: [''],
+      toCurr: [''],
+      rate: [''],
+      lastMod: ['']
+    });
+  }
+
+  saveRate() {
+    const newRate = this.form.value;
+
+    if (this.editingId !== null) {
+      // Update
+      const index = this.rates.findIndex(r => r.id === this.editingId);
+      if (index !== -1) {
+        this.rates[index].rate = newRate.rate;
+        this.rates[index].lastMod = newRate.lastMod;
+      }
+      this.editingId = null;
+    } else {
+      // Add
+      const id = new Date().getTime();
+      this.rates.push({ id, ...newRate });
+    }
+
+    this.form.reset();
+  }
+
+  editRate(rate: any) {
+    this.editingId = rate.id;
+    this.form.setValue({
+      fromCurr: rate.fromCurr,
+      toCurr: rate.toCurr,
+      rate: rate.rate,
+      lastMod: rate.lastMod
+    });
+  }
+
+  deleteRate(id: number) {
+    this.rates = this.rates.filter(r => r.id !== id);
+    this.cancelEdit(); // cancel if you're deleting the one being edited
+  }
+
+  cancelEdit() {
+    this.editingId = null;
+    this.form.reset();
+  }
 }
 
 
 ---
 
-✅ Fix 2: Adjust HTML Button Section
+✅ exchange-rate.component.html
 
-Make sure both buttons are styled and inside a proper block layout:
+<h2>Exchange Rates</h2>
 
-<div class="button-row">
-  <button type="submit">
-    {{ editingId ? 'Update' : 'Add' }}
-  </button>
-  <button type="button" (click)="cancelEdit()" *ngIf="editingId">
-    Cancel
-  </button>
-</div>
+<form [formGroup]="form" (ngSubmit)="saveRate()">
+  <label>From Currency:</label>
+  <select formControlName="fromCurr" [disabled]="editingId !== null">
+    <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
+  </select>
+
+  <label>To Currency:</label>
+  <select formControlName="toCurr" [disabled]="editingId !== null">
+    <option *ngFor="let curr of currencies" [value]="curr">{{ curr }}</option>
+  </select>
+
+  <label>Rate:</label>
+  <input formControlName="rate" placeholder="Rate" type="number" />
+
+  <label>Last Modified:</label>
+  <input formControlName="lastMod" placeholder="YYYY-MM-DD" type="date" [readonly]="editingId !== null" />
+
+  <button type="submit">{{ editingId ? 'Update' : 'Add' }}</button>
+  <button type="button" (click)="cancelEdit()">Cancel</button>
+</form>
+
+<br />
+
+<table>
+  <thead>
+    <tr>
+      <th>From</th>
+      <th>To</th>
+      <th>Rate</th>
+      <th>Last Modified</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let rate of rates">
+      <td>{{ rate.fromCurr }}</td>
+      <td>{{ rate.toCurr }}</td>
+      <td>{{ rate.rate }}</td>
+      <td>{{ rate.lastMod }}</td>
+      <td>
+        <button (click)="editRate(rate)">Edit</button>
+        <button (click)="deleteRate(rate.id)">Delete</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 
 ---
 
-✅ Fix 3: Complete CSS to Display Buttons
+✅ exchange-rate.component.css (Optional Styling)
 
-Add this to your exchange-rates.component.css or global styles.css:
-
-.button-row {
+form {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  max-width: 400px;
+  margin-bottom: 20px;
+}
+label {
   margin-top: 10px;
 }
-
-button {
-  padding: 6px 12px;
+input, select {
+  padding: 6px;
   font-size: 14px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
 }
-
-button[type="button"] {
-  background-color: #f44336; /* Red cancel button */
+table {
+  width: 100%;
+  border-collapse: collapse;
 }
-
-button:hover {
-  opacity: 0.9;
+th, td {
+  padding: 8px;
+  border: 1px solid #ccc;
+  text-align: left;
 }
-
-
----
-
-✅ Fix 4: Ensure editingId Has a Value
-
-In your .ts:
-
-cancelEdit() {
-  this.editingId = null;
-  this.form.reset();
+button {
+  margin-right: 5px;
 }
 
 
 ---
 
-✅ Fix 5: Component Imports (if you're using Angular Material)
-
-Ensure these are in your app.module.ts or imported into your standalone component:
-
-import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-
-
----
-
-Would you like me to give you the updated .ts, .html, and .css files all together for clarity?
+Let me know if you also want this as a popup modal (MatDialog) or if you'd like to hook this up to your Spring Boot backend.
 
