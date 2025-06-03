@@ -1,84 +1,86 @@
-To ensure the "Update" button fills the form with the correct values and updates the table after editing, only the editRate() and saveRate() methods from your screenshots need modification.
-
-Here are the updated versions of those functions:
+To enforce a validation rule in Angular where the user cannot select a date more than 2 days after the current date, follow these steps:
 
 
 ---
 
-✅ Updated editRate(rate: any) function
+✅ Step-by-step Implementation
 
-Ensure that you’re setting the form controls correctly using the value (for dropdowns), and properly assigning the values for fromCurr and toCurr.
+1. Add a custom validator for the lastMod date field
 
-editRate(rate: any) {
-  this.editingId = rate.id;
-  this.form.setValue({
-    fromCurr: this.currencies.find(currency => currency.value === rate.fromCurr) || { value: rate.fromCurr, viewValue: rate.fromCurr },
-    toCurr: this.currencies.find(currency => currency.value === rate.toCurr) || { value: rate.toCurr, viewValue: rate.toCurr },
-    rate: rate.rate,
-    lastMod: rate.lastMod
-  });
+In your exchange-rates.component.ts:
 
-  this.form.get('fromCurr')?.disable();
-  this.form.get('toCurr')?.disable();
-  this.form.get('lastMod')?.disable();
-}
+import { AbstractControl, ValidatorFn } from '@angular/forms';
 
+function maxTwoDaysValidator(): ValidatorFn {
+  return (control: AbstractControl): { [key: string]: any } | null => {
+    const inputDate = new Date(control.value);
+    const today = new Date();
 
----
+    // Clear time for comparison
+    today.setHours(0, 0, 0, 0);
+    inputDate.setHours(0, 0, 0, 0);
 
-✅ Updated saveRate() function
+    const maxDate = new Date(today);
+    maxDate.setDate(today.getDate() + 2);
 
-This ensures that after a successful update, the values are reflected in the table by calling this.getRates() and canceling the edit mode.
-
-saveRate() {
-  if (this.form.invalid) {
-    console.error('Form is invalid', this.form.errors);
-    return;
-  }
-
-  const payload = {
-    fromCurr: this.form.value.fromCurr?.value || this.form.value.fromCurr,
-    toCurr: this.form.value.toCurr?.value || this.form.value.toCurr,
-    rate: this.form.value.rate,
-    lastMod: this.form.value.lastMod
+    return inputDate > maxDate
+      ? { maxTwoDays: true }
+      : null;
   };
-
-  console.log('Sending payload:', payload);
-
-  if (this.editingId != null) {
-    this.http.put(`http://localhost:8080/api/exchange-rates/${this.editingId}`, payload)
-      .subscribe(() => {
-        this.getRates();
-        this.cancelEdit();
-      }, (error: HttpErrorResponse) => {
-        console.error('Error updating rate', error);
-      });
-  } else {
-    this.http.post('http://localhost:8080/api/exchange-rates', payload)
-      .subscribe(() => {
-        this.getRates();
-        this.form.get('fromCurr')?.enable();
-        this.form.get('toCurr')?.enable();
-        this.form.get('lastMod')?.enable();
-      }, (error: HttpErrorResponse) => {
-        console.error('Error adding rate', error);
-      });
-  }
 }
 
 
 ---
 
-These updates:
+2. Apply this validator to your form control
 
-Fix dropdown value binding with fromCurr and toCurr.
+In your FormGroup definition:
 
-Send the proper payload for both Add and Update.
+this.form = this.fb.group({
+  fromCurr: ['', Validators.required],
+  toCurr: ['', Validators.required],
+  rate: ['', Validators.required],
+  lastMod: ['', [Validators.required, maxTwoDaysValidator()]]
+});
 
-Refresh the table after update.
 
-Disable/enable the fields correctly.
+---
+
+3. Update the template to show an error message
+
+In exchange-rates.component.html, update the date section:
+
+<div class="form-group">
+  <label>Last Modified:</label>
+  <input 
+    formControlName="lastMod" 
+    type="date" 
+    placeholder="YYYY-MM-DD" 
+    [attr.disabled]="editingId !== null ? true : null"
+  />
+  <div *ngIf="form.get('lastMod')?.invalid && form.get('lastMod')?.touched" class="error">
+    <div *ngIf="form.get('lastMod')?.errors?.['required']">
+      Last Modified is required.
+    </div>
+    <div *ngIf="form.get('lastMod')?.errors?.['maxTwoDays']">
+      Date cannot be more than 2 days in the future.
+    </div>
+  </div>
+</div>
 
 
-Let me know if you also want to highlight the row after update or scroll to it.
+---
+
+✅ Result
+
+Now if the user selects a date more than 2 days after today, the form will mark the lastMod control as invalid, and show:
+
+> "Date cannot be more than 2 days in the future."
+
+
+
+
+---
+
+Let me know if you want this date validation shown using a popup alert or custom CSS style too.
 
