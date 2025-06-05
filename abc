@@ -1,97 +1,83 @@
-Here's how you can update your three buttons (Add, Delete Selected, Refresh) to use normal icons that closely match the FIS Data Integrity Manager UI — using Font Awesome (recommended for full styling control and modern icon set):
+Based on your screenshot, you want three square icon-only buttons (Add, Delete, Refresh) styled like the FIS Data Integrity Manager using Material Icons — no text, just icons in bordered square buttons.
 
 
 ---
 
-✅ Step 1: Add Font Awesome to your index.html
+✅ Step 1: Enable Material Icons in index.html
 
-In src/index.html, add this inside the <head>:
+In your src/index.html, add this in <head> if not already present:
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
 
 ---
 
-✅ Step 2: Updated Button HTML Code
+✅ Step 2: HTML for Icon Buttons (No PrimeNG)
 
-Replace your existing buttons with the following HTML:
+<div class="fis-button-group">
+  <button class="fis-icon-btn" (click)="openAddPopup()">
+    <span class="material-icons">add</span>
+  </button>
 
-<div class="button-group">
-  <p-button class="custom-btn">
-    <ng-template pTemplate="content">
-      <i class="fas fa-plus"></i> Add
-    </ng-template>
-  </p-button>
+  <button class="fis-icon-btn" (click)="deleteSelectedRates()">
+    <span class="material-icons">delete</span>
+  </button>
 
-  <p-button class="custom-btn danger" (click)="deleteSelectedRates()">
-    <ng-template pTemplate="content">
-      <i class="fas fa-trash-alt"></i> Delete Selected
-    </ng-template>
-  </p-button>
-
-  <p-button class="custom-btn" (click)="refreshPage()">
-    <ng-template pTemplate="content">
-      <i class="fas fa-sync-alt"></i> Refresh
-    </ng-template>
-  </p-button>
+  <button class="fis-icon-btn" (click)="refreshPage()">
+    <span class="material-icons">refresh</span>
+  </button>
 </div>
 
 
 ---
 
-✅ Step 3: CSS Styling for FIS Look
+✅ Step 3: CSS Styling for FIS-Like Appearance
 
-Add this to your component’s .css file:
-
-.button-group {
+.fis-button-group {
   display: flex;
   gap: 10px;
   margin-bottom: 10px;
 }
 
-.custom-btn {
-  background-color: #f0f0f0;
-  border: 1px solid #d0d0d0;
-  color: #333;
-  font-weight: 500;
-  padding: 4px 12px;
+.fis-icon-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #a0a0a0;
+  background-color: white;
   border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
 }
 
-.custom-btn i {
-  margin-right: 5px;
+.fis-icon-btn:hover {
+  background-color: #f5f5f5;
+  border-color: #5a5a5a;
 }
 
-.custom-btn:hover {
-  background-color: #e0e0e0;
-  border-color: #bcbcbc;
-}
-
-.custom-btn.danger {
-  background-color: #fdd;
-  border-color: #f99;
-  color: #b00;
-}
-
-.custom-btn.danger:hover {
-  background-color: #fbb;
-  border-color: #f55;
+.fis-icon-btn .material-icons {
+  font-size: 20px;
+  color: #333;
 }
 
 
 ---
 
-🔎 Icons Used:
+✅ Icons Used:
 
-Button	Font Awesome Icon (<i class=...>)
+Action	Material Icon Name
 
-Add	fas fa-plus
-Delete Selected	fas fa-trash-alt
-Refresh	fas fa-sync-alt
+Add	add
+Delete Selected	delete
+Refresh	refresh
 
 
 
 ---
 
-Let me know if you'd prefer Material Icons or SVGs instead — or want to make them icon-only buttons like in the FIS screenshot.
+This will give you exactly the minimalist FIS-styled toolbar with square icon buttons and no PrimeNG dependency.
+
+Let me know if you also want the edit icons for each row styled the same way.
 
