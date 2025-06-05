@@ -1,21 +1,83 @@
-Based on your screenshot, you want three square icon-only buttons (Add, Delete, Refresh) styled like the FIS Data Integrity Manager using Material Icons — no text, just icons in bordered square buttons.
+In Oracle SQL, the DATE data type does not store format — format applies only when inserting or selecting values using TO_DATE or TO_CHAR.
 
+Below is the complete PL/SQL script to insert 50 rows with random values into your table EXCHANGERATES_RACHANA, ensuring:
 
----
+Random values for each column.
 
-✅ Step 1: Enable Material Icons in index.html
+LastMod date inserted using the format MM/DD/YYYY.
 
-In your src/index.html, add this in <head> if not already present:
-
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
 
 ---
 
-✅ Step 2: HTML for Icon Buttons (No PrimeNG)
+✅ Full PL/SQL Script
 
-<div class="fis-button-group">
-  <button class="fis-icon-btn" (click)="openAddPopup()">
+BEGIN
+  FOR i IN 1..50 LOOP
+    DECLARE
+      v_from_curr VARCHAR2(10);
+      v_to_curr   VARCHAR2(10);
+      v_rate      NUMBER;
+      v_last_mod  DATE;
+      v_currencies SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
+        'USD', 'EUR', 'INR', 'JPY', 'GBP', 'AUD', 'CAD', 'CHF', 'CNY', 'SEK',
+        'NZD', 'ZAR', 'BRL', 'SGD', 'HKD', 'KRW', 'MXN', 'THB', 'IDR', 'RUB'
+      );
+    BEGIN
+      -- Generate two different currency codes
+      LOOP
+        v_from_curr := v_currencies(TRUNC(DBMS_RANDOM.VALUE(1, v_currencies.COUNT + 1)));
+        v_to_curr   := v_currencies(TRUNC(DBMS_RANDOM.VALUE(1, v_currencies.COUNT + 1)));
+        EXIT WHEN v_from_curr != v_to_curr;
+      END LOOP;
+
+      -- Random rate between 0.5 and 2.5
+      v_rate := ROUND(DBMS_RANDOM.VALUE(0.5, 2.5), 4);
+
+      -- Generate a random date within the last 5 years
+      v_last_mod := TO_DATE(TO_CHAR(TRUNC(SYSDATE - DBMS_RANDOM.VALUE(0, 1825)), 'MM/DD/YYYY'), 'MM/DD/YYYY');
+
+      -- Insert the data, skip duplicates
+      BEGIN
+        INSERT INTO EXCHANGERATES_RACHANA (FromCurr, ToCurr, Rate, LastMod)
+        VALUES (v_from_curr, v_to_curr, v_rate, v_last_mod);
+      EXCEPTION
+        WHEN DUP_VAL_ON_INDEX THEN
+          NULL;
+      END;
+    END;
+  END LOOP;
+  COMMIT;
+END;
+/
+
+
+---
+
+🔍 Key Details:
+
+Currencies: Picked from a fixed list.
+
+Rate: Random NUMBER between 0.5 and 2.5.
+
+Date: Inserted using TO_DATE(..., 'MM/DD/YYYY').
+
+Duplicates: Handled using EXCEPTION WHEN DUP_VAL_ON_INDEX.
+
+
+
+---
+
+Let me know if you want to:
+
+Use a fixed FromCurr like always 'USD'.
+
+Insert more than 50 rows.
+
+Display all rows using formatted MM/DD/YYYY date output.
+
+
+ class="fis-icon-btn" (click)="openAddPopup()">
     <span class="material-icons">add</span>
   </button>
 
