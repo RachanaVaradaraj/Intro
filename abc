@@ -1,11 +1,47 @@
-To style your Angular PrimeNG <p-button> elements so they visually match the FIS Data Integrity Manager UI (as shown in the second screenshot), you’ll need to make a few CSS updates. Based on the screenshots and your current code, here's a suggested CSS style block and the modifications you can make:
+Here's how you can update your three buttons (Add, Delete Selected, Refresh) to use normal icons that closely match the FIS Data Integrity Manager UI — using Font Awesome (recommended for full styling control and modern icon set):
 
 
 ---
 
-✅ Step 1: Suggested CSS (Modern FIS-style UI)
+✅ Step 1: Add Font Awesome to your index.html
 
-Add this to your component's .css or .scss file:
+In src/index.html, add this inside the <head>:
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+
+---
+
+✅ Step 2: Updated Button HTML Code
+
+Replace your existing buttons with the following HTML:
+
+<div class="button-group">
+  <p-button class="custom-btn">
+    <ng-template pTemplate="content">
+      <i class="fas fa-plus"></i> Add
+    </ng-template>
+  </p-button>
+
+  <p-button class="custom-btn danger" (click)="deleteSelectedRates()">
+    <ng-template pTemplate="content">
+      <i class="fas fa-trash-alt"></i> Delete Selected
+    </ng-template>
+  </p-button>
+
+  <p-button class="custom-btn" (click)="refreshPage()">
+    <ng-template pTemplate="content">
+      <i class="fas fa-sync-alt"></i> Refresh
+    </ng-template>
+  </p-button>
+</div>
+
+
+---
+
+✅ Step 3: CSS Styling for FIS Look
+
+Add this to your component’s .css file:
 
 .button-group {
   display: flex;
@@ -13,89 +49,49 @@ Add this to your component's .css or .scss file:
   margin-bottom: 10px;
 }
 
-.p-button {
-  border-radius: 4px;
-  font-size: 13px;
+.custom-btn {
+  background-color: #f0f0f0;
+  border: 1px solid #d0d0d0;
+  color: #333;
+  font-weight: 500;
   padding: 4px 12px;
-  height: 32px;
-  display: flex;
-  align-items: center;
+  border-radius: 4px;
 }
 
-.p-button .pi {
+.custom-btn i {
   margin-right: 5px;
 }
 
-.p-button.add-button {
-  background-color: #e0f7fa;
-  border: 1px solid #0097a7;
-  color: #006064;
+.custom-btn:hover {
+  background-color: #e0e0e0;
+  border-color: #bcbcbc;
 }
 
-.p-button.delete-button {
-  background-color: #ffebee;
-  border: 1px solid #c62828;
-  color: #b71c1c;
+.custom-btn.danger {
+  background-color: #fdd;
+  border-color: #f99;
+  color: #b00;
 }
 
-.p-button.refresh-button {
-  background-color: #e8f5e9;
-  border: 1px solid #2e7d32;
-  color: #1b5e20;
-}
-
-
----
-
-✅ Step 2: Update Your Buttons in HTML
-
-Update your HTML <p-button> declarations like this:
-
-<div class="button-group">
-  <p-button 
-    class="add-button" 
-    (click)="showDialog()" 
-    icon="pi pi-plus" 
-    title="Add">
-  </p-button>
-
-  <p-button 
-    class="delete-button" 
-    (click)="deleteSelectedRates()" 
-    icon="pi pi-trash" 
-    title="Delete Selected" 
-    severity="danger">
-  </p-button>
-
-  <p-button 
-    class="refresh-button" 
-    (click)="refreshPage()" 
-    icon="pi pi-refresh" 
-    title="Refresh">
-  </p-button>
-</div>
-
-
----
-
-✅ Optional: Match Font & Button Widths
-
-You may want to explicitly match the font family and fixed button widths based on the FIS style.
-
-.p-button {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  min-width: 110px;
+.custom-btn.danger:hover {
+  background-color: #fbb;
+  border-color: #f55;
 }
 
 
 ---
 
-Final Notes:
+🔎 Icons Used:
 
-You can tweak the padding, font size, colors, and border radius further to fine-tune the appearance.
+Button	Font Awesome Icon (<i class=...>)
 
-If you want tooltips instead of the title attribute, use <p-tooltip> from PrimeNG for richer behavior.
+Add	fas fa-plus
+Delete Selected	fas fa-trash-alt
+Refresh	fas fa-sync-alt
 
 
-Would you like me to help implement hover effects or align icons exactly as shown in the FIS UI too?
+
+---
+
+Let me know if you'd prefer Material Icons or SVGs instead — or want to make them icon-only buttons like in the FIS screenshot.
 
