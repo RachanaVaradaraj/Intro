@@ -1,145 +1,71 @@
-In Oracle SQL, the DATE data type does not store format — format applies only when inserting or selecting values using TO_DATE or TO_CHAR.
+import re
+import logging
 
-Below is the complete PL/SQL script to insert 50 rows with random values into your table EXCHANGERATES_RACHANA, ensuring:
+def normalize_holder_key(holder: str) -> str:
+    """Normalize holder key (case/space insensitive)."""
+    return holder.strip().lower()
 
-Random values for each column.
+def create_staging_table(conn, table_name, columns, config, holder_values):
+    create_table_sql = f"CREATE TABLE {table_name} (ID BIGINT NOT NULL IDENTITY(1,1) PRIMARY KEY, "
+    try:
+        for column in columns:
+            if 'data_type' in column:
+                create_table_sql += f"{column['name']} {column['data_type']}, "
+            elif 'default' in column:
+                default_value = column['default']
 
-LastMod date inserted using the format MM/DD/YYYY.
+                logging.debug(f"Default value before replacement for column {column['name']}: {default_value}")
 
+                # Replace all holders in the default string
+                for holder, val in holder_values.items():
+                    norm_holder = normalize_holder_key(holder)
+                    if norm_holder in normalize_holder_key(default_value):
+                        default_value = re.sub(re.escape(holder), val, default_value)
 
+                logging.debug(f"Default value after replacement for column {column['name']}: {default_value}")
 
----
+                create_table_sql += f"{column['name']} NVARCHAR(50) DEFAULT '{default_value}', "
+            elif 'length' in column:
+                create_table_sql += f"{column['name']} NVARCHAR({column['length']}), "
+            else:
+                create_table_sql += f"{column['name']} NVARCHAR(50), "
 
-✅ Full PL/SQL Script
-
-BEGIN
-  FOR i IN 1..50 LOOP
-    DECLARE
-      v_from_curr VARCHAR2(10);
-      v_to_curr   VARCHAR2(10);
-      v_rate      NUMBER;
-      v_last_mod  DATE;
-      v_currencies SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
-        'USD', 'EUR', 'INR', 'JPY', 'GBP', 'AUD', 'CAD', 'CHF', 'CNY', 'SEK',
-        'NZD', 'ZAR', 'BRL', 'SGD', 'HKD', 'KRW', 'MXN', 'THB', 'IDR', 'RUB'
-      );
-    BEGIN
-      -- Generate two different currency codes
-      LOOP
-        v_from_curr := v_currencies(TRUNC(DBMS_RANDOM.VALUE(1, v_currencies.COUNT + 1)));
-        v_to_curr   := v_currencies(TRUNC(DBMS_RANDOM.VALUE(1, v_currencies.COUNT + 1)));
-        EXIT WHEN v_from_curr != v_to_curr;
-      END LOOP;
-
-      -- Random rate between 0.5 and 2.5
-      v_rate := ROUND(DBMS_RANDOM.VALUE(0.5, 2.5), 4);
-
-      -- Generate a random date within the last 5 years
-      v_last_mod := TO_DATE(TO_CHAR(TRUNC(SYSDATE - DBMS_RANDOM.VALUE(0, 1825)), 'MM/DD/YYYY'), 'MM/DD/YYYY');
-
-      -- Insert the data, skip duplicates
-      BEGIN
-        INSERT INTO EXCHANGERATES_RACHANA (FromCurr, ToCurr, Rate, LastMod)
-        VALUES (v_from_curr, v_to_curr, v_rate, v_last_mod);
-      EXCEPTION
-        WHEN DUP_VAL_ON_INDEX THEN
-          NULL;
-      END;
-    END;
-  END LOOP;
-  COMMIT;
-END;
-/
+        create_table_sql = create_table_sql.rstrip(", ") + ")"
+        conn.execute(create_table_sql)
+    except Exception as e:
+        logging.error(f"Error creating table {table_name}: {str(e)}")
+        logging.error(f"Create table SQL: {create_table_sql}")
 
 
----
+def insert_data_into_staging_table(conn, table_name, data, columns, holder_values):
+    columns_to_insert = [c['name'] for c in columns if not c['name'].startswith('Holder')]
+    insert_sql = f"INSERT INTO {table_name} ({', '.join(columns_to_insert)}) VALUES ("
+    insert_sql += ", ".join(["?"] * len(columns_to_insert)) + ")"
 
-🔍 Key Details:
+    try:
+        for row in data:
+            row_values = []
+            for column_name in columns_to_insert:
+                column = next((c for c in columns if c['name'] == column_name), None)
+                value = row.get(column_name)
 
-Currencies: Picked from a fixed list.
+                # Apply default replacement if needed
+                if (value is None or value == "") and column and 'default' in column:
+                    default_value = column['default']
+                    logging.debug(f"Default value before replacement for column {column_name}: {default_value}")
 
-Rate: Random NUMBER between 0.5 and 2.5.
+                    for holder, val in holder_values.items():
+                        norm_holder = normalize_holder_key(holder)
+                        if norm_holder in normalize_holder_key(default_value):
+                            default_value = re.sub(re.escape(holder), val, default_value)
 
-Date: Inserted using TO_DATE(..., 'MM/DD/YYYY').
+                    logging.debug(f"Default value after replacement for column {column_name}: {default_value}")
+                    value = default_value
 
-Duplicates: Handled using EXCEPTION WHEN DUP_VAL_ON_INDEX.
+                row_values.append(value)
 
+            conn.execute(insert_sql, row_values)
 
-
----
-
-Let me know if you want to:
-
-Use a fixed FromCurr like always 'USD'.
-
-Insert more than 50 rows.
-
-Display all rows using formatted MM/DD/YYYY date output.
-
-
- class="fis-icon-btn" (click)="openAddPopup()">
-    <span class="material-icons">add</span>
-  </button>
-
-  <button class="fis-icon-btn" (click)="deleteSelectedRates()">
-    <span class="material-icons">delete</span>
-  </button>
-
-  <button class="fis-icon-btn" (click)="refreshPage()">
-    <span class="material-icons">refresh</span>
-  </button>
-</div>
-
-
----
-
-✅ Step 3: CSS Styling for FIS-Like Appearance
-
-.fis-button-group {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.fis-icon-btn {
-  width: 36px;
-  height: 36px;
-  border: 1px solid #a0a0a0;
-  background-color: white;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
-}
-
-.fis-icon-btn:hover {
-  background-color: #f5f5f5;
-  border-color: #5a5a5a;
-}
-
-.fis-icon-btn .material-icons {
-  font-size: 20px;
-  color: #333;
-}
-
-
----
-
-✅ Icons Used:
-
-Action	Material Icon Name
-
-Add	add
-Delete Selected	delete
-Refresh	refresh
-
-
-
----
-
-This will give you exactly the minimalist FIS-styled toolbar with square icon buttons and no PrimeNG dependency.
-
-Let me know if you also want the edit icons for each row styled the same way.
-
+    except Exception as e:
+        logging.error(f"Error inserting data into table {table_name}: {str(e)}")
+        logging.error(f"Insert SQL: {insert_sql}")
