@@ -1,0 +1,84 @@
+SELECT 
+    A.Name          AS [Balance Pool],
+    B.Name          AS [Compte chez eux],
+    D.Name          AS [Code ISIN],
+    D.Description   AS [Libellé ISIN],
+    C.Price         AS [Quantité (eux)],
+    C.SettleDate    AS [Date Valeur (eux)],
+    C.UserId2       AS [Type de part (eux)],
+    (C.Price - ISNULL(F.Price, 0)) AS [Différence (eux-nous)]
+FROM AccountPool A
+JOIN Account B 
+    ON B.PoolId = A.Id 
+    AND B.PoolType = 'EXTERNAL'              -- dynamic label for external accounts
+JOIN Trade C 
+    ON C.AccountId = B.Id 
+JOIN Security D 
+    ON D.Id = C.SecurityId
+LEFT JOIN Account E 
+    ON E.PoolId = A.Id 
+    AND E.PoolType = 'INTERNAL'              -- dynamic label for internal accounts
+LEFT JOIN Trade F 
+    ON F.AccountId = E.Id
+    AND F.SecurityId = C.SecurityId
+    AND F.MatchId = C.MatchId
+WHERE A.CompanyId = (SELECT CompanyId FROM Company WHERE IsActive = 1)
+  AND C.TradeType = 'EUX'                    -- replaces Class = 43
+  AND (F.TradeType IS NULL OR F.TradeType = 'NOUS')  -- replaces NOT IN + Class = 42
+  AND CONVERT(CHAR(8), C.SettleDate, 112) = 
+      CONVERT(CHAR(8),
+              CASE DATEPART(dw, GETDATE())
+                   WHEN 2 THEN DATEADD(dd, -3, GETDATE())
+                   ELSE DATEADD(dd, -1, GETDATE())
+              END, 112)
+ORDER BY 
+    A.Name, D.Name, D.Description, B.Name;
+
+
+
+
+
+
+
+
+
+SELECT 
+    A.Name          AS [Balance Pool],
+    B.Name          AS [Compte chez nous],
+    D.Name          AS [Code ISIN],
+    D.Description   AS [Libellé ISIN],
+    F.Price         AS [Quantité (nous)],
+    F.SettleDate    AS [Date Valeur (nous)],
+    F.UserId2       AS [Type de part (nous)],
+    C.Price         AS [Quantité (eux)],
+    C.SettleDate    AS [Date Valeur (eux)],
+    C.UserId2       AS [Type de part (eux)],
+    (F.Price - C.Price) AS [Différence (nous-eux)]
+FROM AccountPool A
+JOIN Account B 
+    ON B.PoolId = A.Id 
+    AND B.PoolType = 'INTERNAL'                  -- replaces PoolSide hardcode
+JOIN Account E 
+    ON E.PoolId = A.Id 
+    AND E.PoolType = 'EXTERNAL'                  -- replaces PoolSide hardcode
+JOIN Trade F 
+    ON F.AccountId = B.Id 
+JOIN Security D 
+    ON D.Id = F.SecurityId
+LEFT JOIN Trade C 
+    ON C.AccountId = E.Id 
+    AND C.SecurityId = F.SecurityId 
+    AND C.MatchId = F.MatchId 
+    AND C.TradeType = 'EUX'                      -- replaces Class 40 logic
+WHERE A.CompanyId = (SELECT TOP 1 Id FROM Company WHERE IsActive = 1)
+  AND F.TradeType = 'NOUS'                       -- replaces Class 41 logic
+  AND F.Status = 'L'                             -- replaces hardcoded WUserId filters
+  AND CONVERT(CHAR(8), F.SettleDate, 112) = 
+      CONVERT(CHAR(8),
+              CASE DATEPART(dw, GETDATE())
+                   WHEN 2 THEN DATEADD(dd, -3, GETDATE())
+                   ELSE DATEADD(dd, -1, GETDATE())
+              END, 112)
+ORDER BY 
+    A.Name, D.Name, D.Description, B.Name;
+
